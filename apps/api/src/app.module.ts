@@ -9,6 +9,7 @@ import { UserModule } from './modules/user/user.module';
 import { HealthModule } from './modules/health/health.module';
 import { AiModule } from './modules/ai/ai.module';
 import { SystemModule } from './modules/system/system.module';
+import { MonitorModule } from './modules/monitor/monitor.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
@@ -44,6 +45,9 @@ import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
     // System management modules
     SystemModule,
+
+    // System monitoring
+    MonitorModule,
   ],
   providers: [
     Logger,

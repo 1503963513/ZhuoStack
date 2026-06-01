@@ -171,6 +171,71 @@ async function main() {
     },
   });
 
+  // 一级目录：系统监控
+  const menuMonitor = await prisma.sysMenu.create({
+    data: {
+      name: '系统监控',
+      type: MenuType.DIRECTORY,
+      path: '/monitor',
+      icon: 'Monitor',
+      sort: 2,
+      status: Status.ACTIVE,
+    },
+  });
+
+  // 系统监控子菜单
+  await prisma.sysMenu.create({
+    data: {
+      name: '缓存列表',
+      parentId: menuMonitor.id,
+      type: MenuType.MENU,
+      path: '/monitor/cache',
+      component: 'monitor/cache/index',
+      icon: 'Database',
+      sort: 1,
+      status: Status.ACTIVE,
+    },
+  });
+
+  await prisma.sysMenu.create({
+    data: {
+      name: '在线用户',
+      parentId: menuMonitor.id,
+      type: MenuType.MENU,
+      path: '/monitor/online',
+      component: 'monitor/online/index',
+      icon: 'Users',
+      sort: 2,
+      status: Status.ACTIVE,
+    },
+  });
+
+  await prisma.sysMenu.create({
+    data: {
+      name: '定时任务',
+      parentId: menuMonitor.id,
+      type: MenuType.MENU,
+      path: '/monitor/jobs',
+      component: 'monitor/jobs/index',
+      icon: 'Timer',
+      sort: 3,
+      status: Status.ACTIVE,
+    },
+  });
+
+  await prisma.sysMenu.create({
+    data: {
+      name: '接口文档',
+      parentId: menuMonitor.id,
+      type: MenuType.MENU,
+      path: '/monitor/swagger',
+      component: 'monitor/swagger/index',
+      icon: 'FileText',
+      sort: 4,
+      status: Status.ACTIVE,
+    },
+  });
+
   // 一级菜单：个人中心
   await prisma.sysMenu.create({
     data: {
