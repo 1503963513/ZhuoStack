@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Delete,
+  Post,
   Param,
   UseGuards,
 } from '@nestjs/common';
@@ -79,6 +80,33 @@ export class MonitorController {
   @ApiResponse({ status: 200, description: '获取成功' })
   getJobs() {
     return this.monitorService.getJobs();
+  }
+
+  @Post('jobs/:name/start')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '启动定时任务' })
+  @ApiParam({ name: 'name', description: '任务名称' })
+  @ApiResponse({ status: 200, description: '操作成功' })
+  startJob(@Param('name') name: string) {
+    return this.monitorService.startJob(name);
+  }
+
+  @Post('jobs/:name/stop')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '停止定时任务' })
+  @ApiParam({ name: 'name', description: '任务名称' })
+  @ApiResponse({ status: 200, description: '操作成功' })
+  stopJob(@Param('name') name: string) {
+    return this.monitorService.stopJob(name);
+  }
+
+  @Post('jobs/:name/run')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '立即执行一次定时任务' })
+  @ApiParam({ name: 'name', description: '任务名称' })
+  @ApiResponse({ status: 200, description: '操作成功' })
+  runJob(@Param('name') name: string) {
+    return this.monitorService.runJob(name);
   }
 
   // ========== 服务器信息 ==========

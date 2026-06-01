@@ -1,22 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { RedisService } from '../../database/redis.service';
 import * as os from 'os';
+
+// 在线用户 Redis key 前缀
+const ONLINE_USER_PREFIX = 'online:user:';
+const ONLINE_USER_TTL = 30 * 60; // 30 分钟过期
 
 @Injectable()
 export class MonitorService {
   private readonly logger = new Logger(MonitorService.name);
-  // 模拟在线用户数据（生产环境应从 Redis 或数据库中获取）
-  private onlineUsers: Map<string, { userId: string; username: string; ip: string; loginTime: Date }> = new Map();
 
-  constructor(private readonly redisService: RedisService) {
-    // 添加一些模拟数据
-    this.onlineUsers.set('mock-1', {
-      userId: '1',
-      username: 'admin',
-      ip: '127.0.0.1',
-      loginTime: new Date(),
-    });
-  }
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly schedulerRegistry: SchedulerRegistry,
+  ) {}
+
+  // ========== 缓存监控（真实 Redis） ==========
 
   /**
    * 获取缓存信息
@@ -24,7 +24,7 @@ export class MonitorService {
   async getCacheInfo() {
     const client = this.redisService.getClient();
     if (!client) {
-      return { status: 'disconnected', keys: [], info: {} };
+      return { status: 'disconnected', totalKeys: 0, usedMemory: 'N/A', keys: [] };
     }
 
     try {
@@ -42,25 +42,45 @@ export class MonitorService {
 
       // 获取每个键的详细信息
       const keyDetails = await Promise.all(
-        keys.slice(0, 100).map(async (key) => {
-          const ttl = await client.ttl(key);
-          const type = await client.type(key);
-          return { key, ttl, type };
+        keys.slice(0, 200).map(async (key) => {
+          const [ttl, type] = await Promise.all([client.ttl(key), client.type(key)]);
+          let size = 'N/A';
+          try {
+            if (type === 'string') {
+              const val = await client.get(key);
+              size = val ? `${val.length} 字符` : '空';
+            } else if (type === 'list') {
+              size = `${await client.llen(key)} 项`;
+            } else if (type === 'set') {
+              size = `${await client.scard(key)} 成员`;
+            } else if (type === 'hash') {
+              size = `${await client.hlen(key)} 字段`;
+            } else if (type === 'zset') {
+              size = `${await client.zcard(key)} 成员`;
+            }
+          } catch {
+            // ignore
+          }
+          return { key, ttl, type, size };
         }),
       );
 
       // 解析内存信息
       const memoryMatch = info.match(/used_memory_human:(\S+)/);
-      const usedMemory = memoryMatch ? memoryMatch[1] : 'N/A';
+      const peakMatch = info.match(/used_memory_peak_human:(\S+)/);
+      const rssMatch = info.match(/used_memory_rss_human:(\S+)/);
 
       return {
         status: 'connected',
         totalKeys: dbSize,
-        usedMemory,
+        usedMemory: memoryMatch ? memoryMatch[1] : 'N/A',
+        peakMemory: peakMatch ? peakMatch[1] : 'N/A',
+        rssMemory: rssMatch ? rssMatch[1] : 'N/A',
         keys: keyDetails,
       };
-    } catch {
-      return { status: 'error', keys: [], info: {} };
+    } catch (error) {
+      this.logger.error('获取缓存信息失败', error);
+      return { status: 'error', totalKeys: 0, usedMemory: 'N/A', keys: [] };
     }
   }
 
@@ -72,15 +92,15 @@ export class MonitorService {
     if (!client) return { success: false, message: 'Redis 未连接' };
 
     try {
-      await client.del(key);
-      return { success: true, message: `已删除缓存键: ${key}` };
-    } catch {
-      return { success: false, message: '删除失败' };
+      const result = await client.del(key);
+      return { success: result > 0, message: result > 0 ? `已删除: ${key}` : '键不存在' };
+    } catch (error) {
+      return { success: false, message: `删除失败: ${error}` };
     }
   }
 
   /**
-   * 清空所有缓存
+   * 清空当前数据库所有缓存
    */
   async clearAllCache() {
     const client = this.redisService.getClient();
@@ -89,93 +109,188 @@ export class MonitorService {
     try {
       await client.flushdb();
       return { success: true, message: '缓存已清空' };
-    } catch {
-      return { success: false, message: '清空失败' };
+    } catch (error) {
+      return { success: false, message: `清空失败: ${error}` };
     }
+  }
+
+  // ========== 在线用户（Redis 存储） ==========
+
+  /**
+   * 记录用户上线（登录时调用）
+   */
+  async userOnline(userId: string, username: string, ip: string) {
+    const client = this.redisService.getClient();
+    if (!client) return;
+
+    const key = `${ONLINE_USER_PREFIX}${userId}`;
+    await client.set(
+      key,
+      JSON.stringify({ userId, username, ip, loginTime: new Date().toISOString() }),
+      'EX',
+      ONLINE_USER_TTL,
+    );
+  }
+
+  /**
+   * 用户下线（登出时调用）
+   */
+  async userOffline(userId: string) {
+    const client = this.redisService.getClient();
+    if (!client) return;
+    await client.del(`${ONLINE_USER_PREFIX}${userId}`);
   }
 
   /**
    * 获取在线用户列表
    */
-  getOnlineUsers() {
-    return Array.from(this.onlineUsers.values()).map((user) => ({
-      ...user,
-      loginTime: user.loginTime.toISOString(),
-    }));
-  }
+  async getOnlineUsers() {
+    const client = this.redisService.getClient();
+    if (!client) return [];
 
-  /**
-   * 强制下线用户
-   */
-  kickUser(userId: string) {
-    for (const [key, user] of this.onlineUsers.entries()) {
-      if (user.userId === userId) {
-        this.onlineUsers.delete(key);
-        return { success: true, message: `用户 ${user.username} 已被强制下线` };
-      }
+    try {
+      const keys: string[] = [];
+      let cursor = '0';
+      do {
+        const [next, found] = await client.scan(cursor, 'MATCH', `${ONLINE_USER_PREFIX}*`, 'COUNT', 100);
+        cursor = next;
+        keys.push(...found);
+      } while (cursor !== '0');
+
+      const users = await Promise.all(
+        keys.map(async (key) => {
+          const data = await client.get(key);
+          if (!data) return null;
+          try {
+            return JSON.parse(data);
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      return users.filter(Boolean);
+    } catch {
+      return [];
     }
-    return { success: false, message: '用户不存在' };
   }
 
   /**
-   * 获取定时任务列表（模拟数据，生产环境应接入 node-cron 或 bull）
+   * 强制用户下线
+   */
+  async kickUser(userId: string) {
+    const client = this.redisService.getClient();
+    if (!client) return { success: false, message: 'Redis 未连接' };
+
+    const key = `${ONLINE_USER_PREFIX}${userId}`;
+    const exists = await client.exists(key);
+    if (!exists) return { success: false, message: '用户不在线' };
+
+    await client.del(key);
+    return { success: true, message: '已强制下线' };
+  }
+
+  // ========== 定时任务（真实 Cron） ==========
+
+  /**
+   * 获取所有注册的定时任务
    */
   getJobs() {
-    return [
-      {
-        id: '1',
-        name: '数据备份',
-        cron: '0 2 * * *',
-        status: 'running',
-        description: '每天凌晨 2 点执行数据库备份',
-        lastRun: new Date(Date.now() - 86400000).toISOString(),
-        nextRun: new Date(Date.now() + 3600000).toISOString(),
-      },
-      {
-        id: '2',
-        name: '日志清理',
-        cron: '0 3 * * 0',
-        status: 'running',
-        description: '每周日凌晨 3 点清理过期日志',
-        lastRun: new Date(Date.now() - 604800000).toISOString(),
-        nextRun: new Date(Date.now() + 259200000).toISOString(),
-      },
-      {
-        id: '3',
-        name: '缓存刷新',
-        cron: '*/30 * * * *',
-        status: 'running',
-        description: '每 30 分钟刷新热门数据缓存',
-        lastRun: new Date(Date.now() - 1800000).toISOString(),
-        nextRun: new Date(Date.now() + 900000).toISOString(),
-      },
-      {
-        id: '4',
-        name: '健康检查',
-        cron: '*/5 * * * *',
-        status: 'running',
-        description: '每 5 分钟检查系统健康状态',
-        lastRun: new Date(Date.now() - 300000).toISOString(),
-        nextRun: new Date(Date.now() + 120000).toISOString(),
-      },
-    ];
+    const jobs = this.schedulerRegistry.getCronJobs();
+    const result: any[] = [];
+
+    jobs.forEach((job, name) => {
+      const nextDate = job.nextDate();
+      const lastDate = job.lastDate();
+
+      result.push({
+        id: name,
+        name,
+        cron: String((job as any).cronTime?.source || 'N/A'),
+        status: (job as any).running ? 'running' : 'stopped',
+        description: this.getJobDescription(name),
+        lastRun: lastDate ? new Date(lastDate as any).toISOString() : null,
+        nextRun: nextDate ? new Date(nextDate as any).toISOString() : null,
+      });
+    });
+
+    // 如果没有注册任务，返回空数组
+    return result;
   }
+
+  /**
+   * 停止定时任务
+   */
+  stopJob(name: string) {
+    try {
+      const job = this.schedulerRegistry.getCronJob(name);
+      job.stop();
+      return { success: true, message: `任务 ${name} 已停止` };
+    } catch {
+      return { success: false, message: '任务不存在' };
+    }
+  }
+
+  /**
+   * 启动定时任务
+   */
+  startJob(name: string) {
+    try {
+      const job = this.schedulerRegistry.getCronJob(name);
+      job.start();
+      return { success: true, message: `任务 ${name} 已启动` };
+    } catch {
+      return { success: false, message: '任务不存在' };
+    }
+  }
+
+  /**
+   * 立即执行一次定时任务
+   */
+  runJob(name: string) {
+    try {
+      const job = this.schedulerRegistry.getCronJob(name);
+      job.fireOnTick();
+      return { success: true, message: `任务 ${name} 已触发执行` };
+    } catch {
+      return { success: false, message: '任务不存在' };
+    }
+  }
+
+  private getJobDescription(name: string): string {
+    const descriptions: Record<string, string> = {
+      'health-check': '定期检查系统健康状态',
+      'cache-cleanup': '定期清理过期缓存数据',
+      'online-cleanup': '清理过期的在线用户记录',
+    };
+    return descriptions[name] || '自定义定时任务';
+  }
+
+  // ========== 服务器信息 ==========
 
   /**
    * 获取服务器信息
    */
   getServerInfo() {
+    const cpus = os.cpus();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+
     return {
       hostname: os.hostname(),
       platform: os.platform(),
       arch: os.arch(),
       nodeVersion: process.version,
-      uptime: process.uptime(),
-      totalMemory: os.totalmem(),
-      freeMemory: os.freemem(),
-      cpuCount: os.cpus().length,
-      cpuModel: os.cpus()[0]?.model || 'N/A',
-      loadAverage: os.loadavg(),
+      uptime: Math.floor(process.uptime()),
+      systemUptime: Math.floor(os.uptime()),
+      totalMemory: totalMem,
+      usedMemory: usedMem,
+      freeMemory: freeMem,
+      memoryUsage: `${((usedMem / totalMem) * 100).toFixed(1)}%`,
+      cpuCount: cpus.length,
+      cpuModel: cpus[0]?.model || 'N/A',
+      loadAverage: os.loadavg().map((l) => l.toFixed(2)),
     };
   }
 }
