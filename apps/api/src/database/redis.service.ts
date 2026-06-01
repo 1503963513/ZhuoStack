@@ -5,7 +5,8 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private client: Redis;
+  private client: Redis | null = null;
+  private isConnected = false;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -13,18 +14,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisUrl = this.configService.get<string>('REDIS_URL', 'redis://localhost:6379');
 
     this.client = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
-      retryStrategy(times) {
-        if (times > 3) return null;
-        return Math.min(times * 200, 2000);
-      },
+      maxRetriesPerRequest: 1,
+      connectTimeout: 3000,
       lazyConnect: true,
+      retryStrategy(times) {
+        if (times > 2) return null;
+        return Math.min(times * 100, 1000);
+      },
     });
 
     try {
       await this.client.connect();
+      this.isConnected = true;
       this.logger.log('Redis 连接成功');
     } catch (error) {
+      this.isConnected = false;
       this.logger.warn('Redis 连接失败，缓存功能将不可用');
     }
   }
@@ -40,6 +44,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * 获取缓存
    */
   async get<T>(key: string): Promise<T | null> {
+    if (!this.isConnected || !this.client) return null;
     try {
       const value = await this.client.get(key);
       if (!value) return null;
@@ -51,15 +56,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 设置缓存
-   * @param key 缓存键
-   * @param value 缓存值
-   * @param ttl 过期时间（秒），默认 300 秒（5 分钟）
    */
   async set(key: string, value: unknown, ttl: number = 300): Promise<void> {
+    if (!this.isConnected || !this.client) return;
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
-    } catch (error) {
-      this.logger.warn(`缓存设置失败: ${key}`);
+    } catch {
+      // 静默失败
     }
   }
 
@@ -67,24 +70,36 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * 删除缓存
    */
   async del(key: string): Promise<void> {
+    if (!this.isConnected || !this.client) return;
     try {
       await this.client.del(key);
-    } catch (error) {
-      this.logger.warn(`缓存删除失败: ${key}`);
+    } catch {
+      // 静默失败
     }
   }
 
   /**
-   * 批量删除缓存（支持模式匹配）
+   * 批量删除缓存（使用 SCAN 替代 KEYS，避免阻塞）
    */
   async delPattern(pattern: string): Promise<void> {
+    if (!this.isConnected || !this.client) return;
     try {
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(...keys);
-      }
-    } catch (error) {
-      this.logger.warn(`缓存批量删除失败: ${pattern}`);
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.client.del(...keys);
+        }
+      } while (cursor !== '0');
+    } catch {
+      // 静默失败
     }
   }
 
@@ -92,6 +107,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * 检查缓存是否存在
    */
   async exists(key: string): Promise<boolean> {
+    if (!this.isConnected || !this.client) return false;
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -101,9 +117,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 获取 Redis 客户端实例（用于高级操作）
+   * 获取 Redis 客户端实例
    */
-  getClient(): Redis {
+  getClient(): Redis | null {
     return this.client;
   }
 }
