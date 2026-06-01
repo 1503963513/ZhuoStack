@@ -135,8 +135,13 @@ export class AuthService {
    * Generate JWT token
    */
   private generateToken(payload: JwtPayload): string {
+    const jwtSecret = this.configService.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
+
     return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_SECRET', 'default-secret'),
+      secret: jwtSecret,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
     });
   }

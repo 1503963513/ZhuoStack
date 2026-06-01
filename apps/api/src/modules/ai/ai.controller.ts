@@ -13,7 +13,7 @@ import {
 import { Observable } from 'rxjs';
 import { AiService, ChatMessage } from './ai.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { ChatDto, StreamChatDto } from './dto';
+import { ChatDto, StreamChatDto, PromptDto } from './dto';
 
 interface SseMessage {
   data: string;
@@ -27,7 +27,7 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('chat')
-  @ApiOperation({ summary: 'Send a chat completion request' })
+  @ApiOperation({ summary: '发送聊天完成请求' })
   async chat(@Body() dto: ChatDto) {
     const messages: ChatMessage[] = dto.messages.map((m) => ({
       role: m.role as ChatMessage['role'],
@@ -45,7 +45,7 @@ export class AiController {
   }
 
   @Sse('chat/stream')
-  @ApiOperation({ summary: 'Stream a chat completion (SSE)' })
+  @ApiOperation({ summary: '流式聊天完成 (SSE)' })
   streamChat(@Body() dto: StreamChatDto): Observable<SseMessage> {
     const messages: ChatMessage[] = dto.messages.map((m) => ({
       role: m.role as ChatMessage['role'],
@@ -80,10 +80,8 @@ export class AiController {
   }
 
   @Post('prompt')
-  @ApiOperation({ summary: 'Simple prompt - send a message and get a response' })
-  async prompt(
-    @Body() dto: { content: string; systemPrompt?: string; model?: string },
-  ) {
+  @ApiOperation({ summary: '简单提示 - 发送消息获取回复' })
+  async prompt(@Body() dto: PromptDto) {
     const result = await this.aiService.prompt(
       dto.content,
       dto.systemPrompt,

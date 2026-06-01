@@ -14,24 +14,30 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
+    const isProduction = process.env.NODE_ENV === 'production';
+
     super({
-      log: [
-        { emit: 'event', level: 'query' },
-        { emit: 'stdout', level: 'info' },
-        { emit: 'stdout', level: 'warn' },
-        { emit: 'stdout', level: 'error' },
-      ],
+      log: isProduction
+        ? [
+            { emit: 'stdout', level: 'error' },
+            { emit: 'stdout', level: 'warn' },
+          ]
+        : [
+            { emit: 'stdout', level: 'info' },
+            { emit: 'stdout', level: 'warn' },
+            { emit: 'stdout', level: 'error' },
+          ],
     });
   }
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
-    this.logger.log('Database connected successfully');
+    this.logger.log('数据库连接成功');
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.$disconnect();
-    this.logger.log('Database disconnected');
+    this.logger.log('数据库已断开连接');
   }
 
   /**

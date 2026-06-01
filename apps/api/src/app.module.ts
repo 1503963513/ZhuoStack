@@ -1,6 +1,6 @@
 import { Module, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './database/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -9,7 +9,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AiModule } from './modules/ai/ai.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -41,6 +41,8 @@ import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
   ],
   providers: [
     Logger,
+    // Global rate limiting
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Global response transformer
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     // Global exception filter
