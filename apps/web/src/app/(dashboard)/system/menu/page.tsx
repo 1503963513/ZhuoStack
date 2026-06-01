@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
+import { IconPicker } from '@/components/common/icon-picker';
 
 interface Menu {
   id: string;
@@ -298,10 +299,9 @@ export default function MenuPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>图标</Label>
-                <Input
+                <IconPicker
                   value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  placeholder="例如: User"
+                  onChange={(v) => setFormData({ ...formData, icon: v })}
                 />
               </div>
               <div className="space-y-2">
