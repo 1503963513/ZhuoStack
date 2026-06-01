@@ -158,6 +158,17 @@ export default function DictPage() {
     createDataMutation.mutate({ ...dataFormData, dictId: selectedDict.id });
   };
 
+  const handleDelete = (id: string) => {
+    if (confirm('确定要删除该字典吗？删除后字典数据也会一并删除！')) {
+      import('@/lib/api-client').then((m) =>
+        m.del(`/api/system/dict/${id}`).then(() => {
+          toast.success('删除成功');
+          refetch();
+        }).catch((err) => toast.error('删除失败', { description: err.message }))
+      );
+    }
+  };
+
   const handleDeleteData = (id: string) => {
     if (confirm('确定要删除吗？')) {
       import('@/lib/api-client').then((m) =>
@@ -220,11 +231,14 @@ export default function DictPage() {
                     </Badge>
                   </div>
                   <div className="col-span-4 flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleManageData(dict)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleManageData(dict)} title="字典数据">
                       <List className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(dict)}>
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(dict.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </div>
