@@ -1,0 +1,44 @@
+# <type>(<scope>): <subject>
+#
+# Examples:
+#   feat(api): add user module
+#   fix(web): resolve login redirect issue
+#   docs: update README
+#   chore: upgrade dependencies
+#
+# Types:
+#   feat     A new feature
+#   fix      A bug fix
+#   docs     Documentation only changes
+#   style    Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+#   refactor A code change that neither fixes a bug nor adds a feature
+#   perf     A code change that improves performance
+#   test     Adding missing tests or correcting existing tests
+#   build    Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
+#   ci       Changes to CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+#   chore    Other changes that don't modify src or test files
+#   revert   Reverts a previous commit
+#
+# Scopes:
+#   api      NestJS backend
+#   web      Next.js frontend
+#   shared   Shared types package
+#   db       Database / Prisma related
+#   docker   Docker configuration
+#   deps     Dependencies
+#   *        Leave empty for cross-cutting changes
+#
+# Subject:
+#   - Use imperative mood ("add feature" not "added feature")
+#   - Don't capitalize first letter
+#   - No dot (.) at the end
+#   - Max 72 characters
+#
+# Body (optional):
+#   - Wrap at 72 characters
+#   - Use imperative mood
+#   - Include motivation and contrast with previous behavior
+#
+# Footer (optional):
+#   - Breaking changes: BREAKING CHANGE: <description>
+#   - Closes issues: Closes #123, #456
