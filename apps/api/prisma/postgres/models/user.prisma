@@ -13,5 +13,8 @@ model User {
   roles SysRole[]
   posts SysPost[]
 
+  @@index([deptId])
+  @@index([role])
+  @@index([createdAt])
   @@map("users")
 }

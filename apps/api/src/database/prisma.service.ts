@@ -23,10 +23,15 @@ export class PrismaService
             { emit: 'stdout', level: 'warn' },
           ]
         : [
-            { emit: 'stdout', level: 'info' },
             { emit: 'stdout', level: 'warn' },
             { emit: 'stdout', level: 'error' },
           ],
+      // 连接池配置 - 针对远程数据库优化
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
     });
   }
 
@@ -42,7 +47,6 @@ export class PrismaService
 
   /**
    * Enable shutdown hooks for graceful shutdown.
-   * Call this from the main bootstrap function if needed.
    */
   enableShutdownHooks(): void {
     (this as unknown as { $on: (event: string, callback: () => void) => void })

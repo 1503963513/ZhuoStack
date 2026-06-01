@@ -1,10 +1,19 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { RedisService } from '../../../database/redis.service';
 import { CreateDeptDto, UpdateDeptDto } from './dto';
+
+// 缓存键
+const DEPT_TREE_CACHE_KEY = 'dept:tree';
+const DEPT_LIST_CACHE_KEY = 'dept:list';
+const CACHE_TTL = 3600; // 1 小时
 
 @Injectable()
 export class DeptService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   /**
    * 创建部门
@@ -18,7 +27,7 @@ export class DeptService {
       throw new ConflictException('同级下已存在同名部门');
     }
 
-    return this.prisma.sysDept.create({
+    const result = await this.prisma.sysDept.create({
       data: {
         name: dto.name,
         parentId: dto.parentId || null,
@@ -27,26 +36,46 @@ export class DeptService {
         remark: dto.remark,
       },
     });
+
+    // 清除部门缓存
+    await this.clearDeptCache();
+    return result;
   }
 
   /**
-   * 获取部门树形列表
+   * 获取部门树形列表（使用缓存）
    */
   async findTree() {
+    // 尝试从缓存获取
+    const cached = await this.redisService.get(DEPT_TREE_CACHE_KEY);
+    if (cached) return cached;
+
     const depts = await this.prisma.sysDept.findMany({
       orderBy: { sort: 'asc' },
     });
 
-    return this.buildTree(depts);
+    const tree = this.buildTree(depts);
+
+    // 设置缓存
+    await this.redisService.set(DEPT_TREE_CACHE_KEY, tree, CACHE_TTL);
+    return tree;
   }
 
   /**
    * 获取部门列表（平铺）
    */
   async findAll() {
-    return this.prisma.sysDept.findMany({
+    // 尝试从缓存获取
+    const cached = await this.redisService.get(DEPT_LIST_CACHE_KEY);
+    if (cached) return cached;
+
+    const depts = await this.prisma.sysDept.findMany({
       orderBy: { sort: 'asc' },
     });
+
+    // 设置缓存
+    await this.redisService.set(DEPT_LIST_CACHE_KEY, depts, CACHE_TTL);
+    return depts;
   }
 
   /**
@@ -84,10 +113,14 @@ export class DeptService {
       }
     }
 
-    return this.prisma.sysDept.update({
+    const result = await this.prisma.sysDept.update({
       where: { id },
       data: dto,
     });
+
+    // 清除部门缓存
+    await this.clearDeptCache();
+    return result;
   }
 
   /**
@@ -115,7 +148,18 @@ export class DeptService {
     }
 
     await this.prisma.sysDept.delete({ where: { id } });
+
+    // 清除部门缓存
+    await this.clearDeptCache();
     return { message: '删除成功' };
+  }
+
+  /**
+   * 清除部门缓存
+   */
+  private async clearDeptCache(): Promise<void> {
+    await this.redisService.del(DEPT_TREE_CACHE_KEY);
+    await this.redisService.del(DEPT_LIST_CACHE_KEY);
   }
 
   /**
