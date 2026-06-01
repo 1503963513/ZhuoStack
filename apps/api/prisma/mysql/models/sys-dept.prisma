@@ -1,0 +1,16 @@
+model SysDept {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  parentId  String?
+  sort      Int      @default(0)
+  status    Status   @default(ACTIVE)
+  remark    String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   SysDept?  @relation("DeptTree", fields: [parentId], references: [id])
+  children SysDept[] @relation("DeptTree")
+  users    User[]
+
+  @@map("sys_dept")
+}

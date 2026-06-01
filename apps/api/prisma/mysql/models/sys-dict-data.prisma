@@ -1,0 +1,15 @@
+model SysDictData {
+  id        String   @id @default(cuid())
+  dictId    String
+  label     String   @db.VarChar(100)
+  value     String   @db.VarChar(100)
+  sort      Int      @default(0)
+  status    Status   @default(ACTIVE)
+  remark    String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dict SysDict @relation(fields: [dictId], references: [id], onDelete: Cascade)
+
+  @@map("sys_dict_data")
+}

@@ -2,3 +2,14 @@ enum Role {
   USER
   ADMIN
 }
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum MenuType {
+  DIRECTORY
+  MENU
+  BUTTON
+}

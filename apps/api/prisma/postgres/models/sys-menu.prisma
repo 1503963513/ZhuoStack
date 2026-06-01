@@ -1,0 +1,21 @@
+model SysMenu {
+  id        String    @id @default(cuid())
+  name      String
+  parentId  String?
+  type      MenuType  @default(MENU)
+  path      String?
+  component String?
+  icon      String?
+  sort      Int       @default(0)
+  status    Status    @default(ACTIVE)
+  perms     String?
+  remark    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  parent   SysMenu?  @relation("MenuTree", fields: [parentId], references: [id])
+  children SysMenu[] @relation("MenuTree")
+  roles    SysRole[]
+
+  @@map("sys_menu")
+}

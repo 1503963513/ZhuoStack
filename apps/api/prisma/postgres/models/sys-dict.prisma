@@ -1,0 +1,13 @@
+model SysDict {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  status    Status   @default(ACTIVE)
+  remark    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dictData SysDictData[]
+
+  @@map("sys_dict")
+}

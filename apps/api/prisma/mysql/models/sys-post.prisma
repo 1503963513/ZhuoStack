@@ -1,0 +1,14 @@
+model SysPost {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  code      String   @unique(length: 50)
+  sort      Int      @default(0)
+  status    Status   @default(ACTIVE)
+  remark    String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@map("sys_post")
+}
