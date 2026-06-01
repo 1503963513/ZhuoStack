@@ -52,7 +52,7 @@ export default function RolePage() {
     remark: '',
   });
 
-  const { data, isLoading } = useApiQuery<PaginatedResponse>(
+  const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['roles', String(page), search],
     `/api/system/role?page=${page}&pageSize=10${search ? `&search=${search}` : ''}`,
   );
@@ -110,6 +110,7 @@ export default function RolePage() {
       import('@/lib/api-client').then((m) =>
         m.del(`/api/system/role/${id}`).then(() => {
           toast.success('删除成功');
+          refetch();
         }).catch((err) => toast.error('删除失败', { description: err.message }))
       );
     }

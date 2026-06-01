@@ -62,7 +62,7 @@ export default function MenuPage() {
     remark: '',
   });
 
-  const { data, isLoading } = useApiQuery<Menu[]>(['menus'], '/api/system/menu/tree');
+  const { data, isLoading, refetch } = useApiQuery<Menu[]>(['menus'], '/api/system/menu/tree');
 
   const createMutation = useApiMutation('post', '/api/system/menu', {
     invalidateKeys: [['menus']],
@@ -119,6 +119,7 @@ export default function MenuPage() {
       import('@/lib/api-client').then((m) =>
         m.del(`/api/system/menu/${id}`).then(() => {
           toast.success('删除成功');
+          refetch();
         }).catch((err) => toast.error('删除失败', { description: err.message }))
       );
     }
