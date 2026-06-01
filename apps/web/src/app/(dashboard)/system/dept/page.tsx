@@ -49,21 +49,21 @@ export default function DeptPage() {
   const { data, isLoading, refetch } = useApiQuery<Dept[]>(['depts'], '/api/system/dept/tree');
 
   const createMutation = useApiMutation('post', '/api/system/dept', {
-    invalidateKeys: [['depts']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('创建失败', { description: error.message }),
   });
 
   const updateMutation = useApiMutation('put', `/api/system/dept/${editingDept?.id || ''}`, {
-    invalidateKeys: [['depts']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('更新失败', { description: error.message }),
   });
