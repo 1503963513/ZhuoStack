@@ -36,6 +36,7 @@ interface Menu {
   icon: string | null;
   sort: number;
   status: string;
+  hidden: boolean;
   perms: string | null;
   remark: string | null;
   children?: Menu[];
@@ -74,6 +75,7 @@ export default function MenuPage() {
     icon: '',
     sort: 0,
     status: 'ACTIVE',
+    hidden: false,
     perms: '',
     remark: '',
   });
@@ -103,7 +105,7 @@ export default function MenuPage() {
   const resetForm = () => {
     setFormData({
       name: '', parentId: '', type: 'MENU', path: '', component: '',
-      icon: '', sort: 0, status: 'ACTIVE', perms: '', remark: '',
+      icon: '', sort: 0, status: 'ACTIVE', hidden: false, perms: '', remark: '',
     });
     setEditingMenu(null);
   };
@@ -135,6 +137,7 @@ export default function MenuPage() {
       icon: menu.icon || '',
       sort: menu.sort,
       status: menu.status,
+      hidden: menu.hidden ?? false,
       perms: menu.perms || '',
       remark: menu.remark || '',
     });
@@ -324,6 +327,18 @@ export default function MenuPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>隐藏菜单</Label>
+                <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="false">显示</SelectItem>
+                    <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>权限标识</Label>
@@ -391,6 +406,9 @@ function MenuRow({
             <Badge variant={menu.status === 'ACTIVE' ? 'default' : 'secondary'}>
               {menu.status === 'ACTIVE' ? '启用' : '停用'}
             </Badge>
+            {menu.hidden && (
+              <Badge variant="outline" className="ml-1">隐藏</Badge>
+            )}
           </div>
           <div className="col-span-2 flex gap-1">
             <Button variant="ghost" size="sm" onClick={() => onCreateChild(menu)} title="新增子菜单">

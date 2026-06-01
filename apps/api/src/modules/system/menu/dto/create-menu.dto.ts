@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsInt, Min, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsInt, Min, IsEnum, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MenuType, Status } from '@prisma/client';
 
@@ -42,6 +42,11 @@ export class CreateMenuDto {
   @ApiPropertyOptional({ description: '状态', enum: Status, default: Status.ACTIVE })
   @IsOptional()
   status?: Status;
+
+  @ApiPropertyOptional({ description: '是否隐藏', default: false })
+  @IsOptional()
+  @IsBoolean()
+  hidden?: boolean;
 
   @ApiPropertyOptional({ description: '权限标识', example: 'system:user:list' })
   @IsOptional()

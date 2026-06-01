@@ -48,6 +48,7 @@ interface MenuItem {
   icon: string | null;
   sort: number;
   status: string;
+  hidden: boolean;
   children?: MenuItem[];
 }
 
@@ -62,7 +63,7 @@ export function Sidebar() {
   const topMenus = useMemo(() => {
     if (!data?.data) return [];
     return data.data
-      .filter((m) => m.status === 'ACTIVE' && m.type === 'MENU' && !m.parentId)
+      .filter((m) => m.status === 'ACTIVE' && !m.hidden && m.type === 'MENU' && !m.parentId)
       .sort((a, b) => a.sort - b.sort);
   }, [data]);
 
@@ -70,12 +71,12 @@ export function Sidebar() {
   const menuGroups = useMemo(() => {
     if (!data?.data) return [];
     return data.data
-      .filter((m) => m.status === 'ACTIVE' && m.type === 'DIRECTORY')
+      .filter((m) => m.status === 'ACTIVE' && !m.hidden && m.type === 'DIRECTORY')
       .sort((a, b) => a.sort - b.sort)
       .map((dir) => ({
         ...dir,
         children: (dir.children || [])
-          .filter((c) => c.status === 'ACTIVE' && c.type === 'MENU')
+          .filter((c) => c.status === 'ACTIVE' && !c.hidden && c.type === 'MENU')
           .sort((a, b) => a.sort - b.sort),
       }));
   }, [data]);

@@ -8,6 +8,7 @@ model SysMenu {
   icon      String?
   sort      Int       @default(0)
   status    Status    @default(ACTIVE)
+  hidden    Boolean   @default(false)
   perms     String?
   remark    String?
   createdAt DateTime  @default(now())

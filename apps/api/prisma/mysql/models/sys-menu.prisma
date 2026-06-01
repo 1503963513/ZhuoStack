@@ -8,6 +8,7 @@ model SysMenu {
   icon      String?   @db.VarChar(100)
   sort      Int       @default(0)
   status    Status    @default(ACTIVE)
+  hidden    Boolean   @default(false)
   perms     String?   @db.VarChar(200)
   remark    String?   @db.VarChar(500)
   createdAt DateTime  @default(now())
