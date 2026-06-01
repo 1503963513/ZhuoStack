@@ -58,21 +58,21 @@ export default function PostPage() {
   );
 
   const createMutation = useApiMutation('post', '/api/system/post', {
-    invalidateKeys: [['posts']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('创建失败', { description: error.message }),
   });
 
   const updateMutation = useApiMutation('put', `/api/system/post/${editingPost?.id || ''}`, {
-    invalidateKeys: [['posts']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('更新失败', { description: error.message }),
   });

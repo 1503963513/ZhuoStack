@@ -70,7 +70,7 @@ export default function DictPage() {
     remark: '',
   });
 
-  const { data, isLoading } = useApiQuery<PaginatedResponse>(
+  const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['dicts', String(page), search],
     `/api/system/dict?page=${page}&pageSize=10${search ? `&search=${search}` : ''}`,
   );
@@ -82,21 +82,21 @@ export default function DictPage() {
   );
 
   const createMutation = useApiMutation('post', '/api/system/dict', {
-    invalidateKeys: [['dicts']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('创建失败', { description: error.message }),
   });
 
   const updateMutation = useApiMutation('put', `/api/system/dict/${editingDict?.id || ''}`, {
-    invalidateKeys: [['dicts']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('更新失败', { description: error.message }),
   });

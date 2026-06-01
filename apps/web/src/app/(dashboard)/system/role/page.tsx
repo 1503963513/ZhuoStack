@@ -58,21 +58,21 @@ export default function RolePage() {
   );
 
   const createMutation = useApiMutation('post', '/api/system/role', {
-    invalidateKeys: [['roles']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('创建失败', { description: error.message }),
   });
 
   const updateMutation = useApiMutation('put', `/api/system/role/${editingRole?.id || ''}`, {
-    invalidateKeys: [['roles']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);
       resetForm();
+      refetch();
     },
     onError: (error) => toast.error('更新失败', { description: error.message }),
   });
