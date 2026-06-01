@@ -43,39 +43,23 @@ export class DeptService {
   }
 
   /**
-   * 获取部门树形列表（使用缓存）
+   * 获取部门树形列表
    */
   async findTree() {
-    // 尝试从缓存获取
-    const cached = await this.redisService.get(DEPT_TREE_CACHE_KEY);
-    if (cached) return cached;
-
     const depts = await this.prisma.sysDept.findMany({
       orderBy: { sort: 'asc' },
     });
 
-    const tree = this.buildTree(depts);
-
-    // 设置缓存
-    await this.redisService.set(DEPT_TREE_CACHE_KEY, tree, CACHE_TTL);
-    return tree;
+    return this.buildTree(depts);
   }
 
   /**
    * 获取部门列表（平铺）
    */
   async findAll() {
-    // 尝试从缓存获取
-    const cached = await this.redisService.get(DEPT_LIST_CACHE_KEY);
-    if (cached) return cached;
-
-    const depts = await this.prisma.sysDept.findMany({
+    return this.prisma.sysDept.findMany({
       orderBy: { sort: 'asc' },
     });
-
-    // 设置缓存
-    await this.redisService.set(DEPT_LIST_CACHE_KEY, depts, CACHE_TTL);
-    return depts;
   }
 
   /**
