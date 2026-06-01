@@ -1,99 +1,101 @@
-# MyApp - NestJS + Next.js Fullstack Monorepo
+# NodeJs 全栈模板 - NestJS + Next.js 全栈 Monorepo
 
-A production-ready fullstack application built with modern web technologies, organized as a pnpm monorepo with Turborepo.
+基于现代 Web 技术构建的生产级全栈应用，采用 pnpm monorepo + Turborepo 组织。
 
-## Tech Stack
+## 技术栈
 
-| Category | Technology |
-|----------|-----------|
-| Package Manager | pnpm |
-| Build Orchestration | Turborepo |
-| Backend Framework | NestJS 10+ |
-| HTTP Platform | Fastify |
+| 类别 | 技术 |
+|------|------|
+| 包管理器 | pnpm |
+| 构建编排 | Turborepo |
+| 后端框架 | NestJS 10+ |
+| HTTP 平台 | Fastify |
 | ORM | Prisma |
-| Databases | PostgreSQL / MySQL |
-| Cache | Redis |
-| Frontend Framework | Next.js 14+ (App Router) |
-| CSS Framework | Tailwind CSS 3 |
-| UI Components | shadcn/ui |
-| State Management | Zustand |
-| Data Fetching | TanStack Query v5 |
-| Form Handling | React Hook Form + Zod |
-| Authentication | JWT (passport-jwt) |
-| Password Hashing | argon2 |
-| API Documentation | Swagger |
+| 数据库 | PostgreSQL / MySQL |
+| 缓存 | Redis |
+| 前端框架 | Next.js 14+ (App Router) |
+| CSS 框架 | Tailwind CSS 3 |
+| UI 组件 | shadcn/ui |
+| 状态管理 | Zustand |
+| 数据请求 | TanStack Query v5 |
+| 表单处理 | React Hook Form + Zod |
+| 认证 | JWT (passport-jwt) |
+| 密码哈希 | bcryptjs |
+| API 文档 | Swagger |
 
-## Project Structure
+## 项目结构
 
 ```
 my-fullstack-app/
 ├── apps/
-│   ├── api/                  # NestJS backend
+│   ├── api/                  # NestJS 后端
 │   │   ├── src/
-│   │   │   ├── common/       # Shared utilities (decorators, filters, guards, interceptors)
-│   │   │   ├── config/       # Configuration modules
-│   │   │   ├── database/     # Prisma database layer
-│   │   │   ├── modules/      # Business modules (auth, user, health)
-│   │   │   └── shared/       # Shared modules
-│   │   └── prisma/           # Prisma schema files
-│   │       ├── postgres/     # PostgreSQL schema
-│   │       ├── mysql/        # MySQL schema
-│   │       └── schema.active/ # Active schema (auto-generated)
-│   └── web/                  # Next.js frontend
+│   │   │   ├── common/       # 共享工具（装饰器、过滤器、守卫、拦截器）
+│   │   │   ├── config/       # 配置模块
+│   │   │   ├── database/     # Prisma 数据库层
+│   │   │   ├── modules/      # 业务模块（auth、user、health、ai）
+│   │   │   └── main.ts       # 应用入口
+│   │   └── prisma/           # Prisma Schema 文件
+│   │       ├── postgres/     # PostgreSQL Schema
+│   │       ├── mysql/        # MySQL Schema
+│   │       └── schema.active/ # 当前生效的 Schema（自动生成）
+│   └── web/                  # Next.js 前端
 │       └── src/
-│           ├── app/          # App Router pages
-│           ├── components/   # UI components
-│           ├── hooks/        # Custom hooks
-│           ├── lib/          # Utilities and API client
-│           ├── stores/       # Zustand stores
-│           └── types/        # TypeScript types
+│           ├── app/          # App Router 页面
+│           ├── components/   # UI 组件
+│           ├── hooks/        # 自定义 Hooks
+│           ├── lib/          # 工具函数和 API 客户端
+│           ├── schemas/      # Zod 验证 Schema
+│           ├── stores/       # Zustand 状态管理
+│           └── types/        # TypeScript 类型定义
 ├── packages/
-│   └── shared-types/         # Shared TypeScript types
-├── docker/                   # Docker configuration
+│   └── shared-types/         # 共享 TypeScript 类型
+├── docker/                   # Docker 配置
+├── scripts/                  # 部署脚本
 ├── pnpm-workspace.yaml
 ├── turbo.json
 └── tsconfig.base.json
 ```
 
-## Quick Start
+## 快速开始
 
-### Prerequisites
+### 环境要求
 
 - **Node.js** 20+
 - **pnpm** 9+
-- **Docker** (optional, for databases)
+- **Docker**（可选，用于数据库）
 
-### 1. Install Dependencies
+### 1. 安装依赖
 
 ```bash
 pnpm install
 ```
 
-### 2. Set Up Environment Variables
+### 2. 配置环境变量
 
 ```bash
-# Backend
+# 后端
 cp apps/api/.env.example apps/api/.env
 
-# Frontend
+# 前端
 cp apps/web/.env.local.example apps/web/.env.local
 ```
 
-### 3. Start Database Services
+### 3. 启动数据库服务
 
-Using Docker (recommended):
+使用 Docker（推荐）：
 
 ```bash
-# Start PostgreSQL + Redis
+# 启动 PostgreSQL + Redis
 pnpm docker:up
 
-# Or start everything (PostgreSQL + MySQL + Redis)
+# 或启动全部服务（PostgreSQL + MySQL + Redis）
 docker compose -f docker/docker-compose.yml up -d postgres mysql redis
 ```
 
-### 4. Initialize Database
+### 4. 初始化数据库
 
-Choose your database and run the setup command:
+选择数据库并运行初始化命令：
 
 ```bash
 # PostgreSQL
@@ -103,104 +105,111 @@ pnpm --filter api db:setup:pg
 pnpm --filter api db:setup:mysql
 ```
 
-This will automatically:
-- Copy the appropriate schema files to `schema.active/`
-- Generate the Prisma client
-- Run migrations
-- Seed the database with test data
+该命令会自动完成：
+- 复制对应的 Schema 文件到 `schema.active/`
+- 生成 Prisma Client
+- 运行数据库迁移
+- 填充测试数据
 
-### 5. Start Development Servers
+### 5. 启动开发服务器
 
 ```bash
 pnpm dev
 ```
 
-This starts both:
-- **API**: http://localhost:3100
-- **Web**: http://localhost:3000
+这会同时启动：
+- **API 服务**: http://localhost:3100
+- **Web 服务**: http://localhost:3000
 
-### 6. Access API Documentation
+### 6. 访问 API 文档
 
-Swagger UI is available at: http://localhost:3100/api/docs
+Swagger UI 地址：http://localhost:3100/api/docs
 
-## Prisma Schema Multi-File Split
+## Prisma Schema 多文件拆分
 
-This project supports multi-file Prisma schema organization using the `prismaSchemaFolder` preview feature.
+本项目使用 `prismaSchemaFolder` 预览特性支持多文件 Schema 组织。
 
-### Directory Structure
+### 目录结构
 
 ```
 apps/api/prisma/
-├── postgres/           # PostgreSQL schema
-│   ├── config.prisma   # Generator + datasource
-│   ├── enums.prisma    # Enum definitions
+├── postgres/           # PostgreSQL Schema
+│   ├── config.prisma   # 生成器 + 数据源
+│   ├── enums.prisma    # 枚举定义
 │   └── models/
-│       └── user.prisma # User model
-├── mysql/              # MySQL schema (with MySQL-specific annotations)
+│       └── user.prisma # User 模型
+├── mysql/              # MySQL Schema（含 MySQL 特定注解）
 │   ├── config.prisma
 │   ├── enums.prisma
 │   └── models/
 │       └── user.prisma
-└── schema.active/      # Active schema (auto-generated, git-ignored)
+└── schema.active/      # 当前生效的 Schema（自动生成，已加入 gitignore）
 ```
 
-### Switching Databases
+### 切换数据库
 
 ```bash
-# Switch to PostgreSQL (full setup)
+# 切换到 PostgreSQL（完整初始化）
 pnpm --filter api db:setup:pg
 
-# Switch to MySQL (full setup)
+# 切换到 MySQL（完整初始化）
 pnpm --filter api db:setup:mysql
 ```
 
-### Adding a New Model
+### 添加新模型
 
-1. Create `postgres/models/your-model.prisma` with the PostgreSQL schema
-2. Create `mysql/models/your-model.prisma` with MySQL-specific annotations (`@db.VarChar`, etc.)
-3. Add any new enums to both `postgres/enums.prisma` and `mysql/enums.prisma`
-4. Re-run the setup command for your target database
+1. 创建 `postgres/models/your-model.prisma`（PostgreSQL Schema）
+2. 创建 `mysql/models/your-model.prisma`（含 MySQL 特定注解如 `@db.VarChar`）
+3. 在 `postgres/enums.prisma` 和 `mysql/enums.prisma` 中添加新枚举
+4. 重新运行目标数据库的初始化命令
 
-## Test Accounts
+## 测试账号
 
-After seeding, the following accounts are available:
+数据库填充后，可使用以下测试账号：
 
-| Email | Password | Role |
-|-------|----------|------|
-| admin@example.com | admin123 | ADMIN |
-| user1@example.com | password123 | USER |
-| user2@example.com | password123 | USER |
-| user3@example.com | password123 | USER |
+| 邮箱 | 密码 | 角色 |
+|------|------|------|
+| admin@example.com | admin123 | ADMIN（管理员） |
+| user1@example.com | password123 | USER（普通用户） |
+| user2@example.com | password123 | USER（普通用户） |
+| user3@example.com | password123 | USER（普通用户） |
 
-## Docker Deployment
+> 💡 密码传输流程：前端 SHA-256 哈希 → 后端 bcrypt 二次哈希存储
+
+## Docker 部署
 
 ```bash
-# Start all services (PostgreSQL mode)
+# 使用 PostgreSQL 启动所有服务
 docker compose -f docker/docker-compose.yml up -d postgres redis api web
 
-# Start with MySQL
+# 使用 MySQL 启动
 docker compose -f docker/docker-compose.yml up -d mysql redis api web
 ```
 
-## Available Scripts
+## 可用脚本
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all services in development mode |
-| `pnpm build` | Build all packages |
-| `pnpm lint` | Lint all packages |
-| `pnpm test` | Run all tests |
-| `pnpm docker:up` | Start Docker services |
-| `pnpm docker:down` | Stop Docker services |
+| 命令 | 描述 |
+|------|------|
+| `pnpm dev` | 启动所有服务（开发模式） |
+| `pnpm build` | 构建所有包 |
+| `pnpm lint` | 代码检查 |
+| `pnpm test` | 运行测试 |
+| `pnpm docker:up` | 启动 Docker 服务 |
+| `pnpm docker:down` | 停止 Docker 服务 |
+| `pnpm --filter api db:setup:pg` | PostgreSQL 完整初始化 |
+| `pnpm --filter api db:setup:mysql` | MySQL 完整初始化 |
+| `pnpm --filter api prisma:studio` | 打开 Prisma Studio |
+| `pnpm --filter api db:use:pg` | 切换到 PostgreSQL |
+| `pnpm --filter api db:use:mysql` | 切换到 MySQL |
 
-## Development Guidelines
+## 开发规范
 
-- **TypeScript strict mode** is enabled everywhere — no `any` types
-- **Code comments** in English
-- **Git commits** follow conventional commits format (`feat/fix/chore/docs...`)
-- **ESLint + Prettier** enforced via lint-staged + husky
-- All API responses follow the `{ code, data, message }` format
+- 全局启用 **TypeScript 严格模式** — 禁止使用 `any`
+- 注释使用**中文**
+- Git 提交遵循**约定式提交**格式（`feat/fix/chore/docs...`）
+- 通过 **ESLint + Prettier** + lint-staged + husky 强制代码规范
+- 所有 API 响应遵循 `{ code, data, message }` 统一格式
 
-## License
+## 许可证
 
 MIT
