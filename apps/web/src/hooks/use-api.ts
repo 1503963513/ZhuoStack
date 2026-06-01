@@ -11,7 +11,7 @@ import { get, post, put, del } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/api';
 
 /**
- * Generic query hook for GET requests
+ * 通用 GET 请求 Hook
  */
 export function useApiQuery<T>(
   key: string[],
@@ -29,7 +29,8 @@ export function useApiQuery<T>(
 }
 
 /**
- * Generic mutation hook for POST/PUT/DELETE requests
+ * 通用变更请求 Hook（POST/PUT/DELETE）
+ * invalidateKeys 支持部分匹配：如 ['dicts'] 会匹配所有以 'dicts' 开头的查询键
  */
 export function useApiMutation<T>(
   method: 'post' | 'put' | 'delete',
@@ -55,7 +56,7 @@ export function useApiMutation<T>(
   return useMutation<ApiResponse<T>, Error, unknown>({
     mutationFn,
     onSuccess: (...args) => {
-      // Invalidate specified query keys after mutation
+      // 失效匹配的查询键（部分匹配）
       if (options?.invalidateKeys) {
         options.invalidateKeys.forEach((key) => {
           queryClient.invalidateQueries({ queryKey: key });
