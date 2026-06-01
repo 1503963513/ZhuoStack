@@ -5,7 +5,7 @@ import { useApiQuery, useApiMutation } from '@/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -33,6 +33,21 @@ interface Dept {
   status: string;
   remark: string | null;
   children?: Dept[];
+}
+
+/**
+ * 将树形部门扁平化为带缩进的选项列表
+ */
+function flattenDepts(depts: Dept[], level = 0): { id: string; label: string }[] {
+  const result: { id: string; label: string }[] = [];
+  for (const dept of depts) {
+    const prefix = level > 0 ? '│  '.repeat(level - 1) + '├─ ' : '';
+    result.push({ id: dept.id, label: prefix + dept.name });
+    if (dept.children && dept.children.length > 0) {
+      result.push(...flattenDepts(dept.children, level + 1));
+    }
+  }
+  return result;
 }
 
 export default function DeptPage() {
@@ -68,12 +83,6 @@ export default function DeptPage() {
     onError: (error) => toast.error('更新失败', { description: error.message }),
   });
 
-  const deleteMutation = useApiMutation('delete', '/api/system/dept', {
-    invalidateKeys: [['depts']],
-    onSuccess: () => toast.success('删除成功'),
-    onError: (error) => toast.error('删除失败', { description: error.message }),
-  });
-
   const resetForm = () => {
     setFormData({ name: '', parentId: '', sort: 0, status: 'ACTIVE', remark: '' });
     setEditingDept(null);
@@ -81,6 +90,13 @@ export default function DeptPage() {
 
   const handleCreate = () => {
     resetForm();
+    setDialogOpen(true);
+  };
+
+  /** 新增子部门 */
+  const handleCreateChild = (parentDept: Dept) => {
+    resetForm();
+    setFormData((prev) => ({ ...prev, parentId: parentDept.id }));
     setDialogOpen(true);
   };
 
@@ -126,10 +142,20 @@ export default function DeptPage() {
   };
 
   const depts = data?.data || [];
+  const parentOptions = flattenDepts(depts);
+  // 编辑时不能选择自己作为父部门
+  const filteredParentOptions = parentOptions.filter((opt) => opt.id !== editingDept?.id);
 
   const renderTree = (items: Dept[], level = 0) => {
     return items.map((dept) => (
-      <DeptRow key={dept.id} dept={dept} level={level} onEdit={handleEdit} onDelete={handleDelete} />
+      <DeptRow
+        key={dept.id}
+        dept={dept}
+        level={level}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onCreateChild={handleCreateChild}
+      />
     ));
   };
 
@@ -174,14 +200,6 @@ export default function DeptPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>部门名称</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="请输入部门名称"
-              />
-            </div>
-            <div className="space-y-2">
               <Label>父部门</Label>
               <Select
                 value={formData.parentId || 'none'}
@@ -192,13 +210,21 @@ export default function DeptPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">无（顶级部门）</SelectItem>
-                  {depts.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
+                  {filteredParentOptions.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>部门名称 *</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="请输入部门名称"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -253,11 +279,13 @@ function DeptRow({
   level,
   onEdit,
   onDelete,
+  onCreateChild,
 }: {
   dept: Dept;
   level: number;
   onEdit: (dept: Dept) => void;
   onDelete: (id: string) => void;
+  onCreateChild: (dept: Dept) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = dept.children && dept.children.length > 0;
@@ -282,7 +310,10 @@ function DeptRow({
               {dept.status === 'ACTIVE' ? '启用' : '停用'}
             </Badge>
           </div>
-          <div className="col-span-4 flex gap-2">
+          <div className="col-span-4 flex gap-1">
+            <Button variant="ghost" size="sm" onClick={() => onCreateChild(dept)} title="新增子部门">
+              <Plus className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onEdit(dept)}>
               <Pencil className="h-4 w-4" />
             </Button>
@@ -293,7 +324,7 @@ function DeptRow({
         </div>
       </div>
       {expanded && hasChildren && dept.children!.map((child) => (
-        <DeptRow key={child.id} dept={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} />
+        <DeptRow key={child.id} dept={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} onCreateChild={onCreateChild} />
       ))}
     </>
   );
