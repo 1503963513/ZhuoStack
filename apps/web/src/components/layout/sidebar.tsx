@@ -51,21 +51,23 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-// 硬编码的基础菜单（不在数据库管理范围内）
-const baseNavItems = [
-  { href: '/dashboard', label: '仪表盘', icon: LayoutDashboard },
-  { href: '/profile', label: '个人资料', icon: User },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
   const logout = useLogout();
 
-  // 从 API 获取菜单树（只取 ACTIVE 状态的菜单）
+  // 从 API 获取菜单树
   const { data } = useApiQuery<MenuItem[]>(['menus'], '/api/system/menu/tree');
 
-  // 过滤出活跃的菜单，构建动态系统菜单
-  const systemMenus = useMemo(() => {
+  // 一级菜单（没有父级的 MENU 类型，如仪表盘、个人中心）
+  const topMenus = useMemo(() => {
+    if (!data?.data) return [];
+    return data.data
+      .filter((m) => m.status === 'ACTIVE' && m.type === 'MENU' && !m.parentId)
+      .sort((a, b) => a.sort - b.sort);
+  }, [data]);
+
+  // 分组菜单（DIRECTORY 类型，如系统管理）
+  const menuGroups = useMemo(() => {
     if (!data?.data) return [];
     return data.data
       .filter((m) => m.status === 'ACTIVE' && m.type === 'DIRECTORY')
@@ -79,10 +81,9 @@ export function Sidebar() {
   }, [data]);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    // 初始化时自动展开当前路径所在的分组
     const initial: Record<string, boolean> = {};
-    if (systemMenus) {
-      for (const group of systemMenus) {
+    if (menuGroups) {
+      for (const group of menuGroups) {
         if (group.children?.some((c) => c.path && pathname.startsWith(c.path))) {
           initial[group.id] = true;
         }
@@ -107,28 +108,28 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-1 p-4">
-        {/* 基础菜单 */}
-        {baseNavItems.map((item) => {
-          const Icon = item.icon;
+        {/* 一级菜单（仪表盘、个人中心等） */}
+        {topMenus.map((item) => {
+          const Icon = getIcon(item.icon);
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.id}
+              href={item.path || '#'}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                pathname === item.href
+                pathname === item.path
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              {item.name}
             </Link>
           );
         })}
 
-        {/* 动态菜单（从 API 获取） */}
-        {systemMenus.map((group) => {
+        {/* 分组菜单（系统管理等目录） */}
+        {menuGroups.map((group) => {
           const GroupIcon = getIcon(group.icon);
           const isOpen = openGroups[group.id] ?? false;
           const hasActiveChild = group.children?.some((c) => c.path && pathname.startsWith(c.path));
