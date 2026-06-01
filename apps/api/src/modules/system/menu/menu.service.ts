@@ -44,20 +44,31 @@ export class MenuService {
    * 获取菜单树形列表
    */
   async findTree() {
+    const cached = await this.redisService.get(MENU_TREE_CACHE_KEY);
+    if (cached) return cached;
+
     const menus = await this.prisma.sysMenu.findMany({
       orderBy: { sort: 'asc' },
     });
 
-    return this.buildTree(menus);
+    const tree = this.buildTree(menus);
+    await this.redisService.set(MENU_TREE_CACHE_KEY, tree, CACHE_TTL);
+    return tree;
   }
 
   /**
    * 获取菜单列表（平铺）
    */
   async findAll() {
-    return this.prisma.sysMenu.findMany({
+    const cached = await this.redisService.get(MENU_LIST_CACHE_KEY);
+    if (cached) return cached;
+
+    const menus = await this.prisma.sysMenu.findMany({
       orderBy: { sort: 'asc' },
     });
+
+    await this.redisService.set(MENU_LIST_CACHE_KEY, menus, CACHE_TTL);
+    return menus;
   }
 
   /**
