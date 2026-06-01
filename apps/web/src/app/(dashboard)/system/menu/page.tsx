@@ -46,6 +46,21 @@ const MENU_TYPE_MAP: Record<string, { label: string; icon: typeof Folder }> = {
   BUTTON: { label: '按钮', icon: MousePointer },
 };
 
+/**
+ * 将树形菜单扁平化为带缩进的选项列表
+ */
+function flattenMenus(menus: Menu[], level = 0): { id: string; label: string }[] {
+  const result: { id: string; label: string }[] = [];
+  for (const menu of menus) {
+    const prefix = level > 0 ? '│  '.repeat(level - 1) + '├─ ' : '';
+    result.push({ id: menu.id, label: prefix + menu.name });
+    if (menu.children && menu.children.length > 0) {
+      result.push(...flattenMenus(menu.children, level + 1));
+    }
+  }
+  return result;
+}
+
 export default function MenuPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
@@ -94,6 +109,17 @@ export default function MenuPage() {
 
   const handleCreate = () => {
     resetForm();
+    setDialogOpen(true);
+  };
+
+  /** 新增子菜单 */
+  const handleCreateChild = (parentMenu: Menu) => {
+    resetForm();
+    setFormData((prev) => ({
+      ...prev,
+      parentId: parentMenu.id,
+      type: 'MENU',
+    }));
     setDialogOpen(true);
   };
 
@@ -148,12 +174,23 @@ export default function MenuPage() {
   };
 
   const menus = data?.data || [];
+  const parentOptions = flattenMenus(menus);
 
   const renderTree = (items: Menu[], level = 0) => {
     return items.map((menu) => (
-      <MenuRow key={menu.id} menu={menu} level={level} onEdit={handleEdit} onDelete={handleDelete} allMenus={menus} />
+      <MenuRow
+        key={menu.id}
+        menu={menu}
+        level={level}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onCreateChild={handleCreateChild}
+      />
     ));
   };
+
+  // 当前正在编辑的菜单不能作为自己的父菜单
+  const filteredParentOptions = parentOptions.filter((opt) => opt.id !== editingMenu?.id);
 
   return (
     <div className="space-y-6">
@@ -198,6 +235,25 @@ export default function MenuPage() {
             <DialogDescription>请填写菜单信息</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>父菜单</Label>
+              <Select
+                value={formData.parentId || 'none'}
+                onValueChange={(v) => setFormData({ ...formData, parentId: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="无（顶级菜单）" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">无（顶级菜单）</SelectItem>
+                  {filteredParentOptions.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>菜单名称 *</Label>
@@ -297,13 +353,13 @@ function MenuRow({
   level,
   onEdit,
   onDelete,
-  allMenus,
+  onCreateChild,
 }: {
   menu: Menu;
   level: number;
   onEdit: (menu: Menu) => void;
   onDelete: (id: string) => void;
-  allMenus: Menu[];
+  onCreateChild: (menu: Menu) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = menu.children && menu.children.length > 0;
@@ -336,7 +392,10 @@ function MenuRow({
               {menu.status === 'ACTIVE' ? '启用' : '停用'}
             </Badge>
           </div>
-          <div className="col-span-2 flex gap-2">
+          <div className="col-span-2 flex gap-1">
+            <Button variant="ghost" size="sm" onClick={() => onCreateChild(menu)} title="新增子菜单">
+              <Plus className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onEdit(menu)}>
               <Pencil className="h-4 w-4" />
             </Button>
@@ -347,7 +406,7 @@ function MenuRow({
         </div>
       </div>
       {expanded && hasChildren && menu.children!.map((child) => (
-        <MenuRow key={child.id} menu={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} allMenus={allMenus} />
+        <MenuRow key={child.id} menu={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} onCreateChild={onCreateChild} />
       ))}
     </>
   );
