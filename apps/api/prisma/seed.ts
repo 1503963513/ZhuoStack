@@ -236,7 +236,7 @@ async function main() {
     },
   });
 
-  // 一级菜单：个人中心
+  // 一级菜单：个人中心（默认隐藏）
   await prisma.sysMenu.create({
     data: {
       name: '个人中心',
@@ -246,6 +246,7 @@ async function main() {
       icon: 'User',
       sort: 2,
       status: Status.ACTIVE,
+      hidden: true,
     },
   });
 
