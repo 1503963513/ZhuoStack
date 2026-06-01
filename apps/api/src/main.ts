@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -8,9 +9,24 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  // HTTPS 配置（仅生产环境）
+  const hasHttps =
+    process.env.NODE_ENV === 'production' &&
+    process.env.SSL_CERT_PATH &&
+    process.env.SSL_KEY_PATH;
+
+  const httpsOptions = hasHttps
+    ? {
+        https: {
+          cert: fs.readFileSync(process.env.SSL_CERT_PATH!),
+          key: fs.readFileSync(process.env.SSL_KEY_PATH!),
+        },
+      }
+    : undefined;
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    httpsOptions ? new FastifyAdapter(httpsOptions) : new FastifyAdapter(),
     { bufferLogs: true },
   );
 

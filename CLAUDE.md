@@ -1,102 +1,102 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code (claude.ai/code) 在此仓库中工作时提供指导。
 
-## Commands
+## 常用命令
 
 ```bash
-# Start both API and Web dev servers
+# 同时启动 API 和 Web 开发服务器
 pnpm dev
 
-# Start individually
-pnpm --filter api dev    # NestJS on :3100
-pnpm --filter web dev    # Next.js on :3000
+# 单独启动
+pnpm --filter api dev    # NestJS 运行在 :3100
+pnpm --filter web dev    # Next.js 运行在 :3000
 
-# Build
+# 构建
 pnpm build
-pnpm --filter api build  # NestJS only
-pnpm --filter web build  # Next.js only
+pnpm --filter api build  # 仅构建 NestJS
+pnpm --filter web build  # 仅构建 Next.js
 
-# Lint
+# 代码检查
 pnpm lint
 pnpm --filter api lint
 pnpm --filter web lint
 
-# Test
+# 测试
 pnpm test
-pnpm --filter api test       # Jest unit tests
-pnpm --filter api test:e2e   # E2E tests
+pnpm --filter api test       # Jest 单元测试
+pnpm --filter api test:e2e   # E2E 端到端测试
 
-# Database setup (one-time per target DB)
-pnpm --filter api db:setup:pg     # PostgreSQL: switch schema + generate + migrate + seed
-pnpm --filter api db:setup:mysql  # MySQL: switch schema + generate + migrate + seed
+# 数据库初始化（首次使用时执行）
+pnpm --filter api db:setup:pg     # PostgreSQL：切换 schema + 生成 + 迁移 + 填充数据
+pnpm --filter api db:setup:mysql  # MySQL：切换 schema + 生成 + 迁移 + 填充数据
 
-# Database operations
-pnpm --filter api prisma:migrate  # Run migrations
-pnpm --filter api prisma:seed     # Seed data
-pnpm --filter api prisma:studio   # Open Prisma Studio
+# 数据库操作
+pnpm --filter api prisma:migrate  # 运行迁移
+pnpm --filter api prisma:seed     # 填充种子数据
+pnpm --filter api prisma:studio   # 打开 Prisma Studio 可视化工具
 
 # Docker
 pnpm docker:up
 pnpm docker:down
 ```
 
-## Architecture
+## 项目架构
 
-**pnpm monorepo** with Turborepo. Three workspace packages:
+基于 **pnpm monorepo** + Turborepo 的全栈项目，包含三个工作区包：
 
-| Package | Stack | Port |
-|---------|-------|------|
+| 包 | 技术栈 | 端口 |
+|---|--------|------|
 | `apps/api` | NestJS 10 + Fastify + Prisma | 3100 |
 | `apps/web` | Next.js 14 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
-| `packages/shared-types` | Shared TypeScript types (`ApiResponse<T>`, `User`, `Role`) | — |
+| `packages/shared-types` | 共享 TypeScript 类型（`ApiResponse<T>`, `User`, `Role`） | — |
 
-Path aliases: `@/*` → `./src/*` in both apps, `@myapp/shared-types` → `packages/shared-types/src`.
+路径别名：`@/*` → `./src/*`（两个应用通用），`@myapp/shared-types` → `packages/shared-types/src`。
 
-### API layer (`apps/api`)
+### 后端 API 层 (`apps/api`)
 
-Uses **Fastify** (not Express) as the HTTP adapter. Exception filter uses `FastifyRequestLike`/`FastifyReplyLike` interfaces.
+使用 **Fastify**（非 Express）作为 HTTP 适配器。异常过滤器使用 `FastifyRequestLike`/`FastifyReplyLike` 接口。
 
-**Global middleware** registered in `AppModule`:
-- `TransformInterceptor` (`APP_INTERCEPTOR`) — wraps all responses as `{ code, data, message }`
-- `HttpExceptionFilter` (`APP_FILTER`) — catches exceptions, returns `{ code, <status>, data: null, message }`
-- `ValidationPipe` — `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true` with implicit conversion
+在 `AppModule` 中注册的**全局中间件**：
+- `TransformInterceptor`（`APP_INTERCEPTOR`）— 将所有响应包装为 `{ code, data, message }`
+- `HttpExceptionFilter`（`APP_FILTER`）— 捕获异常，返回 `{ code, <状态码>, data: null, message }`
+- `ValidationPipe` — `whitelist: true`、`forbidNonWhitelisted: true`、`transform: true`（含隐式类型转换）
 
-**Route prefix**: `app.setGlobalPrefix('api', { exclude: ['health'] })` — health is at `/health`, everything else at `/api/*`.
+**路由前缀**：`app.setGlobalPrefix('api', { exclude: ['health'] })` — 健康检查在 `/health`，其余均在 `/api/*`。
 
-**Auth flow**: JWT-based. `JwtStrategy.validate()` does a DB lookup on every request. `@CurrentUser()` decorator extracts user. `@Roles(Role.ADMIN)` + `RolesGuard` for role-based access. Passwords hashed with `bcryptjs`.
+**认证流程**：基于 JWT。`JwtStrategy.validate()` 每次请求都会查询数据库。`@CurrentUser()` 装饰器提取用户信息。`@Roles(Role.ADMIN)` + `RolesGuard` 实现角色权限控制。密码使用 `bcryptjs` 哈希。
 
-**AI module** (`modules/ai`): OpenAI SDK with configurable `OPENAI_BASE_URL`. Endpoints: `POST /api/ai/chat`, `SSE /api/ai/chat/stream`, `POST /api/ai/prompt`. All require JWT auth.
+**AI 模块**（`modules/ai`）：使用 OpenAI SDK，支持自定义 `OPENAI_BASE_URL`。端点：`POST /api/ai/chat`、`SSE /api/ai/chat/stream`、`POST /api/ai/prompt`。均需 JWT 认证。
 
-### Frontend (`apps/web`)
+### 前端 (`apps/web`)
 
-Next.js App Router with route groups:
-- `(auth)/` — `/login`, `/register` (public)
-- `(dashboard)/` — `/dashboard`, `/profile` (requires auth, layout checks Zustand store)
+Next.js App Router 路由分组：
+- `(auth)/` — `/login`、`/register`（公开页面）
+- `(dashboard)/` — `/dashboard`、`/profile`（需认证，layout 检查 Zustand Store）
 
-**Data fetching**: `useApiQuery(key, url)` / `useApiMutation(method, url)` in `hooks/use-api.ts` wrapping TanStack Query. API client in `lib/api-client.ts` is Axios-based with JWT interceptor reading from Zustand persist store (localStorage key `"auth-storage"`).
+**数据请求**：`useApiQuery(key, url)` / `useApiMutation(method, url)`，位于 `hooks/use-api.ts`，封装 TanStack Query。API 客户端在 `lib/api-client.ts`，基于 Axios，JWT 拦截器从 Zustand persist store 读取（localStorage key `"auth-storage"`）。
 
-**UI**: shadcn/ui components with Tailwind CSS. Theme via `next-themes` (dark/light). Toasts via `sonner`.
+**UI 组件**：shadcn/ui + Tailwind CSS。主题切换使用 `next-themes`（暗色/亮色）。提示消息使用 `sonner`。
 
-### Database — dual PostgreSQL/MySQL support
+### 数据库 — 双 PostgreSQL/MySQL 支持
 
-Two parallel Prisma schema directories under `apps/api/prisma/`:
-- `postgres/` — PostgreSQL models (no DB-specific annotations)
-- `mysql/` — MySQL models (with `@db.VarChar(length)`, `@unique(length)`)
+`apps/api/prisma/` 下有两套并行的 Prisma Schema 目录：
+- `postgres/` — PostgreSQL 模型（无数据库特定注解）
+- `mysql/` — MySQL 模型（含 `@db.VarChar(length)`、`@unique(length)` 注解）
 
-Active schema is `prisma/schema.active/` (auto-generated, git-ignored). Switching with `db:use:pg` or `db:use:mysql` copies the target directory. All prisma commands use `--schema=prisma/schema.active`.
+当前生效的 schema 是 `prisma/schema.active/`（自动生成，已加入 gitignore）。通过 `db:use:pg` 或 `db:use:mysql` 切换时会复制对应目录。所有 prisma 命令均使用 `--schema=prisma/schema.active`。
 
-Uses `prismaSchemaFolder` preview feature — schema is split across `config.prisma`, `enums.prisma`, `models/*.prisma`.
+使用 `prismaSchemaFolder` 预览特性 — schema 拆分为 `config.prisma`、`enums.prisma`、`models/*.prisma`。
 
-## Environment Variables
+## 环境变量
 
-- `apps/api/.env` — `DATABASE_URL`, `DB_TYPE`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, `PORT`, `CORS_ORIGIN`
+- `apps/api/.env` — `DATABASE_URL`、`DB_TYPE`、`JWT_SECRET`、`JWT_EXPIRES_IN`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`、`PORT`、`CORS_ORIGIN`
 - `apps/web/.env.local` — `NEXT_PUBLIC_API_URL`
 
-## Code Conventions
+## 编码规范
 
-- TypeScript strict mode everywhere — **no `any`** (enforced by ESLint)
-- Comments in English
-- Git: conventional commits (`feat/fix/chore/docs...`)
-- Pre-commit hook runs lint-staged (ESLint + Prettier on `.ts`/`.tsx`)
-- `BaseRepository<T>` in `database/prisma.repository.ts` is available for new modules but not currently used by UserService
+- 全局启用 TypeScript 严格模式 — **禁止使用 `any`**（ESLint 强制）
+- 注释使用中文
+- Git：使用约定式提交（`feat/fix/chore/docs...`）
+- Pre-commit 钩子运行 lint-staged（ESLint + Prettier 处理 `.ts`/`.tsx` 文件）
+- `BaseRepository<T>`（位于 `database/prisma.repository.ts`）可用于新模块的通用 CRUD，当前 UserService 未使用它

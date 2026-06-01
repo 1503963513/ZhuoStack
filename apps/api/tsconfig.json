@@ -13,11 +13,12 @@
     "incremental": true,
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
+    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"],
       "@myapp/shared-types": ["../../packages/shared-types/src"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist", "test"]
 }

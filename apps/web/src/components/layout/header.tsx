@@ -32,7 +32,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Theme toggle */}
+      {/* 主题切换 */}
       <Button
         variant="ghost"
         size="icon"
@@ -41,10 +41,10 @@ export function Header() {
       >
         <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
         <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        <span className="sr-only">Toggle theme</span>
+        <span className="sr-only">切换主题</span>
       </Button>
 
-      {/* User dropdown */}
+      {/* 用户菜单 */}
       <div className="relative">
         <Button
           variant="ghost"
@@ -52,7 +52,7 @@ export function Header() {
           onClick={() => setMenuOpen(!menuOpen)}
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src={currentUser?.avatar || undefined} alt={currentUser?.name || 'User'} />
+            <AvatarImage src={currentUser?.avatar || undefined} alt={currentUser?.name || '用户'} />
             <AvatarFallback>{getInitials(currentUser?.name)}</AvatarFallback>
           </Avatar>
         </Button>
@@ -61,7 +61,7 @@ export function Header() {
           <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
             <div className="flex items-center gap-2 p-2">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{currentUser?.name || 'User'}</p>
+                <p className="text-sm font-medium">{currentUser?.name || '用户'}</p>
                 <p className="text-xs text-muted-foreground">{currentUser?.email}</p>
               </div>
             </div>
@@ -72,7 +72,7 @@ export function Header() {
               onClick={() => setMenuOpen(false)}
             >
               <User className="mr-2 h-4 w-4" />
-              Profile
+              个人资料
             </Link>
             <div className="-mx-1 my-1 h-px bg-muted" />
             <button
@@ -80,7 +80,7 @@ export function Header() {
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Logout
+              退出登录
             </button>
           </div>
         )}

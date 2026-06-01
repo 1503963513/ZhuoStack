@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormData } from '@/schemas/auth.schema';
 import { useLogin } from '@/hooks/use-auth';
+import { hashPassword } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,28 +24,32 @@ export function LoginForm() {
 
   const loginMutation = useLogin();
 
-  const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data, {
-      onError: (error) => {
-        toast.error('Login failed', {
-          description: error.message || 'Invalid email or password',
-        });
+  const onSubmit = async (data: LoginFormData) => {
+    const hashedPassword = await hashPassword(data.password);
+    loginMutation.mutate(
+      { email: data.email, password: hashedPassword },
+      {
+        onError: (error) => {
+          toast.error('登录失败', {
+            description: error.message || '邮箱或密码错误',
+          });
+        },
       },
-    });
+    );
   };
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">欢迎回来</CardTitle>
         <CardDescription className="text-center">
-          Enter your credentials to sign in to your account
+          请输入您的账号信息登录
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">邮箱</Label>
             <Input
               id="email"
               type="email"
@@ -56,7 +61,7 @@ export function LoginForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">密码</Label>
             <Input
               id="password"
               type="password"
@@ -74,12 +79,12 @@ export function LoginForm() {
             className="w-full"
             disabled={loginMutation.isPending}
           >
-            {loginMutation.isPending ? 'Signing in...' : 'Sign in'}
+            {loginMutation.isPending ? '登录中...' : '登录'}
           </Button>
           <p className="text-sm text-muted-foreground text-center">
-            Don&apos;t have an account?{' '}
+            还没有账号？{' '}
             <Link href={ROUTES.REGISTER} className="text-primary hover:underline">
-              Sign up
+              注册
             </Link>
           </p>
         </CardFooter>

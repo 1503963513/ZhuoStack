@@ -1,4 +1,4 @@
-export const APP_NAME = 'MyApp';
+export const APP_NAME = 'NodeJs 全栈模板';
 
 export const ROUTES = {
   HOME: '/',

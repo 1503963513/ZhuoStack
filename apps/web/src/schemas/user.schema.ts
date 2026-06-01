@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const updateUserSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-  email: z.string().email('Please enter a valid email address').optional(),
-  avatar: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  name: z.string().min(2, '用户名至少需要 2 个字符').optional(),
+  email: z.string().email('请输入有效的邮箱地址').optional(),
+  avatar: z.string().url('请输入有效的 URL').optional().or(z.literal('')),
 });
 
 export type UpdateUserFormData = z.infer<typeof updateUserSchema>;

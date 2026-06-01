@@ -35,14 +35,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4">
-          <h2 className="text-2xl font-bold">Something went wrong</h2>
+          <h2 className="text-2xl font-bold">出错了</h2>
           <p className="text-muted-foreground">
-            {this.state.error?.message || 'An unexpected error occurred'}
+            {this.state.error?.message || '发生了意外错误'}
           </p>
           <Button
             onClick={() => this.setState({ hasError: false, error: null })}
           >
-            Try again
+            重试
           </Button>
         </div>
       );

@@ -40,10 +40,10 @@ export default function ProfilePage() {
     updateMutation.mutate(formData, {
       onSuccess: (response) => {
         setUser(response.data as User);
-        toast.success('Profile updated successfully');
+        toast.success('个人资料更新成功');
       },
       onError: (error) => {
-        toast.error('Update failed', { description: error.message });
+        toast.error('更新失败', { description: error.message });
       },
     });
   };
@@ -55,18 +55,18 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Profile</h1>
-        <p className="text-muted-foreground">Manage your account settings</p>
+        <h1 className="text-3xl font-bold">个人资料</h1>
+        <p className="text-muted-foreground">管理您的账号设置</p>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
+          <CardTitle>个人信息</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">用户名</Label>
               <Input id="name" {...register('name')} />
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -74,7 +74,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">邮箱</Label>
               <Input id="email" type="email" {...register('email')} />
               {errors.email && (
                 <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -82,7 +82,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avatar">Avatar URL</Label>
+              <Label htmlFor="avatar">头像链接</Label>
               <Input id="avatar" placeholder="https://..." {...register('avatar')} />
               {errors.avatar && (
                 <p className="text-sm text-destructive">{errors.avatar.message}</p>
@@ -90,7 +90,7 @@ export default function ProfilePage() {
             </div>
 
             <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Saving...' : 'Save changes'}
+              {updateMutation.isPending ? '保存中...' : '保存修改'}
             </Button>
           </form>
         </CardContent>

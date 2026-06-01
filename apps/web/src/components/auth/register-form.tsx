@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterFormData } from '@/schemas/auth.schema';
 import { useRegister } from '@/hooks/use-auth';
+import { hashPassword } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,33 +24,37 @@ export function RegisterForm() {
 
   const registerMutation = useRegister();
 
-  const onSubmit = (data: RegisterFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     const { confirmPassword: _, ...payload } = data;
-    registerMutation.mutate(payload, {
-      onError: (error) => {
-        toast.error('Registration failed', {
-          description: error.message || 'Could not create account',
-        });
+    const hashedPassword = await hashPassword(payload.password);
+    registerMutation.mutate(
+      { ...payload, password: hashedPassword },
+      {
+        onError: (error) => {
+          toast.error('注册失败', {
+            description: error.message || '无法创建账号',
+          });
+        },
       },
-    });
+    );
   };
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">创建账号</CardTitle>
         <CardDescription className="text-center">
-          Enter your details to get started
+          请输入您的信息开始使用
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">用户名</Label>
             <Input
               id="name"
               type="text"
-              placeholder="John Doe"
+              placeholder="请输入用户名"
               {...register('name')}
             />
             {errors.name && (
@@ -57,7 +62,7 @@ export function RegisterForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">邮箱</Label>
             <Input
               id="email"
               type="email"
@@ -69,7 +74,7 @@ export function RegisterForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">密码</Label>
             <Input
               id="password"
               type="password"
@@ -81,7 +86,7 @@ export function RegisterForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">确认密码</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -99,12 +104,12 @@ export function RegisterForm() {
             className="w-full"
             disabled={registerMutation.isPending}
           >
-            {registerMutation.isPending ? 'Creating account...' : 'Create account'}
+            {registerMutation.isPending ? '创建中...' : '创建账号'}
           </Button>
           <p className="text-sm text-muted-foreground text-center">
-            Already have an account?{' '}
+            已有账号？{' '}
             <Link href={ROUTES.LOGIN} className="text-primary hover:underline">
-              Sign in
+              登录
             </Link>
           </p>
         </CardFooter>

@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email('请输入有效的邮箱地址'),
+  password: z.string().min(6, '密码至少需要 6 个字符'),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const registerSchema = z
   .object({
-    email: z.string().email('Please enter a valid email address'),
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    email: z.string().email('请输入有效的邮箱地址'),
+    name: z.string().min(2, '用户名至少需要 2 个字符'),
+    password: z.string().min(6, '密码至少需要 6 个字符'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
+    message: '两次输入的密码不一致',
     path: ['confirmPassword'],
   });
 
