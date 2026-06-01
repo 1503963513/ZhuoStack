@@ -157,14 +157,18 @@ export class DictService {
    * 更新字典
    */
   async update(id: string, dto: UpdateDictDto) {
-    const oldDict = await this.findOne(id) as any;
+    // 直接查询字典（不带 include，减少查询开销）
+    const dict = await this.prisma.sysDict.findUnique({ where: { id } });
+    if (!dict) {
+      throw new NotFoundException(`字典 ${id} 不存在`);
+    }
 
-    if (dto.code) {
+    // 如果修改了编码，检查唯一性
+    if (dto.code && dto.code !== dict.code) {
       const existing = await this.prisma.sysDict.findUnique({
         where: { code: dto.code },
       });
-
-      if (existing && existing.id !== id) {
+      if (existing) {
         throw new ConflictException('字典编码已存在');
       }
     }
@@ -176,8 +180,9 @@ export class DictService {
 
     // 清除相关缓存
     await this.redisService.del(`${DICT_CACHE_PREFIX}${id}`);
-    if (oldDict.code) {
-      await this.redisService.del(`${DICT_DATA_CACHE_PREFIX}${oldDict.code}`);
+    await this.redisService.del(`${DICT_DATA_CACHE_PREFIX}${dict.code}`);
+    if (dto.code && dto.code !== dict.code) {
+      await this.redisService.del(`${DICT_DATA_CACHE_PREFIX}${dto.code}`);
     }
     await this.redisService.del(DICT_LIST_CACHE_KEY);
 
