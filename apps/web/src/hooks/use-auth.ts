@@ -64,8 +64,7 @@ export function useLogout() {
     if (token) {
       try {
         const axios = (await import('axios')).default;
-        const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100';
-        await axios.post(`${BASE_URL}/api/auth/logout`, null, {
+        await axios.post('/api/auth/logout', null, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 3000,
         });

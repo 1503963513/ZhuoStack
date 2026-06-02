@@ -25,19 +25,26 @@ export function LoginForm() {
   const loginMutation = useLogin();
 
   const onSubmit = async (data: LoginFormData) => {
+    console.log('[登录] 开始加密密码...');
     try {
       const encryptedPassword = await encryptPassword(data.password);
+      console.log('[登录] 加密成功, 密文长度:', encryptedPassword.length);
       loginMutation.mutate(
         { email: data.email, password: encryptedPassword },
         {
+          onSuccess: (response) => {
+            console.log('[登录] API 响应:', response);
+          },
           onError: (error) => {
+            console.error('[登录] API 错误:', error);
             toast.error('登录失败', {
               description: error.message || '邮箱或密码错误',
             });
           },
         },
       );
-    } catch {
+    } catch (e) {
+      console.error('[登录] 加密异常:', e);
       toast.error('加密失败，请刷新页面重试');
     }
   };

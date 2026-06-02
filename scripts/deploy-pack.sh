@@ -4,6 +4,15 @@
 
 set -e
 
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
 OUTPUT="${1:-deploy}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 FILENAME="${OUTPUT}_${TIMESTAMP}.tar.gz"
@@ -70,8 +79,14 @@ if [ -f "docker-compose.yml" ]; then
   touch "${TEMP_DIR}/docker/mysql-init/.gitkeep"
 fi
 
-# 打包
+# 清理 macOS 元数据文件（._ 文件会导致 Prisma schema 解析失败）
+echo "  → 清理 macOS 元数据文件..."
+find "${TEMP_DIR}" -name "._*" -delete 2>/dev/null || true
+find "${TEMP_DIR}" -name ".DS_Store" -delete 2>/dev/null || true
+
+# 打包（COPYFILE_DISABLE=1 防止 macOS 再次注入 ._ 文件）
 echo "  → 正在压缩..."
+export COPYFILE_DISABLE=1
 cd "${TEMP_DIR}" && tar czf "../${FILENAME}" . && cd ..
 
 # 获取文件大小
@@ -81,14 +96,25 @@ SIZE=$(ls -lh "${FILENAME}" | awk '{print $5}')
 rm -rf "${TEMP_DIR}"
 
 echo ""
-echo "✅ 部署包创建完成: ${FILENAME} (${SIZE})"
+echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}${BOLD}║  ✅ 部署包创建完成！                                            ║${NC}"
+echo -e "${GREEN}${BOLD}║                                                              ║${NC}"
+echo -e "${GREEN}${BOLD}║  📦 文件: ${CYAN}${FILENAME}                                  ║${NC}"
+echo -e "${GREEN}${BOLD}║  📏 大小: ${CYAN}${SIZE}                                      ║${NC}"                             
+echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "📋 服务器部署命令:"
+echo -e "${YELLOW}${BOLD}📋 服务器部署命令:${NC}"
 echo ""
-echo "  # 首次部署:"
-echo "  scp ${FILENAME} user@server:/opt/myapp/"
-echo "  ssh user@server 'cd /opt/myapp && tar xzf ${FILENAME} && bash scripts/server-setup.sh'"
+echo -e "  ${RED}${BOLD}# 首次部署:${NC}"
+echo -e "  ${CYAN}scp ${FILENAME} user@server:/opt/myapp/${NC}"
+echo -e "  ${CYAN}scp -P 15554 ${FILENAME} root@223.254.147.49:/opt/node-app/test/${NC}"
+echo -e "  ${CYAN}ssh user@server 'cd /opt/myapp && tar xzf ${FILENAME} && bash scripts/server-setup.sh'${NC}"
 echo ""
-echo "  # 更新部署（保留 .env）:"
-echo "  scp ${FILENAME} user@server:/opt/myapp/"
-echo "  ssh user@server 'cd /opt/myapp && tar xzf ${FILENAME} --skip-old-files && bash scripts/server-update.sh'"
+echo -e "  ${RED}${BOLD}# 更新部署（保留 .env）:${NC}"
+echo -e "  ${CYAN}scp ${FILENAME} user@server:/opt/myapp/${NC}"
+echo -e "  ${CYAN}scp -P 15554 ${FILENAME} root@223.254.147.49:/opt/node-app/test/${NC}"
+echo -e "  ${CYAN}ssh user@server 'cd /opt/myapp && tar xzf ${FILENAME} --skip-old-files && bash scripts/server-update.sh'${NC}"
+echo ""
+echo -e "  ${GREEN}${BOLD}# 快捷命令（本地一键部署到服务器）:${NC}"
+echo -e "  ${CYAN}scp -P 15554 ${FILENAME} root@223.254.147.49:/opt/node-app/test/ && ssh -p 15554 root@223.254.147.49 'cd /opt/node-app/test && bash scripts/server-update.sh'${NC}"
+echo ""

@@ -22,7 +22,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.active",
     "prisma:push": "prisma db push --schema=prisma/schema.active",
     "prisma:studio": "prisma studio --schema=prisma/schema.active",
-    "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:seed": "tsx prisma/seed.ts",
     "prisma:reset": "prisma migrate reset --schema=prisma/schema.active",
     "db:setup:pg": "pnpm db:use:pg && pnpm prisma:generate && pnpm prisma:migrate && pnpm prisma:seed",
     "db:setup:mysql": "pnpm db:use:mysql && pnpm prisma:generate && pnpm prisma:migrate && pnpm prisma:seed",
@@ -53,7 +53,8 @@
     "passport-local": "^1.0.0",
     "prisma": "^5.8.0",
     "reflect-metadata": "^0.2.1",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "tsx": "^4.7.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.0",
@@ -72,7 +73,7 @@
     "typescript": "^5.2.2"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "jest": {
     "moduleFileExtensions": [

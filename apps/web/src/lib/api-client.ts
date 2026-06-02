@@ -1,7 +1,9 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '@/types/api';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100';
+// baseURL 为空，路径本身带 /api 前缀（如 /api/auth/login）
+// Next.js rewrites 会将 /api/* 代理到后端服务
+const BASE_URL = '';
 
 /** Create axios instance with default config */
 function createApiClient(): AxiosInstance {
