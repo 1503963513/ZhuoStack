@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'myapp-api',
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
       cwd: './apps/api',
       instances: 1,
       exec_mode: 'fork',
