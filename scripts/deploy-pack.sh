@@ -62,6 +62,14 @@ cp turbo.json "${TEMP_DIR}/"
 # 复制脚本目录
 cp -r scripts "${TEMP_DIR}/"
 
+# 复制 Docker 配置（如果有）
+if [ -f "docker-compose.yml" ]; then
+  echo "  → 复制 docker-compose.yml..."
+  cp docker-compose.yml "${TEMP_DIR}/"
+  mkdir -p "${TEMP_DIR}/docker/mysql-init"
+  touch "${TEMP_DIR}/docker/mysql-init/.gitkeep"
+fi
+
 # 打包
 echo "  → 正在压缩..."
 cd "${TEMP_DIR}" && tar czf "../${FILENAME}" . && cd ..
