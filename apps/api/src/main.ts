@@ -69,9 +69,10 @@ async function bootstrap() {
   // Use NestJS built-in logger
   app.useLogger(app.get(Logger));
 
-  // 安全响应头（X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security 等）
+  // 安全响应头（X-Content-Type-Options, Strict-Transport-Security 等）
   await app.register(helmet, {
-    contentSecurityPolicy: false, // 暂时关闭 CSP，避免与 Swagger 冲突
+    contentSecurityPolicy: false,
+    frameguard: false, // 允许前端 iframe 嵌入 Swagger 文档页
   });
 
   // Global prefix
