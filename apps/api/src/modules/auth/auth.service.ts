@@ -66,7 +66,7 @@ export class AuthService {
   }
 
   /**
-   * 使用 RSA-OAEP 解密前端传来的密码密文
+   * 使用 RSA-PKCS1v1.5 解密前端传来的密码密文（JSEncrypt 使用此填充）
    * @param encrypted Base64 编码的密文
    * @returns 解密后的明文密码
    */
@@ -76,8 +76,7 @@ export class AuthService {
       const decrypted = crypto.privateDecrypt(
         {
           key: this.rsaPrivateKey,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: 'sha-256',
+          padding: crypto.constants.RSA_PKCS1_PADDING,
         },
         new Uint8Array(buffer),
       );

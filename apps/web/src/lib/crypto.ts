@@ -4,33 +4,27 @@
  * 安全模型：
  * 1. 服务端启动时生成 RSA-2048 密钥对
  * 2. 前端通过 GET /api/auth/public-key 获取公钥
- * 3. 使用 RSA-OAEP (SHA-256) 加密密码后传输
+ * 3. 使用 JSEncrypt (RSA-PKCS1v1.5) 加密密码后传输
  * 4. 服务端用私钥解密，再 bcrypt 哈希存储/比对
  *
- * 即使 TLS 被中间人代理（如企业网关），密码也不会泄露。
- * 每次服务端重启密钥对更换，无法跨会话重放。
+ * 使用 JSEncrypt 而非 Web Crypto API，确保在 HTTP（非安全上下文）下也能工作。
  */
+
+import JSEncrypt from 'jsencrypt';
 
 const PUBLIC_KEY_CACHE_TTL = 5 * 60 * 1000; // 5 分钟
 
-interface CachedKey {
-  pem: string;
-  cryptoKey: CryptoKey;
-  timestamp: number;
-}
-
-let cachedKey: CachedKey | null = null;
+let cachedPublicKey: string | null = null;
+let cachedTimestamp = 0;
 
 /**
- * 获取 RSA 公钥（带缓存）
+ * 获取 RSA 公钥 PEM（带内存缓存）
  */
-async function getPublicKey(): Promise<{ pem: string; cryptoKey: CryptoKey }> {
-  // 检查内存缓存
-  if (cachedKey && Date.now() - cachedKey.timestamp < PUBLIC_KEY_CACHE_TTL) {
-    return { pem: cachedKey.pem, cryptoKey: cachedKey.cryptoKey };
+async function getPublicKey(): Promise<string> {
+  if (cachedPublicKey && Date.now() - cachedTimestamp < PUBLIC_KEY_CACHE_TTL) {
+    return cachedPublicKey;
   }
 
-  // 从服务端获取 PEM 公钥（走 Next.js /api 代理，避免 CORS）
   const res = await fetch('/api/auth/public-key');
   if (!res.ok) {
     throw new Error('获取公钥失败');
@@ -38,53 +32,27 @@ async function getPublicKey(): Promise<{ pem: string; cryptoKey: CryptoKey }> {
   const json = await res.json();
   const publicKey = json.data.publicKey as string;
 
-  // PEM → ArrayBuffer
-  const pemBody = publicKey
-    .replace('-----BEGIN PUBLIC KEY-----', '')
-    .replace('-----END PUBLIC KEY-----', '')
-    .replace(/\s/g, '');
-  const binaryStr = atob(pemBody);
-  const buffer = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    buffer[i] = binaryStr.charCodeAt(i);
-  }
-
-  // 导入为 Web Crypto Key
-  const cryptoKey = await crypto.subtle.importKey(
-    'spki',
-    buffer,
-    { name: 'RSA-OAEP', hash: 'SHA-256' },
-    false,
-    ['encrypt'],
-  );
-
-  // 缓存
-  cachedKey = { pem: publicKey, cryptoKey, timestamp: Date.now() };
-  return { pem: publicKey, cryptoKey };
+  cachedPublicKey = publicKey;
+  cachedTimestamp = Date.now();
+  return publicKey;
 }
 
 /**
- * 使用 RSA-OAEP 加密密码
+ * 使用 RSA 加密密码
  * @param password 明文密码
  * @returns Base64 编码的密文
  */
 export async function encryptPassword(password: string): Promise<string> {
-  const { cryptoKey } = await getPublicKey();
+  const publicKey = await getPublicKey();
 
-  const encoded = new TextEncoder().encode(password);
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    cryptoKey,
-    encoded,
-  );
+  const encrypt = new JSEncrypt();
+  encrypt.setPublicKey(publicKey);
 
-  // ArrayBuffer → Base64
-  const bytes = new Uint8Array(encrypted);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const encrypted = encrypt.encrypt(password);
+  if (!encrypted) {
+    throw new Error('RSA 加密失败');
   }
-  return btoa(binary);
+  return encrypted;
 }
 
 /**
