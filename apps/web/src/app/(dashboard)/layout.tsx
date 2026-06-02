@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -15,14 +15,21 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const [hydrated, setHydrated] = useState(false);
+
+  // 等待 Zustand persist 完成 hydrate
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hydrated && !isAuthenticated) {
       router.push(ROUTES.LOGIN);
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  // hydrate 前显示 loading，避免闪跳
+  if (!hydrated || !isAuthenticated) {
     return <Loading />;
   }
 
