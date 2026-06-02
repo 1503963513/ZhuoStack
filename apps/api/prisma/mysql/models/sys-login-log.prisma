@@ -1,0 +1,14 @@
+model SysLoginLog {
+  id         String   @id @default(cuid())
+  username   String   @db.VarChar(50)
+  ip         String   @db.VarChar(128)
+  location   String?  @db.VarChar(255)
+  browser    String?  @db.VarChar(50)
+  os         String?  @db.VarChar(50)
+  status     Int      @default(1) // 1=成功 0=失败
+  msg        String?  @db.VarChar(255)
+  loginTime  DateTime @default(now())
+
+  @@index([loginTime])
+  @@map("sys_login_log")
+}

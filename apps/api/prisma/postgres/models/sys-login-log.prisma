@@ -1,0 +1,14 @@
+model SysLoginLog {
+  id         String   @id @default(cuid())
+  username   String
+  ip         String
+  location   String?
+  browser    String?
+  os         String?
+  status     Int      @default(1)
+  msg        String?
+  loginTime  DateTime @default(now())
+
+  @@index([loginTime])
+  @@map("sys_login_log")
+}

@@ -1,0 +1,18 @@
+model SysOperLog {
+  id            String   @id @default(cuid())
+  title         String   @db.VarChar(100)
+  businessType  Int      @default(0) // 0=其他 1=新增 2=修改 3=删除 4=导出
+  method        String   @db.VarChar(200)
+  requestMethod String   @db.VarChar(10)
+  url           String   @db.VarChar(500)
+  ip            String   @db.VarChar(128)
+  operName      String?  @db.VarChar(50)
+  operUrl       String?  @db.VarChar(500)
+  status        Int      @default(1) // 1=成功 0=失败
+  jsonResult    String?  @db.Text
+  errorMsg      String?  @db.Text
+  operTime      DateTime @default(now())
+
+  @@index([operTime])
+  @@map("sys_oper_log")
+}

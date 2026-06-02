@@ -140,6 +140,45 @@ async function main() {
     },
   });
 
+  const menuUser = await prisma.sysMenu.create({
+    data: {
+      name: '用户管理',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/system/user',
+      component: 'system/user/index',
+      icon: 'Users',
+      sort: 6,
+      status: Status.ACTIVE,
+    },
+  });
+
+  await prisma.sysMenu.create({
+    data: {
+      name: '操作日志',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/system/oper-log',
+      component: 'system/oper-log/index',
+      icon: 'FileText',
+      sort: 7,
+      status: Status.ACTIVE,
+    },
+  });
+
+  await prisma.sysMenu.create({
+    data: {
+      name: '登录日志',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/system/login-log',
+      component: 'system/login-log/index',
+      icon: 'FileText',
+      sort: 8,
+      status: Status.ACTIVE,
+    },
+  });
+
   // 三级菜单：按钮权限（部门管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
@@ -236,8 +275,21 @@ async function main() {
     },
   });
 
-  // 一级菜单：个人中心（默认隐藏）
   await prisma.sysMenu.create({
+    data: {
+      name: '服务器信息',
+      parentId: menuMonitor.id,
+      type: MenuType.MENU,
+      path: '/monitor/server',
+      component: 'monitor/server/index',
+      icon: 'Server',
+      sort: 5,
+      status: Status.ACTIVE,
+    },
+  });
+
+  // 一级菜单：个人中心（默认隐藏）
+  const menuProfile = await prisma.sysMenu.create({
     data: {
       name: '个人中心',
       type: MenuType.MENU,
@@ -247,6 +299,20 @@ async function main() {
       sort: 2,
       status: Status.ACTIVE,
       hidden: true,
+    },
+  });
+
+  // 个人中心子菜单
+  await prisma.sysMenu.create({
+    data: {
+      name: '修改密码',
+      parentId: menuProfile.id,
+      type: MenuType.MENU,
+      path: '/profile/change-password',
+      component: 'profile/change-password/index',
+      icon: 'Lock',
+      sort: 1,
+      status: Status.ACTIVE,
     },
   });
 

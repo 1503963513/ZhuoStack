@@ -151,6 +151,32 @@ export class UserService {
     await this.findOne(id);
 
     await this.prisma.user.delete({ where: { id } });
-    return { message: 'User deleted successfully' };
+    return { message: '用户删除成功' };
+  }
+
+  /**
+   * 修改密码
+   */
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      throw new ConflictException('旧密码错误');
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    return { message: '密码修改成功' };
   }
 }

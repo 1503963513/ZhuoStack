@@ -1,0 +1,18 @@
+model SysOperLog {
+  id            String   @id @default(cuid())
+  title         String
+  businessType  Int      @default(0)
+  method        String
+  requestMethod String
+  url           String
+  ip            String
+  operName      String?
+  operUrl       String?
+  status        Int      @default(1)
+  jsonResult    String?
+  errorMsg      String?
+  operTime      DateTime @default(now())
+
+  @@index([operTime])
+  @@map("sys_oper_log")
+}

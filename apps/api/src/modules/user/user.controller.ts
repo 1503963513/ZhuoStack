@@ -17,10 +17,10 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
+import { CreateUserDto, UpdateUserDto, QueryUserDto, ChangePasswordDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators';
+import { Roles, CurrentUser } from '../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('user')
@@ -72,5 +72,17 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found' })
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Post('change-password')
+  @ApiOperation({ summary: '修改密码' })
+  @ApiResponse({ status: 200, description: '密码修改成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResponse({ status: 409, description: '旧密码错误' })
+  changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(userId, dto.oldPassword, dto.newPassword);
   }
 }
