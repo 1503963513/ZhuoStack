@@ -119,53 +119,9 @@ async function bootstrap() {
       .setDescription('基于 NestJS + Fastify + Prisma 的 API 文档')
       .setVersion('1.0')
       .addBearerAuth()
-      .addBasicAuth()
       .build();
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document, {
-      swaggerOptions: {
-        // 通过环境变量设置 Swagger Basic Auth
-        ...(process.env.SWAGGER_USER && process.env.SWAGGER_PASSWORD
-          ? {
-              authAction: {
-                basic: {
-                  name: 'basic',
-                  schema: { type: 'basic' },
-                  value: { username: process.env.SWAGGER_USER, password: process.env.SWAGGER_PASSWORD },
-                },
-              },
-            }
-          : {}),
-      },
-    });
-
-    // 如果配置了 Swagger 认证，用 Fastify 钩子拦截未认证访问
-    if (process.env.SWAGGER_USER && process.env.SWAGGER_PASSWORD) {
-      const swaggerUser = process.env.SWAGGER_USER;
-      const swaggerPass = process.env.SWAGGER_PASSWORD;
-      const fastifyInstance = app.getHttpAdapter().getInstance();
-
-      fastifyInstance.addHook('onRequest', async (req: any, reply: any) => {
-        if (req.url.startsWith('/api/docs') || req.url.startsWith('/api/docs-json')) {
-          const authHeader = req.headers.authorization;
-          if (!authHeader) {
-            reply.header('WWW-Authenticate', 'Basic realm="Swagger API Docs"');
-            reply.code(401).send({ message: '需要认证才能访问 API 文档' });
-            return;
-          }
-
-          const [, encoded] = authHeader.split(' ');
-          const decoded = Buffer.from(encoded, 'base64').toString();
-          const [user, pass] = decoded.split(':');
-
-          if (user !== swaggerUser || pass !== swaggerPass) {
-            reply.header('WWW-Authenticate', 'Basic realm="Swagger API Docs"');
-            reply.code(401).send({ message: '认证失败' });
-            return;
-          }
-        }
-      });
-    }
+    SwaggerModule.setup('api/docs', app, document);
   }
 
   // 优雅关闭
