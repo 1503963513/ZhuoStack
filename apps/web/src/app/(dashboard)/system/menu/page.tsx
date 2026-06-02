@@ -84,6 +84,7 @@ export default function MenuPage() {
   const { data, isLoading, refetch } = useApiQuery<Menu[]>(['menus'], '/api/system/menu/tree');
 
   const createMutation = useApiMutation('post', '/api/system/menu', {
+    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
@@ -94,6 +95,7 @@ export default function MenuPage() {
   });
 
   const updateMutation = useApiMutation('put', `/api/system/menu/${editingMenu?.id || ''}`, {
+    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);

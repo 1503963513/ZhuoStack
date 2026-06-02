@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface Role {
   id: string;
@@ -87,6 +88,7 @@ export default function RolePage() {
   const menuTree = menuTreeData?.data || [];
 
   const createMutation = useApiMutation('post', '/api/system/role', {
+    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
@@ -97,6 +99,7 @@ export default function RolePage() {
   });
 
   const updateMutation = useApiMutation('put', `/api/system/role/${editingRole?.id || ''}`, {
+    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);
@@ -234,10 +237,10 @@ export default function RolePage() {
           <h1 className="text-3xl font-bold">角色管理</h1>
           <p className="text-muted-foreground">管理系统角色和菜单权限</p>
         </div>
-        <Button onClick={handleCreate}>
+        <PermissionButton perm="system:role:add" onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           新增角色
-        </Button>
+        </PermissionButton>
       </div>
 
       <div className="flex gap-4">
@@ -279,12 +282,12 @@ export default function RolePage() {
                     </Badge>
                   </div>
                   <div className="col-span-4 flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(role)} title="编辑 / 分配权限">
+                    <PermissionButton perm="system:role:edit" variant="ghost" size="sm" onClick={() => handleEdit(role)} title="编辑 / 分配权限">
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(role.id)}>
+                    </PermissionButton>
+                    <PermissionButton perm="system:role:delete" variant="ghost" size="sm" onClick={() => handleDelete(role.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </PermissionButton>
                   </div>
                 </div>
               </div>
