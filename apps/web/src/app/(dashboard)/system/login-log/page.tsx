@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { useDict } from '@/hooks/use-dict';
 
 interface LoginLog {
   id: string;
@@ -27,6 +28,7 @@ export default function LoginLogPage() {
   const [page, setPage] = useState(1);
   const [username, setUsername] = useState('');
   const debouncedUsername = useDebounce(username, 300);
+  const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['login-logs', String(page), debouncedUsername],
     `/api/log/login?page=${page}&pageSize=10${debouncedUsername ? `&username=${debouncedUsername}` : ''}`,
@@ -99,7 +101,7 @@ export default function LoginLogPage() {
                   <div className="col-span-2 text-sm text-muted-foreground">{log.os || '-'}</div>
                   <div className="col-span-1">
                     <Badge variant={log.status === 1 ? 'default' : 'destructive'}>
-                      {log.status === 1 ? '成功' : '失败'}
+                      {operStatusMap[String(log.status)] || (log.status === 1 ? '成功' : '失败')}
                     </Badge>
                   </div>
                   <div className="col-span-3 text-sm text-muted-foreground">

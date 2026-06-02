@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { useDict } from '@/hooks/use-dict';
 
 interface OperLog {
   id: string;
@@ -26,14 +27,12 @@ interface OperLog {
   operTime: string;
 }
 
-const BUSINESS_TYPE_MAP: Record<number, string> = {
-  0: '其他', 1: '新增', 2: '修改', 3: '删除', 4: '导出',
-};
-
 export default function OperLogPage() {
   const [page, setPage] = useState(1);
   const [title, setTitle] = useState('');
   const debouncedTitle = useDebounce(title, 300);
+  const { labelMap: businessTypeMap } = useDict('sys_business_type');
+  const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['oper-logs', String(page), debouncedTitle],
     `/api/log/oper?page=${page}&pageSize=10${debouncedTitle ? `&title=${debouncedTitle}` : ''}`,
@@ -102,7 +101,7 @@ export default function OperLogPage() {
                 <div className="grid grid-cols-12 gap-4 items-center">
                   <div className="col-span-2 font-medium">{log.title}</div>
                   <div className="col-span-2">
-                    <Badge variant="outline">{BUSINESS_TYPE_MAP[log.businessType] || '其他'}</Badge>
+                    <Badge variant="outline">{businessTypeMap[String(log.businessType)] || '其他'}</Badge>
                   </div>
                   <div className="col-span-2">
                     <Badge variant="secondary">{log.requestMethod}</Badge>
@@ -110,7 +109,7 @@ export default function OperLogPage() {
                   <div className="col-span-2 text-sm">{log.operName || '-'}</div>
                   <div className="col-span-1">
                     <Badge variant={log.status === 1 ? 'default' : 'destructive'}>
-                      {log.status === 1 ? '成功' : '失败'}
+                      {operStatusMap[String(log.status)] || (log.status === 1 ? '成功' : '失败')}
                     </Badge>
                   </div>
                   <div className="col-span-3 text-sm text-muted-foreground">
