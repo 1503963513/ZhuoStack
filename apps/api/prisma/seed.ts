@@ -145,7 +145,7 @@ async function main() {
     },
   });
 
-  await prisma.sysMenu.create({
+  const menuOperLog = await prisma.sysMenu.create({
     data: {
       name: '操作日志',
       parentId: menuSystem.id,
@@ -158,7 +158,7 @@ async function main() {
     },
   });
 
-  await prisma.sysMenu.create({
+  const menuLoginLog = await prisma.sysMenu.create({
     data: {
       name: '登录日志',
       parentId: menuSystem.id,
@@ -186,6 +186,57 @@ async function main() {
       { name: '角色新增', parentId: menuRole.id, type: MenuType.BUTTON, perms: 'system:role:add', sort: 1, status: Status.ACTIVE },
       { name: '角色编辑', parentId: menuRole.id, type: MenuType.BUTTON, perms: 'system:role:edit', sort: 2, status: Status.ACTIVE },
       { name: '角色删除', parentId: menuRole.id, type: MenuType.BUTTON, perms: 'system:role:delete', sort: 3, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（岗位管理下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '岗位新增', parentId: menuPost.id, type: MenuType.BUTTON, perms: 'system:post:add', sort: 1, status: Status.ACTIVE },
+      { name: '岗位编辑', parentId: menuPost.id, type: MenuType.BUTTON, perms: 'system:post:edit', sort: 2, status: Status.ACTIVE },
+      { name: '岗位删除', parentId: menuPost.id, type: MenuType.BUTTON, perms: 'system:post:delete', sort: 3, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（菜单管理下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '菜单新增', parentId: menuMenu.id, type: MenuType.BUTTON, perms: 'system:menu:add', sort: 1, status: Status.ACTIVE },
+      { name: '菜单编辑', parentId: menuMenu.id, type: MenuType.BUTTON, perms: 'system:menu:edit', sort: 2, status: Status.ACTIVE },
+      { name: '菜单删除', parentId: menuMenu.id, type: MenuType.BUTTON, perms: 'system:menu:delete', sort: 3, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（字典管理下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '字典新增', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:add', sort: 1, status: Status.ACTIVE },
+      { name: '字典编辑', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:edit', sort: 2, status: Status.ACTIVE },
+      { name: '字典删除', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:delete', sort: 3, status: Status.ACTIVE },
+      { name: '字典数据', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:data', sort: 4, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（用户管理下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '用户新增', parentId: menuUser.id, type: MenuType.BUTTON, perms: 'system:user:add', sort: 1, status: Status.ACTIVE },
+      { name: '用户编辑', parentId: menuUser.id, type: MenuType.BUTTON, perms: 'system:user:edit', sort: 2, status: Status.ACTIVE },
+      { name: '用户删除', parentId: menuUser.id, type: MenuType.BUTTON, perms: 'system:user:delete', sort: 3, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（操作日志下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '操作日志删除', parentId: menuOperLog.id, type: MenuType.BUTTON, perms: 'log:oper:delete', sort: 1, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（登录日志下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '登录日志删除', parentId: menuLoginLog.id, type: MenuType.BUTTON, perms: 'log:login:delete', sort: 1, status: Status.ACTIVE },
     ],
   });
 
@@ -298,6 +349,12 @@ async function main() {
 
   // ========== 角色管理 ==========
   console.log('Creating roles...');
+
+  // 查询所有 BUTTON 类型的菜单（权限按钮）
+  const buttonMenus = await prisma.sysMenu.findMany({
+    where: { type: MenuType.BUTTON },
+  });
+
   const roleAdmin = await prisma.sysRole.create({
     data: {
       name: '超级管理员',
@@ -307,12 +364,18 @@ async function main() {
       remark: '拥有所有权限',
       menus: {
         connect: [
+          // 目录和菜单
           { id: menuSystem.id },
           { id: menuDept.id },
           { id: menuPost.id },
           { id: menuRole.id },
           { id: menuMenu.id },
           { id: menuDict.id },
+          { id: menuUser.id },
+          { id: menuOperLog.id },
+          { id: menuLoginLog.id },
+          // 所有按钮权限
+          ...buttonMenus.map((m) => ({ id: m.id })),
         ],
       },
     },
