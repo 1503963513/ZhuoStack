@@ -1,6 +1,7 @@
 import { PrismaClient, Role, Status, MenuType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { createHash } from 'crypto';
+import Redis from 'ioredis';
 
 const prisma = new PrismaClient();
 
@@ -439,6 +440,19 @@ async function main() {
   }
 
   console.log('Seeding completed!');
+
+  // 清除 Redis 缓存
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1, connectTimeout: 2000, lazyConnect: true });
+  try {
+    await redis.connect();
+    await redis.flushdb();
+    console.log('Redis cache cleared');
+  } catch {
+    console.log('Redis not available, skipping cache clear');
+  } finally {
+    redis.disconnect();
+  }
 }
 
 main()
