@@ -436,6 +436,65 @@ async function main() {
       { dictId: dictYesNo.id, label: '否', value: '0', sort: 2, status: Status.ACTIVE },
     ],
   });
+
+  // 角色类型
+  const dictRoleType = await prisma.sysDict.create({
+    data: { name: '角色类型', code: 'sys_role_type', status: Status.ACTIVE },
+  });
+  await prisma.sysDictData.createMany({
+    data: [
+      { dictId: dictRoleType.id, label: '管理员', value: 'ADMIN', sort: 1, status: Status.ACTIVE },
+      { dictId: dictRoleType.id, label: '普通用户', value: 'USER', sort: 2, status: Status.ACTIVE },
+    ],
+  });
+
+  // 菜单类型
+  const dictMenuType = await prisma.sysDict.create({
+    data: { name: '菜单类型', code: 'sys_menu_type', status: Status.ACTIVE },
+  });
+  await prisma.sysDictData.createMany({
+    data: [
+      { dictId: dictMenuType.id, label: '目录', value: 'DIRECTORY', sort: 1, status: Status.ACTIVE },
+      { dictId: dictMenuType.id, label: '菜单', value: 'MENU', sort: 2, status: Status.ACTIVE },
+      { dictId: dictMenuType.id, label: '按钮', value: 'BUTTON', sort: 3, status: Status.ACTIVE },
+    ],
+  });
+
+  // 业务操作类型
+  const dictBusinessType = await prisma.sysDict.create({
+    data: { name: '业务操作类型', code: 'sys_business_type', status: Status.ACTIVE },
+  });
+  await prisma.sysDictData.createMany({
+    data: [
+      { dictId: dictBusinessType.id, label: '其他', value: '0', sort: 1, status: Status.ACTIVE },
+      { dictId: dictBusinessType.id, label: '新增', value: '1', sort: 2, status: Status.ACTIVE },
+      { dictId: dictBusinessType.id, label: '修改', value: '2', sort: 3, status: Status.ACTIVE },
+      { dictId: dictBusinessType.id, label: '删除', value: '3', sort: 4, status: Status.ACTIVE },
+      { dictId: dictBusinessType.id, label: '导出', value: '4', sort: 5, status: Status.ACTIVE },
+    ],
+  });
+
+  // 操作状态
+  const dictOperStatus = await prisma.sysDict.create({
+    data: { name: '操作状态', code: 'sys_oper_status', status: Status.ACTIVE },
+  });
+  await prisma.sysDictData.createMany({
+    data: [
+      { dictId: dictOperStatus.id, label: '成功', value: '1', sort: 1, status: Status.ACTIVE },
+      { dictId: dictOperStatus.id, label: '失败', value: '0', sort: 2, status: Status.ACTIVE },
+    ],
+  });
+
+  // 隐藏状态
+  const dictHidden = await prisma.sysDict.create({
+    data: { name: '隐藏状态', code: 'sys_hidden', status: Status.ACTIVE },
+  });
+  await prisma.sysDictData.createMany({
+    data: [
+      { dictId: dictHidden.id, label: '显示', value: '0', sort: 1, status: Status.ACTIVE },
+      { dictId: dictHidden.id, label: '隐藏', value: '1', sort: 2, status: Status.ACTIVE },
+    ],
+  });
   console.log('Dictionaries created');
 
   // ========== 用户管理 ==========
