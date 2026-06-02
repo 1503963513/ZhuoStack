@@ -112,8 +112,8 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger setup (仅非生产环境，添加 Basic Auth 保护)
-  if (process.env.NODE_ENV !== 'production') {
+  // Swagger setup（通过 SWAGGER_ENABLED=true 启用，不受 NODE_ENV 限制）
+  if (process.env.SWAGGER_ENABLED === 'true') {
     const config = new DocumentBuilder()
       .setTitle('NodeJs 全栈模板 API')
       .setDescription('基于 NestJS + Fastify + Prisma 的 API 文档')
@@ -175,7 +175,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   logger.log(`应用运行在: http://localhost:${port}`);
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.SWAGGER_ENABLED === 'true') {
     logger.log(`Swagger 文档: http://localhost:${port}/api/docs`);
   }
 }
