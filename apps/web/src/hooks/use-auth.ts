@@ -56,19 +56,25 @@ export function useProfile() {
 export function useLogout() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
   const router = useRouter();
   const queryClient = useQueryClient();
 
   return async () => {
-    // 通知后端下线（清除 Redis 在线记录）
-    if (user?.id) {
+    // 先通知后端下线（此时 token 还在）
+    if (user?.id && token) {
       try {
-        const { del } = await import('@/lib/api-client');
-        await del(`/api/monitor/online/${user.id}`);
+        const axios = (await import('axios')).default;
+        const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100';
+        await axios.delete(`${BASE_URL}/api/monitor/online/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 3000,
+        });
       } catch {
         // 静默失败，不影响登出
       }
     }
+    // 再清本地状态
     clearAuth();
     queryClient.clear();
     router.push(ROUTES.LOGIN);
