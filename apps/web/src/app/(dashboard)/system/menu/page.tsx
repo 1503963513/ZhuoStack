@@ -301,7 +301,7 @@ export default function MenuPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>图标</Label>
                 <IconPicker
@@ -317,6 +317,8 @@ export default function MenuPage() {
                   onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>状态</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
@@ -329,18 +331,20 @@ export default function MenuPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>隐藏菜单</Label>
-                <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="false">显示</SelectItem>
-                    <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {formData.type !== 'BUTTON' && (
+                <div className="space-y-2">
+                  <Label>隐藏菜单</Label>
+                  <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">显示</SelectItem>
+                      <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>权限标识</Label>
