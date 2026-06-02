@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -21,12 +22,14 @@ export class MessageDto {
   @ApiProperty({ description: 'Message content', example: 'Hello, how are you?' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(5000, { message: '单条消息不能超过 5000 字符' })
   content: string;
 }
 
 export class ChatDto {
   @ApiProperty({ description: 'Array of chat messages', type: [MessageDto] })
   @IsArray()
+  @Max(20, { message: '消息条数不能超过 20 条' })
   @ValidateNested({ each: true })
   @Type(() => MessageDto)
   messages: MessageDto[];

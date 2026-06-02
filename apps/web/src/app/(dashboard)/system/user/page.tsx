@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +47,7 @@ interface Role { id: string; name: string; code: string; }
 export default function UserPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -59,8 +61,8 @@ export default function UserPage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['users', String(page), search],
-    `/api/user?page=${page}&pageSize=10${search ? `&search=${search}` : ''}`,
+    ['users', String(page), debouncedSearch],
+    `/api/user?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   const { data: depts } = useApiQuery<Dept[]>(['dept-list'], '/api/system/dept');

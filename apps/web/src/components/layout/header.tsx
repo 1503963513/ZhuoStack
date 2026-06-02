@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useProfile } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,8 +17,31 @@ export function Header() {
   const { setTheme, theme } = useTheme();
   const logout = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const currentUser = profileData?.data || user;
+
+  // 点击菜单外部自动关闭
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  // 按 Escape 关闭
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [menuOpen]);
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
@@ -45,7 +68,7 @@ export function Header() {
       </Button>
 
       {/* 用户菜单 */}
-      <div className="relative">
+      <div className="relative" ref={menuRef}>
         <Button
           variant="ghost"
           className="relative h-8 w-8 rounded-full"

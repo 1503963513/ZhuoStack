@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,7 @@ interface PaginatedResponse {
 export default function PostPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [formData, setFormData] = useState({
@@ -53,8 +55,8 @@ export default function PostPage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['posts', String(page), search],
-    `/api/system/post?page=${page}&pageSize=10${search ? `&search=${search}` : ''}`,
+    ['posts', String(page), debouncedSearch],
+    `/api/system/post?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   const createMutation = useApiMutation('post', '/api/system/post', {

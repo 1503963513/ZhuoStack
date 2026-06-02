@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,6 +65,7 @@ const TYPE_COLOR_MAP: Record<string, string> = {
 export default function RolePage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [selectedMenuIds, setSelectedMenuIds] = useState<Set<string>>(new Set());
@@ -76,8 +78,8 @@ export default function RolePage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['roles', String(page), search],
-    `/api/system/role?page=${page}&pageSize=10${search ? `&search=${search}` : ''}`,
+    ['roles', String(page), debouncedSearch],
+    `/api/system/role?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   // 获取菜单树（用于权限选择）

@@ -8,7 +8,5 @@ export const ROUTES = {
   PROFILE: '/profile',
 } as const;
 
-export const STORAGE_KEYS = {
-  TOKEN: 'auth-token',
-  USER: 'auth-user',
-} as const;
+// Zustand persist 存储键（auth-store 使用 'auth-storage'）
+export const AUTH_STORAGE_KEY = 'auth-storage';

@@ -41,7 +41,8 @@ export class RedisService implements OnModuleInit {
     try {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
-    } catch {
+    } catch (e) {
+      this.logger.warn(`Redis GET 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`);
       return null;
     }
   }
@@ -50,8 +51,8 @@ export class RedisService implements OnModuleInit {
     if (!this.isConnected || !this.client) return;
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttl);
-    } catch {
-      // 静默
+    } catch (e) {
+      this.logger.warn(`Redis SET 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -59,8 +60,8 @@ export class RedisService implements OnModuleInit {
     if (!this.isConnected || !this.client) return;
     try {
       await this.client.del(key);
-    } catch {
-      // 静默
+    } catch (e) {
+      this.logger.warn(`Redis DEL 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -73,8 +74,8 @@ export class RedisService implements OnModuleInit {
         cursor = next;
         if (keys.length) await this.client.del(...keys);
       } while (cursor !== '0');
-    } catch {
-      // 静默
+    } catch (e) {
+      this.logger.warn(`Redis DELPATTERN 失败 [${pattern}]: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -89,7 +90,8 @@ export class RedisService implements OnModuleInit {
         await this.client.expire(key, ttl);
       }
       return count;
-    } catch {
+    } catch (e) {
+      this.logger.warn(`Redis INCR 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`);
       return 0;
     }
   }
@@ -101,7 +103,8 @@ export class RedisService implements OnModuleInit {
     if (!this.isConnected || !this.client) return false;
     try {
       return (await this.client.exists(key)) === 1;
-    } catch {
+    } catch (e) {
+      this.logger.warn(`Redis EXISTS 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`);
       return false;
     }
   }

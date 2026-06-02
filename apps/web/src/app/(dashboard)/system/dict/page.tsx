@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,6 +53,7 @@ interface PaginatedResponse {
 export default function DictPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dataDialogOpen, setDataDialogOpen] = useState(false);
   const [editingDict, setEditingDict] = useState<Dict | null>(null);
@@ -71,8 +73,8 @@ export default function DictPage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['dicts', String(page), search],
-    `/api/system/dict?page=${page}&pageSize=10${search ? `&search=${search}` : ''}`,
+    ['dicts', String(page), debouncedSearch],
+    `/api/system/dict?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   const { data: dictDataList, refetch: refetchDictData } = useApiQuery<DictData[]>(

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApiQuery } from '@/hooks/use-api';
+import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,9 +25,10 @@ interface LoginLog {
 export default function LoginLogPage() {
   const [page, setPage] = useState(1);
   const [username, setUsername] = useState('');
+  const debouncedUsername = useDebounce(username, 300);
   const { data, isLoading, refetch } = useApiQuery<any>(
-    ['login-logs', String(page), username],
-    `/api/log/login?page=${page}&pageSize=10${username ? `&username=${username}` : ''}`,
+    ['login-logs', String(page), debouncedUsername],
+    `/api/log/login?page=${page}&pageSize=10${debouncedUsername ? `&username=${debouncedUsername}` : ''}`,
   );
 
   const handleClear = async () => {
