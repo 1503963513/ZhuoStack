@@ -1,0 +1,59 @@
+# Docker Compose — MySQL + Redis
+# 用于部署环境启动数据库和缓存服务
+#
+# 使用方式：
+#   docker compose up -d          # 启动
+#   docker compose down           # 停止
+#   docker compose logs -f        # 查看日志
+#
+# 数据持久化：数据存储在 ./docker/data/ 目录下（已加入 .gitignore）
+#
+# .env 中对应的连接字符串：
+#   DATABASE_URL=mysql://myapp:myapp123@localhost:3306/myapp
+#   REDIS_URL=redis://localhost:6379
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: myapp-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-myapp}
+      MYSQL_USER: ${MYSQL_USER:-myapp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-myapp123}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+      TZ: Asia/Shanghai
+    volumes:
+      - ./docker/data/mysql:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max-connections=200
+      - --innodb-buffer-pool-size=256M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:alpine
+    container_name: myapp-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./docker/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
