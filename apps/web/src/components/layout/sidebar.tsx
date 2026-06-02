@@ -103,12 +103,12 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
         <h1 className="text-lg font-bold">{APP_NAME}</h1>
       </div>
 
-      <nav className="flex flex-col gap-1 p-4">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
         {/* 一级菜单（仪表盘、个人中心等） */}
         {topMenus.map((item) => {
           const Icon = getIcon(item.icon);
@@ -179,7 +179,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="absolute bottom-4 left-0 right-0 px-4">
+      <div className="border-t bg-card p-4">
         <button
           onClick={logout}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"
