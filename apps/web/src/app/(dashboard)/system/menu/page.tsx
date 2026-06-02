@@ -283,41 +283,54 @@ export default function MenuPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>路由路径</Label>
-                <Input
-                  value={formData.path}
-                  onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                  placeholder="例如: /system/user"
-                />
+
+            {/* 路由路径：目录和菜单 */}
+            {formData.type !== 'BUTTON' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>路由路径</Label>
+                  <Input
+                    value={formData.path}
+                    onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+                    placeholder="例如: /system/user"
+                  />
+                </div>
+                {/* 组件路径：仅菜单 */}
+                {formData.type === 'MENU' && (
+                  <div className="space-y-2">
+                    <Label>组件路径</Label>
+                    <Input
+                      value={formData.component}
+                      onChange={(e) => setFormData({ ...formData, component: e.target.value })}
+                      placeholder="例如: system/user/index"
+                    />
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label>组件路径</Label>
-                <Input
-                  value={formData.component}
-                  onChange={(e) => setFormData({ ...formData, component: e.target.value })}
-                  placeholder="例如: system/user/index"
-                />
+            )}
+
+            {/* 图标 + 排序：目录和菜单 */}
+            {formData.type !== 'BUTTON' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>图标</Label>
+                  <IconPicker
+                    value={formData.icon}
+                    onChange={(v) => setFormData({ ...formData, icon: v })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>排序</Label>
+                  <Input
+                    type="number"
+                    value={formData.sort}
+                    onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>图标</Label>
-                <IconPicker
-                  value={formData.icon}
-                  onChange={(v) => setFormData({ ...formData, icon: v })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>排序</Label>
-                <Input
-                  type="number"
-                  value={formData.sort}
-                  onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-            </div>
+            )}
+
+            {/* 状态 + 隐藏菜单：目录和菜单 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>状态</Label>
@@ -346,14 +359,18 @@ export default function MenuPage() {
                 </div>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>权限标识</Label>
-              <Input
-                value={formData.perms}
-                onChange={(e) => setFormData({ ...formData, perms: e.target.value })}
-                placeholder="例如: system:user:list"
-              />
-            </div>
+
+            {/* 权限标识：菜单和按钮 */}
+            {(formData.type === 'MENU' || formData.type === 'BUTTON') && (
+              <div className="space-y-2">
+                <Label>权限标识</Label>
+                <Input
+                  value={formData.perms}
+                  onChange={(e) => setFormData({ ...formData, perms: e.target.value })}
+                  placeholder="例如: system:user:add"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
