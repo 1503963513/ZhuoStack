@@ -52,4 +52,13 @@ export class AuthController {
   getProfile(@CurrentUser('id') userId: string) {
     return this.authService.getProfile(userId);
   }
+
+  @Get('menus')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前用户的菜单权限（按角色过滤）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getUserMenus(@CurrentUser('id') userId: string) {
+    return this.authService.getUserMenus(userId);
+  }
 }

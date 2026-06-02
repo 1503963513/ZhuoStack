@@ -56,8 +56,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const logout = useLogout();
 
-  // 从 API 获取菜单树
-  const { data } = useApiQuery<MenuItem[]>(['menus'], '/api/system/menu/tree');
+  // 从 API 获取当前用户的菜单（按角色过滤）
+  const { data } = useApiQuery<MenuItem[]>(['user-menus'], '/api/auth/menus');
 
   // 一级菜单（没有父级的 MENU 类型，如仪表盘、个人中心）
   const topMenus = useMemo(() => {

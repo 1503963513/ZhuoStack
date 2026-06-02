@@ -177,6 +177,80 @@ export class AuthService {
   }
 
   /**
+   * 获取当前用户的菜单权限（按角色过滤，返回树形结构）
+   * 管理员返回所有菜单，普通用户返回角色关联的菜单
+   */
+  async getUserMenus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { roles: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    let menus: any[];
+
+    if (user.role === 'ADMIN') {
+      menus = await this.prisma.sysMenu.findMany({
+        where: { status: 'ACTIVE' },
+        orderBy: { sort: 'asc' },
+      });
+    } else {
+      const roleIds = user.roles.map((r) => r.id);
+      if (roleIds.length === 0) return [];
+
+      const roles = await this.prisma.sysRole.findMany({
+        where: { id: { in: roleIds } },
+        include: { menus: true },
+      });
+
+      const menuIdSet = new Set<string>();
+      for (const role of roles) {
+        for (const menu of role.menus) {
+          menuIdSet.add(menu.id);
+        }
+      }
+
+      if (menuIdSet.size === 0) return [];
+
+      // 获取分配的菜单
+      const assignedMenus = await this.prisma.sysMenu.findMany({
+        where: { id: { in: Array.from(menuIdSet) }, status: 'ACTIVE' },
+      });
+
+      // 递归补全父菜单（保证树形完整）
+      const allIds = new Set(menuIdSet);
+      for (const menu of assignedMenus) {
+        let pid = menu.parentId;
+        while (pid && !allIds.has(pid)) {
+          allIds.add(pid);
+          const parent = await this.prisma.sysMenu.findUnique({
+            where: { id: pid },
+            select: { parentId: true },
+          });
+          if (!parent) break;
+          pid = parent.parentId;
+        }
+      }
+
+      menus = await this.prisma.sysMenu.findMany({
+        where: { id: { in: Array.from(allIds) }, status: 'ACTIVE' },
+        orderBy: { sort: 'asc' },
+      });
+    }
+
+    return this.buildTree(menus);
+  }
+
+  private buildTree(menus: any[], parentId: string | null = null): any[] {
+    return menus
+      .filter((m) => m.parentId === parentId)
+      .map((m) => ({ ...m, children: this.buildTree(menus, m.id) }));
+  }
+
+  /**
    * Generate JWT token
    */
   private generateToken(payload: JwtPayload): string {
