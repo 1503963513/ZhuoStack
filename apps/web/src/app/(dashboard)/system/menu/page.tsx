@@ -25,6 +25,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
 import { IconPicker } from '@/components/common/icon-picker';
+import { cn } from '@/lib/utils';
 
 interface Menu {
   id: string;
@@ -42,10 +43,10 @@ interface Menu {
   children?: Menu[];
 }
 
-const MENU_TYPE_MAP: Record<string, { label: string; icon: typeof Folder }> = {
-  DIRECTORY: { label: '目录', icon: Folder },
-  MENU: { label: '菜单', icon: FileText },
-  BUTTON: { label: '按钮', icon: MousePointer },
+const MENU_TYPE_MAP: Record<string, { label: string; icon: typeof Folder; color: string; rowBg: string }> = {
+  DIRECTORY: { label: '目录', icon: Folder, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300', rowBg: '' },
+  MENU: { label: '菜单', icon: FileText, color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', rowBg: '' },
+  BUTTON: { label: '按钮', icon: MousePointer, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', rowBg: 'bg-muted/30' },
 };
 
 /**
@@ -383,7 +384,7 @@ function MenuRow({
 
   return (
     <>
-      <div className="border-b px-4 py-3 hover:bg-muted/50">
+      <div className={cn('border-b px-4 py-3 hover:bg-muted/50', typeInfo.rowBg)}>
         <div className="grid grid-cols-12 gap-4 items-center">
           <div className="col-span-3 flex items-center" style={{ paddingLeft: `${level * 20}px` }}>
             {hasChildren ? (
@@ -397,7 +398,9 @@ function MenuRow({
             {menu.name}
           </div>
           <div className="col-span-1">
-            <Badge variant="outline">{typeInfo.label}</Badge>
+            <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', typeInfo.color)}>
+              {typeInfo.label}
+            </span>
           </div>
           <div className="col-span-2 text-sm text-muted-foreground">{menu.path || '-'}</div>
           <div className="col-span-2 text-sm text-muted-foreground">{menu.perms || '-'}</div>
