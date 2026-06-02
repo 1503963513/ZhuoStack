@@ -54,3 +54,4 @@ docker/data/
 
 # Deploy packages
 deploy_*.tar.gz
+apps/web/tsconfig.tsbuildinfo
