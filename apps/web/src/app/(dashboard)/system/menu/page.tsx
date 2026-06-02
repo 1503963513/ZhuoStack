@@ -305,51 +305,51 @@ export default function MenuPage() {
               </div>
             )}
             {formData.type !== 'BUTTON' && (
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>图标</Label>
-                  <IconPicker
-                    value={formData.icon}
-                    onChange={(v) => setFormData({ ...formData, icon: v })}
-                  />
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>图标</Label>
+                    <IconPicker
+                      value={formData.icon}
+                      onChange={(v) => setFormData({ ...formData, icon: v })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>排序</Label>
+                    <Input
+                      type="number"
+                      value={formData.sort}
+                      onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>排序</Label>
-                  <Input
-                    type="number"
-                    value={formData.sort}
-                    onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>状态</Label>
+                    <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">启用</SelectItem>
+                        <SelectItem value="INACTIVE">停用</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>隐藏菜单</Label>
+                    <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="false">显示</SelectItem>
+                        <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>状态</Label>
-                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">启用</SelectItem>
-                      <SelectItem value="INACTIVE">停用</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-            {formData.type !== 'BUTTON' && (
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>隐藏菜单</Label>
-                  <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="false">显示</SelectItem>
-                      <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              </>
             )}
             {formData.type === 'BUTTON' && (
               <div className="grid grid-cols-2 gap-4">
