@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { LogService } from '../log/log.service';
+import { MonitorService } from '../monitor/monitor.service';
 import { LoginDto, RegisterDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly logService: LogService,
+    private readonly monitorService: MonitorService,
   ) {}
 
   /**
@@ -134,6 +136,9 @@ export class AuthService {
       status: 1,
       msg: '登录成功',
     });
+
+    // 记录在线用户
+    await this.monitorService.userOnline(user.id, user.name || user.email, ip || 'unknown');
 
     return {
       access_token: token,

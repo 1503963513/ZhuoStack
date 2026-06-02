@@ -5,12 +5,14 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LogModule } from '../log/log.module';
+import { MonitorModule } from '../monitor/monitor.module';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
     LogModule,
+    MonitorModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
