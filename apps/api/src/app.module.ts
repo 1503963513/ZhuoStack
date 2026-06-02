@@ -12,6 +12,7 @@ import { SystemModule } from './modules/system/system.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
 import { LogModule } from './modules/log/log.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
@@ -59,6 +60,8 @@ import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Global response transformer
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    // Global operation log
+    { provide: APP_INTERCEPTOR, useClass: OperLogInterceptor },
     // Global exception filter
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],
