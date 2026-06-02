@@ -290,7 +290,7 @@ async function main() {
   });
 
   // 一级菜单：个人中心（默认隐藏）
-  const menuProfile = await prisma.sysMenu.create({
+  await prisma.sysMenu.create({
     data: {
       name: '个人中心',
       type: MenuType.MENU,
@@ -300,20 +300,6 @@ async function main() {
       sort: 2,
       status: Status.ACTIVE,
       hidden: true,
-    },
-  });
-
-  // 个人中心子菜单
-  await prisma.sysMenu.create({
-    data: {
-      name: '修改密码',
-      parentId: menuProfile.id,
-      type: MenuType.MENU,
-      path: '/profile/change-password',
-      component: 'profile/change-password/index',
-      icon: 'Lock',
-      sort: 1,
-      status: Status.ACTIVE,
     },
   });
 

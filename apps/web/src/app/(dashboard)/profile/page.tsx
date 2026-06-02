@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { updateUserSchema, type UpdateUserFormData } from '@/schemas/user.schema';
@@ -13,12 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth-store';
+import { Lock, User as UserIcon } from 'lucide-react';
 
 export default function ProfilePage() {
   const { data, isLoading } = useProfile();
   const setUser = useAuthStore((s) => s.setUser);
   const user = data?.data;
 
+  // ========== 个人信息表单 ==========
   const {
     register,
     handleSubmit,
@@ -48,6 +51,44 @@ export default function ProfilePage() {
     });
   };
 
+  // ========== 修改密码 ==========
+  const [pwdForm, setPwdForm] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [pwdLoading, setPwdLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!pwdForm.oldPassword || !pwdForm.newPassword || !pwdForm.confirmPassword) {
+      toast.error('请填写所有密码字段');
+      return;
+    }
+    if (pwdForm.newPassword.length < 6) {
+      toast.error('新密码至少需要 6 个字符');
+      return;
+    }
+    if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+      toast.error('两次输入的新密码不一致');
+      return;
+    }
+
+    setPwdLoading(true);
+    try {
+      const { post } = await import('@/lib/api-client');
+      await post('/api/user/change-password', {
+        oldPassword: pwdForm.oldPassword,
+        newPassword: pwdForm.newPassword,
+      });
+      toast.success('密码修改成功');
+      setPwdForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      toast.error('密码修改失败', { description: err.message });
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
   if (isLoading) {
     return <Loading />;
   }
@@ -59,9 +100,13 @@ export default function ProfilePage() {
         <p className="text-muted-foreground">管理您的账号设置</p>
       </div>
 
+      {/* 个人信息 */}
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>个人信息</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <UserIcon className="h-5 w-5" />
+            个人信息
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -93,6 +138,50 @@ export default function ProfilePage() {
               {updateMutation.isPending ? '保存中...' : '保存修改'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* 修改密码 */}
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            修改密码
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>旧密码</Label>
+              <Input
+                type="password"
+                value={pwdForm.oldPassword}
+                onChange={(e) => setPwdForm({ ...pwdForm, oldPassword: e.target.value })}
+                placeholder="请输入旧密码"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>新密码</Label>
+              <Input
+                type="password"
+                value={pwdForm.newPassword}
+                onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
+                placeholder="请输入新密码（至少 6 个字符）"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>确认新密码</Label>
+              <Input
+                type="password"
+                value={pwdForm.confirmPassword}
+                onChange={(e) => setPwdForm({ ...pwdForm, confirmPassword: e.target.value })}
+                placeholder="请再次输入新密码"
+              />
+            </div>
+            <Button onClick={handleChangePassword} disabled={pwdLoading}>
+              {pwdLoading ? '提交中...' : '修改密码'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
