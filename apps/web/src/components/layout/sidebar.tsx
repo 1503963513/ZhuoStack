@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
 import { useApiQuery } from '@/hooks/use-api';
@@ -81,17 +81,21 @@ export function Sidebar() {
       }));
   }, [data]);
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    if (menuGroups) {
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // 数据加载后，自动展开当前路径所在的目录
+  useEffect(() => {
+    if (!menuGroups.length) return;
+    setOpenGroups((prev) => {
+      const next = { ...prev };
       for (const group of menuGroups) {
-        if (group.children?.some((c) => c.path && pathname.startsWith(c.path))) {
-          initial[group.id] = true;
+        if (group.children?.some((c: MenuItem) => c.path && pathname.startsWith(c.path))) {
+          next[group.id] = true;
         }
       }
-    }
-    return initial;
-  });
+      return next;
+    });
+  }, [menuGroups, pathname]);
 
   const toggleGroup = (id: string) => {
     setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
