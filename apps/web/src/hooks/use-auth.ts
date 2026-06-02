@@ -55,10 +55,20 @@ export function useProfile() {
 /** Logout hook */
 export function useLogout() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  return () => {
+  return async () => {
+    // 通知后端下线（清除 Redis 在线记录）
+    if (user?.id) {
+      try {
+        const { del } = await import('@/lib/api-client');
+        await del(`/api/monitor/online/${user.id}`);
+      } catch {
+        // 静默失败，不影响登出
+      }
+    }
     clearAuth();
     queryClient.clear();
     router.push(ROUTES.LOGIN);
