@@ -73,15 +73,19 @@ export class AuthService {
   decryptPassword(encrypted: string): string {
     try {
       const buffer = Buffer.from(encrypted, 'base64');
+      this.logger.debug(`解密: Base64长度=${encrypted.length}, Buffer长度=${buffer.length}`);
       const decrypted = crypto.privateDecrypt(
         {
           key: this.rsaPrivateKey,
-          padding: crypto.constants.RSA_PKCS1_PADDING,
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: 'sha-256',
         },
         new Uint8Array(buffer),
       );
       return decrypted.toString('utf8');
-    } catch {
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      this.logger.error(`RSA 解密失败: ${errMsg}, 输入长度=${encrypted.length}`);
       throw new UnauthorizedException('密码解密失败，请刷新页面重试');
     }
   }

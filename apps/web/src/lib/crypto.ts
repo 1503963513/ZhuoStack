@@ -40,14 +40,16 @@ async function getPublicKey(): Promise<forge.pki.rsa.PublicKey> {
 }
 
 /**
- * 使用 RSA 加密密码
+ * 使用 RSA-OAEP (SHA-256) 加密密码
  * @param password 明文密码
  * @returns Base64 编码的密文
  */
 export async function encryptPassword(password: string): Promise<string> {
   const publicKey = await getPublicKey();
 
-  const encrypted = publicKey.encrypt(password, 'RSAES-PKCS1-V1_5');
+  const encrypted = publicKey.encrypt(password, 'RSA-OAEP', {
+    md: forge.md.sha256.create(),
+  });
   return forge.util.encode64(encrypted);
 }
 
