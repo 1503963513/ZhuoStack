@@ -44,14 +44,4 @@ export class PrismaService
     await this.$disconnect();
     this.logger.log('数据库已断开连接');
   }
-
-  /**
-   * Enable shutdown hooks for graceful shutdown.
-   */
-  enableShutdownHooks(): void {
-    (this as unknown as { $on: (event: string, callback: () => void) => void })
-      .$on('beforeExit', async () => {
-        await this.$disconnect();
-      });
-  }
 }

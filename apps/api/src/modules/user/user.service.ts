@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
@@ -168,7 +169,7 @@ export class UserService {
 
     const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
     if (!isOldPasswordValid) {
-      throw new ConflictException('旧密码错误');
+      throw new BadRequestException('旧密码错误');
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);

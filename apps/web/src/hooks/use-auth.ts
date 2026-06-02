@@ -55,18 +55,17 @@ export function useProfile() {
 /** Logout hook */
 export function useLogout() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
-  const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const router = useRouter();
   const queryClient = useQueryClient();
 
   return async () => {
-    // 先通知后端下线（此时 token 还在）
-    if (user?.id && token) {
+    // 先调用后端登出（Token 加入黑名单 + 清除在线记录）
+    if (token) {
       try {
         const axios = (await import('axios')).default;
         const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100';
-        await axios.delete(`${BASE_URL}/api/monitor/online/${user.id}`, {
+        await axios.post(`${BASE_URL}/api/auth/logout`, null, {
           headers: { Authorization: `Bearer ${token}` },
           timeout: 3000,
         });

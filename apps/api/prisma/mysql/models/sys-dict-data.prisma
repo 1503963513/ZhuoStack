@@ -11,5 +11,7 @@ model SysDictData {
 
   dict SysDict @relation(fields: [dictId], references: [id], onDelete: Cascade)
 
+  @@index([dictId])
+  @@index([status])
   @@map("sys_dict_data")
 }

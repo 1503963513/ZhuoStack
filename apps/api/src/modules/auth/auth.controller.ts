@@ -53,6 +53,20 @@ export class AuthController {
     return this.authService.getProfile(userId);
   }
 
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '退出登录（Token 失效）' })
+  @ApiResponse({ status: 200, description: '退出成功' })
+  async logout(@Req() req: any) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      await this.authService.blacklistToken(token);
+    }
+    return { message: '退出成功' };
+  }
+
   @Get('menus')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

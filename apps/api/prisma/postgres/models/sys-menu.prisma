@@ -18,5 +18,7 @@ model SysMenu {
   children SysMenu[] @relation("MenuTree")
   roles    SysRole[]
 
+  @@index([parentId])
+  @@index([status])
   @@map("sys_menu")
 }

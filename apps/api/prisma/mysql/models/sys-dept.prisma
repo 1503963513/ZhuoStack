@@ -12,5 +12,6 @@ model SysDept {
   children SysDept[] @relation("DeptTree")
   users    User[]
 
+  @@index([parentId])
   @@map("sys_dept")
 }

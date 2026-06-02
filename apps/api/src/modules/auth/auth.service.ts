@@ -2,11 +2,12 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
-  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
+import { RedisService } from '../../database/redis.service';
 import { LogService } from '../log/log.service';
 import { MonitorService } from '../monitor/monitor.service';
 import { LoginDto, RegisterDto } from './dto';
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     private readonly logService: LogService,
     private readonly monitorService: MonitorService,
   ) {}
@@ -92,39 +94,49 @@ export class AuthService {
     return { access_token: token, user };
   }
 
+  // 登录失败锁定配置
+  private readonly MAX_LOGIN_ATTEMPTS = 5;
+  private readonly LOCKOUT_DURATION = 15 * 60; // 15 分钟
+
   /**
    * Login with email and password
    */
   async login(dto: LoginDto, ip?: string): Promise<AuthResponse> {
+    // 检查账号是否被锁定
+    const lockKey = `login:lock:${dto.email}`;
+    const isLocked = await this.redisService.exists(lockKey);
+    if (isLocked) {
+      throw new ForbiddenException('账号已被锁定，请 15 分钟后重试');
+    }
+
     // Find user by email
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
     if (!user) {
-      // 记录登录失败日志
-      await this.logService.createLoginLog({
-        username: dto.email,
-        ip: ip || 'unknown',
-        status: 0,
-        msg: '用户不存在',
-      });
-      throw new UnauthorizedException('Invalid credentials');
+      // 记录登录失败
+      await this.recordLoginFailure(dto.email, ip, '用户不存在');
+      throw new UnauthorizedException('邮箱或密码错误');
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
-      // 记录登录失败日志
-      await this.logService.createLoginLog({
-        username: dto.email,
-        ip: ip || 'unknown',
-        status: 0,
-        msg: '密码错误',
-      });
-      throw new UnauthorizedException('Invalid credentials');
+      // 记录登录失败
+      const attempts = await this.recordLoginFailure(dto.email, ip, '密码错误');
+
+      if (attempts >= this.MAX_LOGIN_ATTEMPTS) {
+        await this.redisService.set(lockKey, true, this.LOCKOUT_DURATION);
+        throw new ForbiddenException(`登录失败次数过多，账号已锁定 ${this.LOCKOUT_DURATION / 60} 分钟`);
+      }
+
+      throw new UnauthorizedException(`邮箱或密码错误（剩余 ${this.MAX_LOGIN_ATTEMPTS - attempts} 次机会）`);
     }
+
+    // 登录成功，清除失败计数
+    await this.redisService.del(`login:attempts:${dto.email}`);
 
     // Generate JWT token
     const token = this.generateToken({ sub: user.id, email: user.email });
@@ -248,6 +260,45 @@ export class AuthService {
     return menus
       .filter((m) => m.parentId === parentId)
       .map((m) => ({ ...m, children: this.buildTree(menus, m.id) }));
+  }
+
+  /**
+   * 记录登录失败并返回累计失败次数
+   */
+  private async recordLoginFailure(email: string, ip: string | undefined, msg: string): Promise<number> {
+    await this.logService.createLoginLog({
+      username: email,
+      ip: ip || 'unknown',
+      status: 0,
+      msg,
+    });
+
+    const attemptsKey = `login:attempts:${email}`;
+    return this.redisService.incr(attemptsKey, this.LOCKOUT_DURATION);
+  }
+
+  /**
+   * 将 Token 加入黑名单（登出/改密码时调用）
+   */
+  async blacklistToken(token: string): Promise<void> {
+    try {
+      const decoded = this.jwtService.decode(token) as any;
+      if (decoded?.exp) {
+        const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+        if (ttl > 0) {
+          await this.redisService.set(`token:blacklist:${token}`, true, ttl);
+        }
+      }
+    } catch {
+      // 静默
+    }
+  }
+
+  /**
+   * 检查 Token 是否在黑名单中
+   */
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    return this.redisService.exists(`token:blacklist:${token}`);
   }
 
   /**

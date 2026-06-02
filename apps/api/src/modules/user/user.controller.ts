@@ -40,26 +40,29 @@ export class UserController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all users with pagination' })
-  @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '获取用户列表（管理员）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
   findAll(@Query() query: QueryUserDto) {
     return this.userService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get user by ID' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '获取用户详情（管理员）' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'User retrieved successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update user by ID' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '更新用户（管理员）' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'User updated successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.userService.update(id, dto);
   }

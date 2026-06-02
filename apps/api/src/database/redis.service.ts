@@ -78,6 +78,34 @@ export class RedisService implements OnModuleInit {
     }
   }
 
+  /**
+   * 原子递增并设置过期时间（用于登录失败计数等）
+   */
+  async incr(key: string, ttl?: number): Promise<number> {
+    if (!this.isConnected || !this.client) return 0;
+    try {
+      const count = await this.client.incr(key);
+      if (count === 1 && ttl) {
+        await this.client.expire(key, ttl);
+      }
+      return count;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * 检查 key 是否存在
+   */
+  async exists(key: string): Promise<boolean> {
+    if (!this.isConnected || !this.client) return false;
+    try {
+      return (await this.client.exists(key)) === 1;
+    } catch {
+      return false;
+    }
+  }
+
   getClient(): Redis | null {
     return this.client;
   }
