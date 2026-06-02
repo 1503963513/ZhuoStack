@@ -5,12 +5,16 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { AuthService } from '../auth/auth.service';
 import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Create a new user
@@ -156,7 +160,7 @@ export class UserService {
   }
 
   /**
-   * 修改密码
+   * 修改密码（前端密文经 RSA 解密后验证）
    */
   async changePassword(userId: string, oldPassword: string, newPassword: string) {
     const user = await this.prisma.user.findUnique({
@@ -167,12 +171,16 @@ export class UserService {
       throw new NotFoundException('用户不存在');
     }
 
-    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    // RSA 解密前端传来的密文
+    const plainOldPassword = this.authService.decryptPassword(oldPassword);
+    const plainNewPassword = this.authService.decryptPassword(newPassword);
+
+    const isOldPasswordValid = await bcrypt.compare(plainOldPassword, user.password);
     if (!isOldPasswordValid) {
       throw new BadRequestException('旧密码错误');
     }
 
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const hashedNewPassword = await bcrypt.hash(plainNewPassword, 10);
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedNewPassword },

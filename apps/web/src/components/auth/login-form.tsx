@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormData } from '@/schemas/auth.schema';
 import { useLogin } from '@/hooks/use-auth';
-import { hashPassword } from '@/lib/crypto';
+import { encryptPassword } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,17 +25,21 @@ export function LoginForm() {
   const loginMutation = useLogin();
 
   const onSubmit = async (data: LoginFormData) => {
-    const hashedPassword = await hashPassword(data.password);
-    loginMutation.mutate(
-      { email: data.email, password: hashedPassword },
-      {
-        onError: (error) => {
-          toast.error('登录失败', {
-            description: error.message || '邮箱或密码错误',
-          });
+    try {
+      const encryptedPassword = await encryptPassword(data.password);
+      loginMutation.mutate(
+        { email: data.email, password: encryptedPassword },
+        {
+          onError: (error) => {
+            toast.error('登录失败', {
+              description: error.message || '邮箱或密码错误',
+            });
+          },
         },
-      },
-    );
+      );
+    } catch {
+      toast.error('加密失败，请刷新页面重试');
+    }
   };
 
   return (

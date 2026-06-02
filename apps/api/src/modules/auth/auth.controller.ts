@@ -24,6 +24,13 @@ import { CurrentUser } from '../../common/decorators';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Get('public-key')
+  @ApiOperation({ summary: '获取 RSA 公钥（用于密码加密传输）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getPublicKey() {
+    return { publicKey: this.authService.getPublicKey() };
+  }
+
   @Post('register')
   @ApiOperation({ summary: '用户注册' })
   @ApiResponse({ status: 201, description: '注册成功' })

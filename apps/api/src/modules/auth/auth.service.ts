@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -12,6 +13,7 @@ import { LogService } from '../log/log.service';
 import { MonitorService } from '../monitor/monitor.service';
 import { LoginDto, RegisterDto } from './dto';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 
 interface JwtPayload {
   sub: string;
@@ -31,6 +33,12 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  /** RSA 密钥对（服务启动时生成，重启后更换） */
+  private readonly rsaPublicKey: string;
+  private readonly rsaPrivateKey: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -38,7 +46,46 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly logService: LogService,
     private readonly monitorService: MonitorService,
-  ) {}
+  ) {
+    // 启动时生成 RSA-2048 密钥对
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    this.rsaPublicKey = publicKey;
+    this.rsaPrivateKey = privateKey;
+    this.logger.log('RSA 密钥对已生成');
+  }
+
+  /**
+   * 获取 RSA 公钥（前端用于加密密码）
+   */
+  getPublicKey(): string {
+    return this.rsaPublicKey;
+  }
+
+  /**
+   * 使用 RSA-OAEP 解密前端传来的密码密文
+   * @param encrypted Base64 编码的密文
+   * @returns 解密后的明文密码
+   */
+  decryptPassword(encrypted: string): string {
+    try {
+      const buffer = Buffer.from(encrypted, 'base64');
+      const decrypted = crypto.privateDecrypt(
+        {
+          key: this.rsaPrivateKey,
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: 'sha-256',
+        },
+        new Uint8Array(buffer),
+      );
+      return decrypted.toString('utf8');
+    } catch {
+      throw new UnauthorizedException('密码解密失败，请刷新页面重试');
+    }
+  }
 
   /**
    * Register a new user
@@ -60,8 +107,9 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    // Hash password with bcrypt
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    // RSA 解密前端传来的密码密文，再 bcrypt 哈希
+    const plainPassword = this.decryptPassword(dto.password);
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     // Create user
     const user = await this.prisma.user.create({
@@ -120,8 +168,9 @@ export class AuthService {
       throw new UnauthorizedException('邮箱或密码错误');
     }
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+    // Verify password（先 RSA 解密前端密文）
+    const plainPassword = this.decryptPassword(dto.password);
+    const isPasswordValid = await bcrypt.compare(plainPassword, user.password);
 
     if (!isPasswordValid) {
       // 记录登录失败
@@ -129,10 +178,11 @@ export class AuthService {
 
       if (attempts >= this.MAX_LOGIN_ATTEMPTS) {
         await this.redisService.set(lockKey, true, this.LOCKOUT_DURATION);
-        throw new ForbiddenException(`登录失败次数过多，账号已锁定 ${this.LOCKOUT_DURATION / 60} 分钟`);
+        throw new ForbiddenException('邮箱或密码错误');
       }
 
-      throw new UnauthorizedException(`邮箱或密码错误（剩余 ${this.MAX_LOGIN_ATTEMPTS - attempts} 次机会）`);
+      // 不泄露剩余次数，统一返回相同错误信息
+      throw new UnauthorizedException('邮箱或密码错误');
     }
 
     // 登录成功，清除失败计数
@@ -279,6 +329,7 @@ export class AuthService {
 
   /**
    * 将 Token 加入黑名单（登出/改密码时调用）
+   * 使用 SHA-256 哈希的前 32 字符作为 Redis key，节省内存
    */
   async blacklistToken(token: string): Promise<void> {
     try {
@@ -286,7 +337,8 @@ export class AuthService {
       if (decoded?.exp) {
         const ttl = decoded.exp - Math.floor(Date.now() / 1000);
         if (ttl > 0) {
-          await this.redisService.set(`token:blacklist:${token}`, true, ttl);
+          const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+          await this.redisService.set(`token:blacklist:${tokenHash}`, true, ttl);
         }
       }
     } catch {
@@ -298,7 +350,8 @@ export class AuthService {
    * 检查 Token 是否在黑名单中
    */
   async isTokenBlacklisted(token: string): Promise<boolean> {
-    return this.redisService.exists(`token:blacklist:${token}`);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+    return this.redisService.exists(`token:blacklist:${tokenHash}`);
   }
 
   /**

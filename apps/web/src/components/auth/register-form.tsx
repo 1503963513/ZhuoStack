@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterFormData } from '@/schemas/auth.schema';
 import { useRegister } from '@/hooks/use-auth';
-import { hashPassword } from '@/lib/crypto';
+import { encryptPassword } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,17 +26,21 @@ export function RegisterForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     const { confirmPassword: _, ...payload } = data;
-    const hashedPassword = await hashPassword(payload.password);
-    registerMutation.mutate(
-      { ...payload, password: hashedPassword },
-      {
-        onError: (error) => {
-          toast.error('注册失败', {
-            description: error.message || '无法创建账号',
-          });
+    try {
+      const encryptedPassword = await encryptPassword(payload.password);
+      registerMutation.mutate(
+        { ...payload, password: encryptedPassword },
+        {
+          onError: (error) => {
+            toast.error('注册失败', {
+              description: error.message || '无法创建账号',
+            });
+          },
         },
-      },
-    );
+      );
+    } catch {
+      toast.error('加密失败，请刷新页面重试');
+    }
   };
 
   return (

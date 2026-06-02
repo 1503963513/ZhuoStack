@@ -1,5 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+
+// 日志清空时保留最近 N 天的记录
+const LOG_RETENTION_DAYS = 7;
+// 单次最多删除的记录数
+const MAX_DELETE_BATCH = 5000;
 
 @Injectable()
 export class LogService {
@@ -53,11 +58,29 @@ export class LogService {
   }
 
   /**
-   * 清空操作日志
+   * 清空操作日志（保留最近 7 天，单次最多删 5000 条）
    */
   async clearOperLogs() {
-    await this.prisma.sysOperLog.deleteMany({});
-    return { message: '操作日志已清空' };
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
+
+    // 先查出要删除的 ID（限制数量）
+    const records = await this.prisma.sysOperLog.findMany({
+      where: { operTime: { lt: cutoffDate } },
+      select: { id: true },
+      take: MAX_DELETE_BATCH,
+    });
+
+    if (records.length === 0) {
+      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+    }
+
+    const ids = records.map((r) => r.id);
+    await this.prisma.sysOperLog.deleteMany({
+      where: { id: { in: ids } },
+    });
+
+    return { message: `已清除 ${ids.length} 条超过 ${LOG_RETENTION_DAYS} 天的操作日志` };
   }
 
   // ========== 登录日志 ==========
@@ -105,10 +128,27 @@ export class LogService {
   }
 
   /**
-   * 清空登录日志
+   * 清空登录日志（保留最近 7 天，单次最多删 5000 条）
    */
   async clearLoginLogs() {
-    await this.prisma.sysLoginLog.deleteMany({});
-    return { message: '登录日志已清空' };
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
+
+    const records = await this.prisma.sysLoginLog.findMany({
+      where: { loginTime: { lt: cutoffDate } },
+      select: { id: true },
+      take: MAX_DELETE_BATCH,
+    });
+
+    if (records.length === 0) {
+      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+    }
+
+    const ids = records.map((r) => r.id);
+    await this.prisma.sysLoginLog.deleteMany({
+      where: { id: { in: ids } },
+    });
+
+    return { message: `已清除 ${ids.length} 条超过 ${LOG_RETENTION_DAYS} 天的登录日志` };
   }
 }

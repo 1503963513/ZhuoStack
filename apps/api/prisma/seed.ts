@@ -1,17 +1,8 @@
 import { PrismaClient, Role, Status, MenuType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { createHash } from 'crypto';
 import Redis from 'ioredis';
 
 const prisma = new PrismaClient();
-
-/**
- * 对密码进行 SHA-256 哈希（模拟前端处理）
- * 后端存储时再用 bcrypt 进行二次哈希
- */
-function sha256Hash(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
-}
 
 async function main() {
   console.log('Seeding database...');
@@ -392,7 +383,7 @@ async function main() {
     data: {
       email: 'admin@example.com',
       name: 'Admin User',
-      password: await bcrypt.hash(sha256Hash('admin123'), 10),
+      password: await bcrypt.hash('admin123', 10),
       role: Role.ADMIN,
       avatar: null,
       deptId: deptTech.id,
@@ -414,7 +405,7 @@ async function main() {
       data: {
         email: u.email,
         name: u.name,
-        password: await bcrypt.hash(sha256Hash('password123'), 10),
+        password: await bcrypt.hash('password123', 10),
         role: Role.USER,
         avatar: null,
         deptId: u.deptId,

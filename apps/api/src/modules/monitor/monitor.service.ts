@@ -1,7 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { RedisService } from '../../database/redis.service';
 import * as os from 'os';
+
+// 允许通过 API 删除的缓存键前缀白名单（安全键不暴露）
+const ALLOWED_KEY_PREFIXES = ['cache:'];
+
+// 禁止删除的安全键前缀
+const PROTECTED_KEY_PREFIXES = ['login:', 'token:', 'online:'];
 
 // 在线用户 Redis key 前缀
 const ONLINE_USER_PREFIX = 'online:user:';
@@ -85,11 +91,21 @@ export class MonitorService {
   }
 
   /**
-   * 删除指定缓存键
+   * 删除指定缓存键（仅允许白名单前缀）
    */
   async deleteCacheKey(key: string) {
     const client = this.redisService.getClient();
     if (!client) return { success: false, message: 'Redis 未连接' };
+
+    // 禁止删除安全相关的键
+    if (PROTECTED_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      throw new BadRequestException(`禁止删除安全相关键: ${key}`);
+    }
+
+    // 必须匹配白名单前缀
+    if (!ALLOWED_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      throw new BadRequestException(`仅允许删除 ${ALLOWED_KEY_PREFIXES.join(', ')} 前缀的键`);
+    }
 
     try {
       const result = await client.del(key);
@@ -100,15 +116,29 @@ export class MonitorService {
   }
 
   /**
-   * 清空当前数据库所有缓存
+   * 清空缓存（仅清除白名单前缀的键，不使用 flushdb）
    */
   async clearAllCache() {
     const client = this.redisService.getClient();
     if (!client) return { success: false, message: 'Redis 未连接' };
 
     try {
-      await client.flushdb();
-      return { success: true, message: '缓存已清空' };
+      let deletedCount = 0;
+      for (const prefix of ALLOWED_KEY_PREFIXES) {
+        const keys: string[] = [];
+        let cursor = '0';
+        do {
+          const [next, found] = await client.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 100);
+          cursor = next;
+          keys.push(...found);
+        } while (cursor !== '0');
+
+        if (keys.length > 0) {
+          const result = await client.del(...keys);
+          deletedCount += result;
+        }
+      }
+      return { success: true, message: `已清空 ${deletedCount} 个缓存键` };
     } catch (error) {
       return { success: false, message: `清空失败: ${error}` };
     }

@@ -39,8 +39,11 @@ function createApiClient(): AxiosInstance {
     (response) => response,
     (error) => {
       if (error.response?.status === 401 && typeof window !== 'undefined') {
+        // 清除 localStorage 和 Cookie
         localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
+        document.cookie = 'auth-token=; path=/; max-age=0';
+        // 使用 replace 避免回退到已失效页面
+        window.location.replace('/login');
       }
       return Promise.reject(error);
     },

@@ -10,6 +10,7 @@ import {
   ApiOperation,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Observable } from 'rxjs';
 import { AiService, ChatMessage } from './ai.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,6 +28,7 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('chat')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '发送聊天完成请求' })
   async chat(@Body() dto: ChatDto) {
     const messages: ChatMessage[] = dto.messages.map((m) => ({
@@ -45,6 +47,7 @@ export class AiController {
   }
 
   @Sse('chat/stream')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '流式聊天完成 (SSE)' })
   streamChat(@Body() dto: StreamChatDto): Observable<SseMessage> {
     const messages: ChatMessage[] = dto.messages.map((m) => ({
@@ -80,6 +83,7 @@ export class AiController {
   }
 
   @Post('prompt')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '简单提示 - 发送消息获取回复' })
   async prompt(@Body() dto: PromptDto) {
     const result = await this.aiService.prompt(

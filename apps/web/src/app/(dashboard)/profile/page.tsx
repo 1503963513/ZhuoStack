@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth-store';
+import { encryptPassword } from '@/lib/crypto';
 import { Lock, User as UserIcon } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -75,10 +76,12 @@ export default function ProfilePage() {
 
     setPwdLoading(true);
     try {
+      const encryptedOld = await encryptPassword(pwdForm.oldPassword);
+      const encryptedNew = await encryptPassword(pwdForm.newPassword);
       const { post } = await import('@/lib/api-client');
       await post('/api/user/change-password', {
-        oldPassword: pwdForm.oldPassword,
-        newPassword: pwdForm.newPassword,
+        oldPassword: encryptedOld,
+        newPassword: encryptedNew,
       });
       toast.success('密码修改成功');
       setPwdForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
