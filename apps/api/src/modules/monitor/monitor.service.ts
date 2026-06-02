@@ -4,7 +4,7 @@ import { RedisService } from '../../database/redis.service';
 import * as os from 'os';
 
 // 允许通过 API 删除的缓存键前缀白名单（安全键不暴露）
-const ALLOWED_KEY_PREFIXES = ['cache:'];
+const ALLOWED_KEY_PREFIXES = ['cache:', 'menu:', 'dict:', 'dept:', 'post:', 'role:'];
 
 // 禁止删除的安全键前缀
 const PROTECTED_KEY_PREFIXES = ['login:', 'token:', 'online:'];
