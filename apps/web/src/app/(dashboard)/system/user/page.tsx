@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface User {
   id: string;
@@ -162,10 +163,10 @@ export default function UserPage() {
             <RefreshCw className="mr-2 h-4 w-4" />
             刷新
           </Button>
-          <Button onClick={handleCreate}>
+          <PermissionButton perm="system:user:add" onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             新增用户
-          </Button>
+          </PermissionButton>
         </div>
       </div>
 
@@ -208,12 +209,12 @@ export default function UserPage() {
                     {new Date(user.createdAt).toLocaleDateString('zh-CN')}
                   </div>
                   <div className="col-span-3 flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
+                    <PermissionButton perm="system:user:edit" variant="ghost" size="sm" onClick={() => handleEdit(user)}>
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(user.id)}>
+                    </PermissionButton>
+                    <PermissionButton perm="system:user:delete" variant="ghost" size="sm" onClick={() => handleDelete(user.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </PermissionButton>
                   </div>
                 </div>
               </div>

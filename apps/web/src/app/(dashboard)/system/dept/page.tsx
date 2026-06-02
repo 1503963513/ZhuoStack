@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface Dept {
   id: string;
@@ -166,10 +167,10 @@ export default function DeptPage() {
           <h1 className="text-3xl font-bold">部门管理</h1>
           <p className="text-muted-foreground">管理系统组织架构</p>
         </div>
-        <Button onClick={handleCreate}>
+        <PermissionButton perm="system:dept:add" onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           新增部门
-        </Button>
+        </PermissionButton>
       </div>
 
       <Card>
@@ -311,15 +312,15 @@ function DeptRow({
             </Badge>
           </div>
           <div className="col-span-4 flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => onCreateChild(dept)} title="新增子部门">
+            <PermissionButton perm="system:dept:add" variant="ghost" size="sm" onClick={() => onCreateChild(dept)} title="新增子部门">
               <Plus className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onEdit(dept)}>
+            </PermissionButton>
+            <PermissionButton perm="system:dept:edit" variant="ghost" size="sm" onClick={() => onEdit(dept)}>
               <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onDelete(dept.id)}>
+            </PermissionButton>
+            <PermissionButton perm="system:dept:delete" variant="ghost" size="sm" onClick={() => onDelete(dept.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+            </PermissionButton>
           </div>
         </div>
       </div>

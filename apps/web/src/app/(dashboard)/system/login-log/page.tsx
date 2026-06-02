@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Trash2 } from 'lucide-react';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface LoginLog {
   id: string;
@@ -58,10 +59,10 @@ export default function LoginLogPage() {
             <RefreshCw className="mr-2 h-4 w-4" />
             刷新
           </Button>
-          <Button variant="destructive" onClick={handleClear}>
+          <PermissionButton perm="log:login:delete" variant="destructive" onClick={handleClear}>
             <Trash2 className="mr-2 h-4 w-4" />
             清空
-          </Button>
+          </PermissionButton>
         </div>
       </div>
 

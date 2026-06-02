@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface Post {
   id: string;
@@ -141,10 +142,10 @@ export default function PostPage() {
           <h1 className="text-3xl font-bold">岗位管理</h1>
           <p className="text-muted-foreground">管理系统岗位信息</p>
         </div>
-        <Button onClick={handleCreate}>
+        <PermissionButton perm="system:post:add" onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           新增岗位
-        </Button>
+        </PermissionButton>
       </div>
 
       <div className="flex gap-4">
@@ -184,12 +185,12 @@ export default function PostPage() {
                     </Badge>
                   </div>
                   <div className="col-span-4 flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(post)}>
+                    <PermissionButton perm="system:post:edit" variant="ghost" size="sm" onClick={() => handleEdit(post)}>
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(post.id)}>
+                    </PermissionButton>
+                    <PermissionButton perm="system:post:delete" variant="ghost" size="sm" onClick={() => handleDelete(post.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </PermissionButton>
                   </div>
                 </div>
               </div>

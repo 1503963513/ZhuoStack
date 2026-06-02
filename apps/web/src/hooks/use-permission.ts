@@ -9,8 +9,6 @@ interface MenuItem {
   name: string;
   type: string;
   perms: string | null;
-  hidden: boolean;
-  status: string;
   children?: MenuItem[];
 }
 
@@ -33,8 +31,7 @@ export function usePermissions() {
 
     const collect = (items: MenuItem[]) => {
       for (const item of items) {
-        // 跳过隐藏或停用的按钮
-        if (item.type === 'BUTTON' && item.perms && !item.hidden && item.status === 'ACTIVE') {
+        if (item.type === 'BUTTON' && item.perms) {
           perms.add(item.perms);
         }
         if (item.children?.length) {

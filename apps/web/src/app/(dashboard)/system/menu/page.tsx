@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
 import { IconPicker } from '@/components/common/icon-picker';
 import { cn } from '@/lib/utils';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface Menu {
   id: string;
@@ -84,7 +85,6 @@ export default function MenuPage() {
   const { data, isLoading, refetch } = useApiQuery<Menu[]>(['menus'], '/api/system/menu/tree');
 
   const createMutation = useApiMutation('post', '/api/system/menu', {
-    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
@@ -95,7 +95,6 @@ export default function MenuPage() {
   });
 
   const updateMutation = useApiMutation('put', `/api/system/menu/${editingMenu?.id || ''}`, {
-    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);
@@ -206,10 +205,10 @@ export default function MenuPage() {
           <h1 className="text-3xl font-bold">菜单管理</h1>
           <p className="text-muted-foreground">管理系统菜单和权限</p>
         </div>
-        <Button onClick={handleCreate}>
+        <PermissionButton perm="system:menu:add" onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           新增菜单
-        </Button>
+        </PermissionButton>
       </div>
 
       <Card>
@@ -284,97 +283,65 @@ export default function MenuPage() {
                 </Select>
               </div>
             </div>
-            {formData.type !== 'BUTTON' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>路由路径</Label>
-                  <Input
-                    value={formData.path}
-                    onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                    placeholder="例如: /system/user"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>组件路径</Label>
-                  <Input
-                    value={formData.component}
-                    onChange={(e) => setFormData({ ...formData, component: e.target.value })}
-                    placeholder="例如: system/user/index"
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>路由路径</Label>
+                <Input
+                  value={formData.path}
+                  onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+                  placeholder="例如: /system/user"
+                />
               </div>
-            )}
-            {formData.type !== 'BUTTON' && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>图标</Label>
-                    <IconPicker
-                      value={formData.icon}
-                      onChange={(v) => setFormData({ ...formData, icon: v })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>排序</Label>
-                    <Input
-                      type="number"
-                      value={formData.sort}
-                      onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>状态</Label>
-                    <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ACTIVE">启用</SelectItem>
-                        <SelectItem value="INACTIVE">停用</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>隐藏菜单</Label>
-                    <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="false">显示</SelectItem>
-                        <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </>
-            )}
-            {formData.type === 'BUTTON' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>排序</Label>
-                  <Input
-                    type="number"
-                    value={formData.sort}
-                    onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>状态</Label>
-                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">启用</SelectItem>
-                      <SelectItem value="INACTIVE">停用</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>组件路径</Label>
+                <Input
+                  value={formData.component}
+                  onChange={(e) => setFormData({ ...formData, component: e.target.value })}
+                  placeholder="例如: system/user/index"
+                />
               </div>
-            )}
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>图标</Label>
+                <IconPicker
+                  value={formData.icon}
+                  onChange={(v) => setFormData({ ...formData, icon: v })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>排序</Label>
+                <Input
+                  type="number"
+                  value={formData.sort}
+                  onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>状态</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">启用</SelectItem>
+                    <SelectItem value="INACTIVE">停用</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>隐藏菜单</Label>
+                <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="false">显示</SelectItem>
+                    <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>权限标识</Label>
               <Input
@@ -448,15 +415,15 @@ function MenuRow({
             )}
           </div>
           <div className="col-span-2 flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => onCreateChild(menu)} title="新增子菜单">
+            <PermissionButton perm="system:menu:add" variant="ghost" size="sm" onClick={() => onCreateChild(menu)} title="新增子菜单">
               <Plus className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onEdit(menu)}>
+            </PermissionButton>
+            <PermissionButton perm="system:menu:edit" variant="ghost" size="sm" onClick={() => onEdit(menu)}>
               <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onDelete(menu.id)}>
+            </PermissionButton>
+            <PermissionButton perm="system:menu:delete" variant="ghost" size="sm" onClick={() => onDelete(menu.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+            </PermissionButton>
           </div>
         </div>
       </div>

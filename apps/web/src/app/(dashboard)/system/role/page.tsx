@@ -88,7 +88,6 @@ export default function RolePage() {
   const menuTree = menuTreeData?.data || [];
 
   const createMutation = useApiMutation('post', '/api/system/role', {
-    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('创建成功');
       setDialogOpen(false);
@@ -99,7 +98,6 @@ export default function RolePage() {
   });
 
   const updateMutation = useApiMutation('put', `/api/system/role/${editingRole?.id || ''}`, {
-    invalidateKeys: [['user-menus']],
     onSuccess: () => {
       toast.success('更新成功');
       setDialogOpen(false);

@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, List } from 'lucide-react';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface Dict {
   id: string;
@@ -192,10 +193,10 @@ export default function DictPage() {
           <h1 className="text-3xl font-bold">字典管理</h1>
           <p className="text-muted-foreground">管理系统字典数据</p>
         </div>
-        <Button onClick={handleCreate}>
+        <PermissionButton perm="system:dict:add" onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           新增字典
-        </Button>
+        </PermissionButton>
       </div>
 
       <div className="flex gap-4">
@@ -233,15 +234,15 @@ export default function DictPage() {
                     </Badge>
                   </div>
                   <div className="col-span-4 flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleManageData(dict)} title="字典数据">
+                    <PermissionButton perm="system:dict:data" variant="ghost" size="sm" onClick={() => handleManageData(dict)} title="字典数据">
                       <List className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(dict)}>
+                    </PermissionButton>
+                    <PermissionButton perm="system:dict:edit" variant="ghost" size="sm" onClick={() => handleEdit(dict)}>
                       <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(dict.id)}>
+                    </PermissionButton>
+                    <PermissionButton perm="system:dict:delete" variant="ghost" size="sm" onClick={() => handleDelete(dict.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    </PermissionButton>
                   </div>
                 </div>
               </div>
