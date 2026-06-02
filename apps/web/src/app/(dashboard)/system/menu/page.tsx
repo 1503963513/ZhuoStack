@@ -284,32 +284,36 @@ export default function MenuPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>路由路径</Label>
-                <Input
-                  value={formData.path}
-                  onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                  placeholder="例如: /system/user"
-                />
+            {formData.type !== 'BUTTON' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>路由路径</Label>
+                  <Input
+                    value={formData.path}
+                    onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+                    placeholder="例如: /system/user"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>组件路径</Label>
+                  <Input
+                    value={formData.component}
+                    onChange={(e) => setFormData({ ...formData, component: e.target.value })}
+                    placeholder="例如: system/user/index"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>组件路径</Label>
-                <Input
-                  value={formData.component}
-                  onChange={(e) => setFormData({ ...formData, component: e.target.value })}
-                  placeholder="例如: system/user/index"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>图标</Label>
-                <IconPicker
-                  value={formData.icon}
-                  onChange={(v) => setFormData({ ...formData, icon: v })}
-                />
-              </div>
+            )}
+            <div className={`grid gap-4 ${formData.type === 'BUTTON' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {formData.type !== 'BUTTON' && (
+                <div className="space-y-2">
+                  <Label>图标</Label>
+                  <IconPicker
+                    value={formData.icon}
+                    onChange={(v) => setFormData({ ...formData, icon: v })}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>排序</Label>
                 <Input
@@ -330,18 +334,20 @@ export default function MenuPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>隐藏菜单</Label>
-                <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="false">显示</SelectItem>
-                    <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {formData.type !== 'BUTTON' && (
+                <div className="space-y-2">
+                  <Label>隐藏菜单</Label>
+                  <Select value={formData.hidden ? 'true' : 'false'} onValueChange={(v) => setFormData({ ...formData, hidden: v === 'true' })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">显示</SelectItem>
+                      <SelectItem value="true">隐藏（不显示在侧边栏）</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>权限标识</Label>
