@@ -8,7 +8,14 @@ import { encryptPassword } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
@@ -25,18 +32,13 @@ export function LoginForm() {
   const loginMutation = useLogin();
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('[登录] 开始加密密码...');
     try {
       const encryptedPassword = await encryptPassword(data.password);
-      console.log('[登录] 加密成功, 密文长度:', encryptedPassword.length);
       loginMutation.mutate(
         { email: data.email, password: encryptedPassword },
         {
-          onSuccess: (response) => {
-            console.log('[登录] API 响应:', response);
-          },
+          onSuccess: (response) => {},
           onError: (error) => {
-            console.error('[登录] API 错误:', error);
             toast.error('登录失败', {
               description: error.message || '邮箱或密码错误',
             });
@@ -44,7 +46,6 @@ export function LoginForm() {
         },
       );
     } catch (e) {
-      console.error('[登录] 加密异常:', e);
       toast.error('加密失败，请刷新页面重试');
     }
   };
@@ -53,43 +54,25 @@ export function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">欢迎回来</CardTitle>
-        <CardDescription className="text-center">
-          请输入您的账号信息登录
-        </CardDescription>
+        <CardDescription className="text-center">请输入您的账号信息登录</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">邮箱</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="admin@example.com"
-              {...register('email')}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
+            <Input id="email" type="email" placeholder="admin@example.com" {...register('email')} />
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">密码</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••"
-              {...register('password')}
-            />
+            <Input id="password" type="password" placeholder="••••••" {...register('password')} />
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password.message}</p>
             )}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loginMutation.isPending}
-          >
+          <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
             {loginMutation.isPending ? '登录中...' : '登录'}
           </Button>
           <p className="text-sm text-muted-foreground text-center">
