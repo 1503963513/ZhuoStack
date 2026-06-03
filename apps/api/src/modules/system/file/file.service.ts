@@ -19,7 +19,8 @@ export class FileService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    this.uploadsDir = path.join(process.cwd(), this.configService.get<string>('FILE_STORAGE_PATH', 'uploads'));
+    const storagePath = this.configService.get<string>('FILE_STORAGE_PATH', 'uploads');
+    this.uploadsDir = path.isAbsolute(storagePath) ? storagePath : path.join(process.cwd(), storagePath);
     this.urlPrefix = this.configService.get<string>('FILE_URL_PREFIX', '/files');
     this.maxFileSize = this.configService.get<number>('FILE_MAX_SIZE_MB', 50) * 1024 * 1024;
     this.maxImageSize = 5 * 1024 * 1024; // 图片固定 5MB

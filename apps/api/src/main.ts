@@ -87,7 +87,7 @@ async function bootstrap() {
   // 静态文件服务（本地开发用，生产环境由 Nginx 直接处理）
   const storagePath = process.env.FILE_STORAGE_PATH || 'uploads';
   const urlPrefix = process.env.FILE_URL_PREFIX || '/files';
-  const uploadsDir = path.join(process.cwd(), storagePath);
+  const uploadsDir = path.isAbsolute(storagePath) ? storagePath : path.join(process.cwd(), storagePath);
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
