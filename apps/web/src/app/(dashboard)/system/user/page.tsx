@@ -7,7 +7,6 @@ import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -28,6 +27,8 @@ import { toast } from 'sonner';
 import { buildUrl } from '@/lib/utils';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { FileUpload } from '@/components/common/file-upload';
 
@@ -178,24 +179,41 @@ export default function UserPage() {
   const postList = posts?.data?.data || [];
   const roleList = roles?.data?.data || [];
 
+  const columns: Column<User>[] = [
+    { label: '用户名', key: 'name', span: 2, render: (row) => <span className="font-medium">{row.name || '-'}</span> },
+    { label: '邮箱', key: 'email', span: 3 },
+    {
+      label: '角色', span: 2,
+      render: (row) => (
+        <Badge variant={row.role === 'ADMIN' ? 'default' : 'secondary'}>
+          {row.role === 'ADMIN' ? '管理员' : '普通用户'}
+        </Badge>
+      ),
+    },
+    {
+      label: '创建时间', span: 2,
+      render: (row) => <span className="text-muted-foreground">{new Date(row.createdAt).toLocaleDateString('zh-CN')}</span>,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">用户管理</h1>
-          <p className="text-muted-foreground">管理系统用户</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            刷新
-          </Button>
-          <PermissionButton perm="system:user:add" onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            新增用户
-          </PermissionButton>
-        </div>
-      </div>
+      <PageHeader
+        title="用户管理"
+        description="管理系统用户"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              刷新
+            </Button>
+            <PermissionButton perm="system:user:add" onClick={handleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              新增用户
+            </PermissionButton>
+          </>
+        }
+      />
 
       <div className="flex gap-4">
         <Input
@@ -206,51 +224,25 @@ export default function UserPage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">用户名</div>
-              <div className="col-span-3">邮箱</div>
-              <div className="col-span-2">角色</div>
-              <div className="col-span-2">创建时间</div>
-              <div className="col-span-3">操作</div>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
-          ) : users.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无数据</div>
-          ) : (
-            users.map((user) => (
-              <div key={user.id} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2 font-medium">{user.name || '-'}</div>
-                  <div className="col-span-3 text-sm">{user.email}</div>
-                  <div className="col-span-2">
-                    <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
-                      {user.role === 'ADMIN' ? '管理员' : '普通用户'}
-                    </Badge>
-                  </div>
-                  <div className="col-span-2 text-sm text-muted-foreground">
-                    {new Date(user.createdAt).toLocaleDateString('zh-CN')}
-                  </div>
-                  <div className="col-span-3 flex gap-2">
-                    <PermissionButton perm="system:user:edit" variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                      <Pencil className="h-4 w-4" />
-                    </PermissionButton>
-                    <PermissionButton perm="system:user:delete" variant="ghost" size="sm" onClick={() => handleDelete(user.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </PermissionButton>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={users}
+        isLoading={isLoading}
+        emptyText="暂无用户数据"
+        actionsSpan={3}
+        actions={(row) => (
+          <>
+            <PermissionButton perm="system:user:edit" variant="ghost" size="sm" onClick={() => handleEdit(row)}>
+              <Pencil className="h-4 w-4" />
+            </PermissionButton>
+            <PermissionButton perm="system:user:delete" variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </PermissionButton>
+          </>
+        )}
+      />
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <Pagination
           page={page}
           totalPages={pagination.totalPages}

@@ -25,6 +25,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
 import { useConfirm } from '@/hooks/use-confirm';
 
 interface Dept {
@@ -164,16 +165,16 @@ export default function DeptPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">部门管理</h1>
-          <p className="text-muted-foreground">管理系统组织架构</p>
-        </div>
-        <PermissionButton perm="system:dept:add" onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新增部门
-        </PermissionButton>
-      </div>
+      <PageHeader
+        title="部门管理"
+        description="管理系统组织架构"
+        actions={
+          <PermissionButton perm="system:dept:add" onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            新增部门
+          </PermissionButton>
+        }
+      />
 
       <Card>
         <CardContent className="p-0">

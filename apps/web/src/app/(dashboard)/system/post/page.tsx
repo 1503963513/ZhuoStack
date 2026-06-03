@@ -6,7 +6,6 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -27,6 +26,8 @@ import { toast } from 'sonner';
 import { buildUrl } from '@/lib/utils';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { useConfirm } from '@/hooks/use-confirm';
 
@@ -86,12 +87,6 @@ export default function PostPage() {
     onError: (error) => toast.error('更新失败', { description: error.message }),
   });
 
-  const deleteMutation = useApiMutation('delete', '/api/system/post', {
-    invalidateKeys: [['posts']],
-    onSuccess: () => toast.success('删除成功'),
-    onError: (error) => toast.error('删除失败', { description: error.message }),
-  });
-
   const resetForm = () => {
     setFormData({ name: '', code: '', sort: 0, status: 'ACTIVE', remark: '' });
     setEditingPost(null);
@@ -141,18 +136,32 @@ export default function PostPage() {
   const posts = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
+  const columns: Column<Post>[] = [
+    { label: '岗位名称', key: 'name', span: 2 },
+    { label: '岗位编码', key: 'code', span: 2 },
+    { label: '排序', key: 'sort', span: 1 },
+    {
+      label: '状态', span: 2,
+      render: (row) => (
+        <Badge variant={row.status === 'ACTIVE' ? 'default' : 'secondary'}>
+          {row.status === 'ACTIVE' ? '启用' : '停用'}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">岗位管理</h1>
-          <p className="text-muted-foreground">管理系统岗位信息</p>
-        </div>
-        <PermissionButton perm="system:post:add" onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新增岗位
-        </PermissionButton>
-      </div>
+      <PageHeader
+        title="岗位管理"
+        description="管理系统岗位信息"
+        actions={
+          <PermissionButton perm="system:post:add" onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            新增岗位
+          </PermissionButton>
+        }
+      />
 
       <div className="flex gap-4">
         <Input
@@ -163,49 +172,25 @@ export default function PostPage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">岗位名称</div>
-              <div className="col-span-2">岗位编码</div>
-              <div className="col-span-2">排序</div>
-              <div className="col-span-2">状态</div>
-              <div className="col-span-4">操作</div>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
-          ) : posts.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无数据</div>
-          ) : (
-            posts.map((post) => (
-              <div key={post.id} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2">{post.name}</div>
-                  <div className="col-span-2">{post.code}</div>
-                  <div className="col-span-2">{post.sort}</div>
-                  <div className="col-span-2">
-                    <Badge variant={post.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {post.status === 'ACTIVE' ? '启用' : '停用'}
-                    </Badge>
-                  </div>
-                  <div className="col-span-4 flex gap-2">
-                    <PermissionButton perm="system:post:edit" variant="ghost" size="sm" onClick={() => handleEdit(post)}>
-                      <Pencil className="h-4 w-4" />
-                    </PermissionButton>
-                    <PermissionButton perm="system:post:delete" variant="ghost" size="sm" onClick={() => handleDelete(post.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </PermissionButton>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={posts}
+        isLoading={isLoading}
+        emptyText="暂无岗位数据"
+        actionsSpan={2}
+        actions={(row) => (
+          <>
+            <PermissionButton perm="system:post:edit" variant="ghost" size="sm" onClick={() => handleEdit(row)}>
+              <Pencil className="h-4 w-4" />
+            </PermissionButton>
+            <PermissionButton perm="system:post:delete" variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </PermissionButton>
+          </>
+        )}
+      />
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <Pagination
           page={page}
           totalPages={pagination.totalPages}

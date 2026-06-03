@@ -6,7 +6,6 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -27,6 +26,8 @@ import { toast } from 'sonner';
 import { buildUrl } from '@/lib/utils';
 import { Plus, Pencil, Trash2, List } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { useConfirm } from '@/hooks/use-confirm';
 
@@ -193,18 +194,31 @@ export default function DictPage() {
   const dicts = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
+  const columns: Column<Dict>[] = [
+    { label: '字典名称', key: 'name', span: 3 },
+    { label: '字典编码', key: 'code', span: 3 },
+    {
+      label: '状态', span: 2,
+      render: (row) => (
+        <Badge variant={row.status === 'ACTIVE' ? 'default' : 'secondary'}>
+          {row.status === 'ACTIVE' ? '启用' : '停用'}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">字典管理</h1>
-          <p className="text-muted-foreground">管理系统字典数据</p>
-        </div>
-        <PermissionButton perm="system:dict:add" onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新增字典
-        </PermissionButton>
-      </div>
+      <PageHeader
+        title="字典管理"
+        description="管理系统字典数据"
+        actions={
+          <PermissionButton perm="system:dict:add" onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            新增字典
+          </PermissionButton>
+        }
+      />
 
       <div className="flex gap-4">
         <Input
@@ -215,50 +229,28 @@ export default function DictPage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-3">字典名称</div>
-              <div className="col-span-3">字典编码</div>
-              <div className="col-span-2">状态</div>
-              <div className="col-span-4">操作</div>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
-          ) : dicts.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无数据</div>
-          ) : (
-            dicts.map((dict) => (
-              <div key={dict.id} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-3">{dict.name}</div>
-                  <div className="col-span-3">{dict.code}</div>
-                  <div className="col-span-2">
-                    <Badge variant={dict.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {dict.status === 'ACTIVE' ? '启用' : '停用'}
-                    </Badge>
-                  </div>
-                  <div className="col-span-4 flex gap-2">
-                    <PermissionButton perm="system:dict:data" variant="ghost" size="sm" onClick={() => handleManageData(dict)} title="字典数据">
-                      <List className="h-4 w-4" />
-                    </PermissionButton>
-                    <PermissionButton perm="system:dict:edit" variant="ghost" size="sm" onClick={() => handleEdit(dict)}>
-                      <Pencil className="h-4 w-4" />
-                    </PermissionButton>
-                    <PermissionButton perm="system:dict:delete" variant="ghost" size="sm" onClick={() => handleDelete(dict.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </PermissionButton>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={dicts}
+        isLoading={isLoading}
+        emptyText="暂无字典数据"
+        actionsSpan={3}
+        actions={(row) => (
+          <>
+            <PermissionButton perm="system:dict:data" variant="ghost" size="sm" onClick={() => handleManageData(row)} title="字典数据">
+              <List className="h-4 w-4" />
+            </PermissionButton>
+            <PermissionButton perm="system:dict:edit" variant="ghost" size="sm" onClick={() => handleEdit(row)}>
+              <Pencil className="h-4 w-4" />
+            </PermissionButton>
+            <PermissionButton perm="system:dict:delete" variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </PermissionButton>
+          </>
+        )}
+      />
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <Pagination
           page={page}
           totalPages={pagination.totalPages}

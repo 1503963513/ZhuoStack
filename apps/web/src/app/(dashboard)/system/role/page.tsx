@@ -7,7 +7,6 @@ import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -28,6 +27,8 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
 import { cn, buildUrl } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 
 interface Role {
@@ -232,18 +233,32 @@ export default function RolePage() {
   const roles = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
+  const columns: Column<Role>[] = [
+    { label: '角色名称', key: 'name', span: 2 },
+    { label: '角色标识', span: 2, render: (row) => <code className="rounded bg-muted px-2 py-0.5 text-xs">{row.code}</code> },
+    { label: '排序', key: 'sort', span: 1 },
+    {
+      label: '状态', span: 2,
+      render: (row) => (
+        <Badge variant={row.status === 'ACTIVE' ? 'default' : 'secondary'}>
+          {row.status === 'ACTIVE' ? '启用' : '停用'}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">角色管理</h1>
-          <p className="text-muted-foreground">管理系统角色和菜单权限</p>
-        </div>
-        <PermissionButton perm="system:role:add" onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新增角色
-        </PermissionButton>
-      </div>
+      <PageHeader
+        title="角色管理"
+        description="管理系统角色和菜单权限"
+        actions={
+          <PermissionButton perm="system:role:add" onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            新增角色
+          </PermissionButton>
+        }
+      />
 
       <div className="flex gap-4">
         <Input
@@ -254,51 +269,25 @@ export default function RolePage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">角色名称</div>
-              <div className="col-span-2">角色标识</div>
-              <div className="col-span-2">排序</div>
-              <div className="col-span-2">状态</div>
-              <div className="col-span-4">操作</div>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
-          ) : roles.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无数据</div>
-          ) : (
-            roles.map((role) => (
-              <div key={role.id} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2 font-medium">{role.name}</div>
-                  <div className="col-span-2">
-                    <code className="rounded bg-muted px-2 py-0.5 text-xs">{role.code}</code>
-                  </div>
-                  <div className="col-span-2">{role.sort}</div>
-                  <div className="col-span-2">
-                    <Badge variant={role.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {role.status === 'ACTIVE' ? '启用' : '停用'}
-                    </Badge>
-                  </div>
-                  <div className="col-span-4 flex gap-2">
-                    <PermissionButton perm="system:role:edit" variant="ghost" size="sm" onClick={() => handleEdit(role)} title="编辑 / 分配权限">
-                      <Pencil className="h-4 w-4" />
-                    </PermissionButton>
-                    <PermissionButton perm="system:role:delete" variant="ghost" size="sm" onClick={() => handleDelete(role.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </PermissionButton>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={roles}
+        isLoading={isLoading}
+        emptyText="暂无角色数据"
+        actionsSpan={2}
+        actions={(row) => (
+          <>
+            <PermissionButton perm="system:role:edit" variant="ghost" size="sm" onClick={() => handleEdit(row)} title="编辑 / 分配权限">
+              <Pencil className="h-4 w-4" />
+            </PermissionButton>
+            <PermissionButton perm="system:role:delete" variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </PermissionButton>
+          </>
+        )}
+      />
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <Pagination
           page={page}
           totalPages={pagination.totalPages}

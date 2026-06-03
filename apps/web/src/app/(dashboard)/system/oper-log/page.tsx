@@ -5,12 +5,13 @@ import { useApiQuery } from '@/hooks/use-api';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { buildUrl } from '@/lib/utils';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { useDict } from '@/hooks/use-dict';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -59,24 +60,47 @@ export default function OperLogPage() {
   const logs = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
+  const columns: Column<OperLog>[] = [
+    { label: '操作标题', key: 'title', span: 2 },
+    {
+      label: '业务类型', span: 2,
+      render: (row) => <Badge variant="outline">{businessTypeMap[String(row.businessType)] || '其他'}</Badge>,
+    },
+    {
+      label: '请求方式', span: 2,
+      render: (row) => <Badge variant="secondary">{row.requestMethod}</Badge>,
+    },
+    { label: '操作人', span: 2, render: (row) => <span>{row.operName || '-'}</span> },
+    {
+      label: '状态', span: 1,
+      render: (row) => (
+        <Badge variant={row.status === 1 ? 'default' : 'destructive'}>
+          {operStatusMap[String(row.status)] || (row.status === 1 ? '成功' : '失败')}
+        </Badge>
+      ),
+    },
+    {
+      label: '操作时间', span: 3,
+      render: (row) => <span className="text-muted-foreground">{new Date(row.operTime).toLocaleString('zh-CN')}</span>,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">操作日志</h1>
-          <p className="text-muted-foreground">记录系统操作行为</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            刷新
-          </Button>
-          <PermissionButton perm="log:oper:delete" variant="destructive" onClick={handleClear}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            清空
-          </PermissionButton>
-        </div>
-      </div>
+      <PageHeader
+        title="操作日志"
+        description="记录系统操作行为"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+            </Button>
+            <PermissionButton perm="log:oper:delete" variant="destructive" onClick={handleClear}>
+              <Trash2 className="mr-2 h-4 w-4" /> 清空
+            </PermissionButton>
+          </>
+        }
+      />
 
       <Input
         placeholder="搜索操作标题"
@@ -85,50 +109,14 @@ export default function OperLogPage() {
         className="max-w-sm"
       />
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">操作标题</div>
-              <div className="col-span-2">业务类型</div>
-              <div className="col-span-2">请求方式</div>
-              <div className="col-span-2">操作人</div>
-              <div className="col-span-1">状态</div>
-              <div className="col-span-3">操作时间</div>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
-          ) : logs.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无操作日志</div>
-          ) : (
-            logs.map((log: OperLog) => (
-              <div key={log.id} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2 font-medium">{log.title}</div>
-                  <div className="col-span-2">
-                    <Badge variant="outline">{businessTypeMap[String(log.businessType)] || '其他'}</Badge>
-                  </div>
-                  <div className="col-span-2">
-                    <Badge variant="secondary">{log.requestMethod}</Badge>
-                  </div>
-                  <div className="col-span-2 text-sm">{log.operName || '-'}</div>
-                  <div className="col-span-1">
-                    <Badge variant={log.status === 1 ? 'default' : 'destructive'}>
-                      {operStatusMap[String(log.status)] || (log.status === 1 ? '成功' : '失败')}
-                    </Badge>
-                  </div>
-                  <div className="col-span-3 text-sm text-muted-foreground">
-                    {new Date(log.operTime).toLocaleString('zh-CN')}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={logs}
+        isLoading={isLoading}
+        emptyText="暂无操作日志"
+      />
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <Pagination
           page={page}
           totalPages={pagination.totalPages}
