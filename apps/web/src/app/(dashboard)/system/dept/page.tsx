@@ -25,6 +25,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface Dept {
   id: string;
@@ -52,6 +53,7 @@ function flattenDepts(depts: Dept[], level = 0): { id: string; label: string }[]
 }
 
 export default function DeptPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Dept | null>(null);
   const [formData, setFormData] = useState({
@@ -113,15 +115,15 @@ export default function DeptPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除吗？')) {
-      import('@/lib/api-client').then((m) =>
-        m.del(`/api/system/dept/${id}`).then(() => {
-          toast.success('删除成功');
-          refetch();
-        }).catch((err) => toast.error('删除失败', { description: err.message }))
-      );
-    }
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
+    if (!ok) return;
+    import('@/lib/api-client').then((m) =>
+      m.del(`/api/system/dept/${id}`).then(() => {
+        toast.success('删除成功');
+        refetch();
+      }).catch((err) => toast.error('删除失败', { description: err.message }))
+    );
   };
 
   const handleSubmit = () => {
@@ -271,6 +273,7 @@ export default function DeptPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

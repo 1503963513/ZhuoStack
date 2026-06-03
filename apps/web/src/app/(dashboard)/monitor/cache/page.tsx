@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,9 +19,11 @@ interface CacheInfo {
 export default function CachePage() {
   const { data, isLoading, refetch } = useApiQuery<CacheInfo>(['cache-info'], '/api/monitor/cache');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const handleDeleteKey = async (key: string) => {
-    if (!confirm(`确定要删除缓存键 "${key}" 吗？`)) return;
+    const ok = await confirm({ description: `确定要删除缓存键 "${key}" 吗？`, variant: 'destructive' });
+    if (!ok) return;
     setDeleting(key);
     try {
       const { del } = await import('@/lib/api-client');
@@ -35,7 +38,8 @@ export default function CachePage() {
   };
 
   const handleClearAll = async () => {
-    if (!confirm('确定要清空所有缓存吗？此操作不可恢复！')) return;
+    const ok = await confirm({ description: '确定要清空所有缓存吗？此操作不可恢复！', variant: 'destructive' });
+    if (!ok) return;
     try {
       const { del } = await import('@/lib/api-client');
       await del('/api/monitor/cache');
@@ -146,6 +150,7 @@ export default function CachePage() {
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog />
     </div>
   );
 }

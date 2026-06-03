@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { useDict } from '@/hooks/use-dict';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface OperLog {
   id: string;
@@ -33,13 +34,15 @@ export default function OperLogPage() {
   const debouncedTitle = useDebounce(title, 300);
   const { labelMap: businessTypeMap } = useDict('sys_business_type');
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['oper-logs', String(page), debouncedTitle],
     `/api/log/oper?page=${page}&pageSize=10${debouncedTitle ? `&title=${debouncedTitle}` : ''}`,
   );
 
   const handleClear = async () => {
-    if (!confirm('确定要清空所有操作日志吗？')) return;
+    const ok = await confirm({ description: '确定要清空所有操作日志吗？', variant: 'destructive' });
+    if (!ok) return;
     try {
       const { del } = await import('@/lib/api-client');
       await del('/api/log/oper');
@@ -129,6 +132,7 @@ export default function OperLogPage() {
           <Button variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 }

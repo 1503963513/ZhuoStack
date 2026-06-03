@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, List } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface Dict {
   id: string;
@@ -52,6 +53,7 @@ interface PaginatedResponse {
 }
 
 export default function DictPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
@@ -161,8 +163,9 @@ export default function DictPage() {
     createDataMutation.mutate({ ...dataFormData, dictId: selectedDict.id });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除该字典吗？删除后字典数据也会一并删除！')) {
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({ description: '确定要删除该字典吗？删除后字典数据也会一并删除！', variant: 'destructive' });
+    if (ok) {
       import('@/lib/api-client').then((m) =>
         m.del(`/api/system/dict/${id}`).then(() => {
           toast.success('删除成功');
@@ -172,8 +175,9 @@ export default function DictPage() {
     }
   };
 
-  const handleDeleteData = (id: string) => {
-    if (confirm('确定要删除吗？')) {
+  const handleDeleteData = async (id: string) => {
+    const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
+    if (ok) {
       import('@/lib/api-client').then((m) =>
         m.del(`/api/system/dict/data/${id}`).then(() => {
           toast.success('删除成功');
@@ -386,6 +390,7 @@ export default function DictPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

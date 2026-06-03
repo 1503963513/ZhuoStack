@@ -1,6 +1,7 @@
 'use client';
 
 import { useApiQuery } from '@/hooks/use-api';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +17,11 @@ interface OnlineUser {
 
 export default function OnlinePage() {
   const { data, isLoading, refetch } = useApiQuery<OnlineUser[]>(['online-users'], '/api/monitor/online');
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const handleKick = async (userId: string, username: string) => {
-    if (!confirm(`确定要强制用户 "${username}" 下线吗？`)) return;
+    const ok = await confirm({ description: `确定要强制用户 "${username}" 下线吗？`, variant: 'destructive' });
+    if (!ok) return;
     try {
       const { del } = await import('@/lib/api-client');
       await del(`/api/monitor/online/${userId}`);
@@ -123,6 +126,7 @@ export default function OnlinePage() {
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog />
     </div>
   );
 }

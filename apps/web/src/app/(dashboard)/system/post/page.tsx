@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface Post {
   id: string;
@@ -42,6 +43,8 @@ interface PaginatedResponse {
 }
 
 export default function PostPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
@@ -108,15 +111,15 @@ export default function PostPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除吗？')) {
-      import('@/lib/api-client').then((m) =>
-        m.del(`/api/system/post/${id}`).then(() => {
-          toast.success('删除成功');
-          refetch();
-        }).catch((err) => toast.error('删除失败', { description: err.message }))
-      );
-    }
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
+    if (!ok) return;
+    import('@/lib/api-client').then((m) =>
+      m.del(`/api/system/post/${id}`).then(() => {
+        toast.success('删除成功');
+        refetch();
+      }).catch((err) => toast.error('删除失败', { description: err.message }))
+    );
   };
 
   const handleSubmit = () => {
@@ -279,6 +282,7 @@ export default function PostPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useApiQuery, useApiMutation } from '@/hooks/use-api';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +61,8 @@ export default function UserPage() {
     postIds: [] as string[],
     roleIds: [] as string[],
   });
+
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['users', String(page), debouncedSearch],
@@ -132,15 +135,15 @@ export default function UserPage() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除该用户吗？')) {
-      import('@/lib/api-client').then((m) =>
-        m.del(`/api/user/${id}`).then(() => {
-          toast.success('删除成功');
-          refetch();
-        }).catch((err) => toast.error('删除失败', { description: err.message }))
-      );
-    }
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({ description: '确定要删除该用户吗？', variant: 'destructive' });
+    if (!ok) return;
+    import('@/lib/api-client').then((m) =>
+      m.del(`/api/user/${id}`).then(() => {
+        toast.success('删除成功');
+        refetch();
+      }).catch((err) => toast.error('删除失败', { description: err.message }))
+    );
   };
 
   const handleSubmit = () => {
@@ -327,6 +330,7 @@ export default function UserPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }

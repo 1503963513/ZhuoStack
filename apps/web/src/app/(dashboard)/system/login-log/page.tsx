@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { useDict } from '@/hooks/use-dict';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface LoginLog {
   id: string;
@@ -29,13 +30,15 @@ export default function LoginLogPage() {
   const [username, setUsername] = useState('');
   const debouncedUsername = useDebounce(username, 300);
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['login-logs', String(page), debouncedUsername],
     `/api/log/login?page=${page}&pageSize=10${debouncedUsername ? `&username=${debouncedUsername}` : ''}`,
   );
 
   const handleClear = async () => {
-    if (!confirm('确定要清空所有登录日志吗？')) return;
+    const ok = await confirm({ description: '确定要清空所有登录日志吗？', variant: 'destructive' });
+    if (!ok) return;
     try {
       const { del } = await import('@/lib/api-client');
       await del('/api/log/login');
@@ -121,6 +124,7 @@ export default function LoginLogPage() {
           <Button variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 }

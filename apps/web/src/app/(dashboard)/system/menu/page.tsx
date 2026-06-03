@@ -27,6 +27,7 @@ import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, Mous
 import { IconPicker } from '@/components/common/icon-picker';
 import { cn } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface Menu {
   id: string;
@@ -66,6 +67,7 @@ function flattenMenus(menus: Menu[], level = 0): { id: string; label: string }[]
 }
 
 export default function MenuPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
   const [formData, setFormData] = useState({
@@ -146,14 +148,18 @@ export default function MenuPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确定要删除吗？')) {
-      import('@/lib/api-client').then((m) =>
-        m.del(`/api/system/menu/${id}`).then(() => {
-          toast.success('删除成功');
-          refetch();
-        }).catch((err) => toast.error('删除失败', { description: err.message }))
-      );
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
+    if (ok) {
+      try {
+        const { del } = await import('@/lib/api-client');
+        await del(`/api/system/menu/${id}`);
+        toast.success('删除成功');
+        refetch();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : '删除失败';
+        toast.error('删除失败', { description: message });
+      }
     }
   };
 
@@ -382,6 +388,7 @@ export default function MenuPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }
