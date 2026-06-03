@@ -79,24 +79,27 @@ async function bootstrap() {
   });
 
   // 文件上传支持（multipart/form-data）
+  const maxFileSizeMB = parseInt(process.env.FILE_MAX_SIZE_MB || '50', 10);
   await app.register(fastifyMultipart, {
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    limits: { fileSize: maxFileSizeMB * 1024 * 1024 },
   });
 
-  // 静态文件服务：/files → uploads 目录（本地开发用，生产环境由 Nginx 直接处理）
-  const uploadsDir = path.join(process.cwd(), 'uploads');
+  // 静态文件服务（本地开发用，生产环境由 Nginx 直接处理）
+  const storagePath = process.env.FILE_STORAGE_PATH || 'uploads';
+  const urlPrefix = process.env.FILE_URL_PREFIX || '/files';
+  const uploadsDir = path.join(process.cwd(), storagePath);
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
   await app.register(fastifyStatic, {
     root: uploadsDir,
-    prefix: '/files/',
+    prefix: `${urlPrefix}/`,
     decorateReply: false,
     setHeaders: (res: any) => {
       res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 天
     },
   });
-  logger.log(`静态文件服务: /files → ${uploadsDir}`);
+  logger.log(`静态文件服务: ${urlPrefix} → ${uploadsDir}`);
 
   // Global prefix
   app.setGlobalPrefix('api', {

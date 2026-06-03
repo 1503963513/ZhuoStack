@@ -1,68 +1,54 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database/prisma.service';
 import { QueryFileDto, UpdateFileDto } from './dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-// 允许上传的文件类型
-const ALLOWED_MIME_TYPES = [
-  // 图片
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-  // 文档
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain', 'text/csv',
-  // 压缩包
-  'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-  // 视频
-  'video/mp4', 'video/webm', 'video/ogg',
-  // 音频
-  'audio/mpeg', 'audio/wav', 'audio/ogg',
-];
-
-// 文件大小限制（字节）
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-
 @Injectable()
 export class FileService {
   private readonly logger = new Logger(FileService.name);
   private readonly uploadsDir: string;
+  private readonly urlPrefix: string;
+  private readonly maxFileSize: number;
+  private readonly maxImageSize: number;
+  private readonly allowedMimeTypes: string[];
 
-  constructor(private readonly prisma: PrismaService) {
-    this.uploadsDir = path.join(process.cwd(), 'uploads');
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.uploadsDir = path.join(process.cwd(), this.configService.get<string>('FILE_STORAGE_PATH', 'uploads'));
+    this.urlPrefix = this.configService.get<string>('FILE_URL_PREFIX', '/files');
+    this.maxFileSize = this.configService.get<number>('FILE_MAX_SIZE_MB', 50) * 1024 * 1024;
+    this.maxImageSize = 5 * 1024 * 1024; // 图片固定 5MB
+    this.allowedMimeTypes = this.configService.get<string>(
+      'FILE_ALLOWED_MIME_TYPES',
+      'image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,video/mp4,video/webm,audio/mpeg',
+    ).split(',').map((s) => s.trim());
+
+    // 确保 uploads 目录存在
     if (!fs.existsSync(this.uploadsDir)) {
       fs.mkdirSync(this.uploadsDir, { recursive: true });
     }
+
+    this.logger.log(`文件存储: ${this.uploadsDir} → ${this.urlPrefix}`);
+    this.logger.log(`文件限制: ${this.maxFileSize / 1024 / 1024}MB, ${this.allowedMimeTypes.length} 种类型`);
   }
 
   /**
    * 保存上传的文件到磁盘并记录到数据库
-   * @param filename 原始文件名
-   * @param mimetype MIME 类型
-   * @param buffer 文件内容
-   * @param createBy 上传者 ID
    */
   async saveFile(filename: string, mimetype: string, buffer: Buffer, createBy?: string) {
     // 验证文件类型
-    if (!ALLOWED_MIME_TYPES.includes(mimetype)) {
+    if (!this.allowedMimeTypes.includes(mimetype)) {
       throw new BadRequestException(`不支持的文件类型: ${mimetype}`);
     }
 
     // 验证文件大小
-    if (buffer.length > MAX_FILE_SIZE) {
-      throw new BadRequestException(`文件大小超过限制: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
+    if (buffer.length > this.maxFileSize) {
+      throw new BadRequestException(`文件大小超过限制: ${this.maxFileSize / 1024 / 1024}MB`);
     }
 
     // 生成存储路径：uploads/2026/06/02/xxx.ext
@@ -77,8 +63,8 @@ export class FileService {
     const ext = path.extname(filename).toLowerCase();
     const uniqueName = `${crypto.randomUUID()}${ext}`;
     const filePath = path.join(fullDir, uniqueName);
-    const relativePath = `uploads/${dateDir}/${uniqueName}`;
-    const url = `/files/${dateDir}/${uniqueName}`;
+    const relativePath = `${this.uploadsDir}/${dateDir}/${uniqueName}`;
+    const url = `${this.urlPrefix}/${dateDir}/${uniqueName}`;
 
     // 写入文件
     fs.writeFileSync(filePath, new Uint8Array(buffer));
@@ -115,8 +101,8 @@ export class FileService {
       throw new BadRequestException('仅支持 JPG/PNG/GIF/WebP 格式的图片');
     }
 
-    if (buffer.length > MAX_IMAGE_SIZE) {
-      throw new BadRequestException(`图片大小超过限制: ${MAX_IMAGE_SIZE / 1024 / 1024}MB`);
+    if (buffer.length > this.maxImageSize) {
+      throw new BadRequestException(`图片大小超过限制: ${this.maxImageSize / 1024 / 1024}MB`);
     }
 
     const record = await this.saveFile(filename, mimetype, buffer, createBy);
