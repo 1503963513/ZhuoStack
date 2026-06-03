@@ -110,6 +110,9 @@ export class UserService {
         avatar: true,
         createdAt: true,
         updatedAt: true,
+        dept: { select: { id: true, name: true } },
+        posts: { select: { id: true, name: true } },
+        roles: { select: { id: true, name: true } },
       },
     });
 

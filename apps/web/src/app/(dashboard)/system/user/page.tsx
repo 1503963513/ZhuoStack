@@ -100,8 +100,9 @@ export default function UserPage() {
     setDialogOpen(true);
   };
 
-  const handleEdit = (user: User) => {
+  const handleEdit = async (user: User) => {
     setEditingUser(user);
+    // 先设置基本信息
     setFormData({
       name: user.name || '',
       email: user.email,
@@ -112,6 +113,23 @@ export default function UserPage() {
       roleIds: [],
     });
     setDialogOpen(true);
+
+    // 获取用户详情（含部门、岗位、角色）
+    try {
+      const { get } = await import('@/lib/api-client');
+      const res = await get<User & { dept?: { id: string }; posts?: { id: string }[]; roles?: { id: string }[] }>(`/api/user/${user.id}`);
+      const detail = res.data;
+      if (detail) {
+        setFormData((prev) => ({
+          ...prev,
+          deptId: detail.dept?.id || '',
+          postIds: detail.posts?.map((p) => p.id) || [],
+          roleIds: detail.roles?.map((r) => r.id) || [],
+        }));
+      }
+    } catch {
+      // 获取详情失败，保持空值
+    }
   };
 
   const handleDelete = (id: string) => {
