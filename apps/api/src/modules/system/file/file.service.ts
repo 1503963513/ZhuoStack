@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { QueryFileDto, UpdateFileDto } from './dto';
 import * as fs from 'fs';
@@ -37,27 +42,26 @@ export class FileService {
 
   constructor(private readonly prisma: PrismaService) {
     this.uploadsDir = path.join(process.cwd(), 'uploads');
-    // 确保 uploads 目录存在
     if (!fs.existsSync(this.uploadsDir)) {
       fs.mkdirSync(this.uploadsDir, { recursive: true });
     }
   }
 
   /**
-   * 上传文件
+   * 保存上传的文件到磁盘并记录到数据库
+   * @param filename 原始文件名
+   * @param mimetype MIME 类型
+   * @param buffer 文件内容
+   * @param createBy 上传者 ID
    */
-  async upload(file: any, createBy?: string) {
-    if (!file) {
-      throw new BadRequestException('请选择要上传的文件');
-    }
-
+  async saveFile(filename: string, mimetype: string, buffer: Buffer, createBy?: string) {
     // 验证文件类型
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException(`不支持的文件类型: ${file.mimetype}`);
+    if (!ALLOWED_MIME_TYPES.includes(mimetype)) {
+      throw new BadRequestException(`不支持的文件类型: ${mimetype}`);
     }
 
     // 验证文件大小
-    if (file.filesize > MAX_FILE_SIZE) {
+    if (buffer.length > MAX_FILE_SIZE) {
       throw new BadRequestException(`文件大小超过限制: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
     }
 
@@ -66,34 +70,31 @@ export class FileService {
     const dateDir = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
     const fullDir = path.join(this.uploadsDir, dateDir);
 
-    // 创建日期目录
     if (!fs.existsSync(fullDir)) {
       fs.mkdirSync(fullDir, { recursive: true });
     }
 
-    // 生成唯一文件名
-    const ext = path.extname(file.filename).toLowerCase();
+    const ext = path.extname(filename).toLowerCase();
     const uniqueName = `${crypto.randomUUID()}${ext}`;
     const filePath = path.join(fullDir, uniqueName);
     const relativePath = `uploads/${dateDir}/${uniqueName}`;
     const url = `/files/${dateDir}/${uniqueName}`;
 
     // 写入文件
-    const buffer = await file.toBuffer();
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(filePath, new Uint8Array(buffer));
 
     // 计算 MD5
-    const md5 = crypto.createHash('md5').update(buffer).digest('hex');
+    const md5 = crypto.createHash('md5').update(new Uint8Array(buffer)).digest('hex');
 
     // 保存到数据库
     const record = await this.prisma.sysFile.create({
       data: {
         fileName: uniqueName,
-        originalName: file.filename,
+        originalName: filename,
         filePath: relativePath,
         url,
-        fileSize: file.filesize,
-        mimeType: file.mimetype,
+        fileSize: buffer.length,
+        mimeType: mimetype,
         ext: ext.replace('.', ''),
         storageType: 'local',
         md5,
@@ -101,30 +102,24 @@ export class FileService {
       },
     });
 
-    this.logger.log(`文件上传成功: ${file.filename} → ${url}`);
+    this.logger.log(`文件上传成功: ${filename} → ${url}`);
     return record;
   }
 
   /**
    * 图片上传（限制 5MB，返回精简格式）
    */
-  async uploadImage(file: any, createBy?: string) {
-    if (!file) {
-      throw new BadRequestException('请选择要上传的图片');
-    }
-
-    // 只允许图片类型
+  async saveImage(filename: string, mimetype: string, buffer: Buffer, createBy?: string) {
     const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!imageTypes.includes(file.mimetype)) {
+    if (!imageTypes.includes(mimetype)) {
       throw new BadRequestException('仅支持 JPG/PNG/GIF/WebP 格式的图片');
     }
 
-    // 图片大小限制
-    if (file.filesize > MAX_IMAGE_SIZE) {
+    if (buffer.length > MAX_IMAGE_SIZE) {
       throw new BadRequestException(`图片大小超过限制: ${MAX_IMAGE_SIZE / 1024 / 1024}MB`);
     }
 
-    const record = await this.upload(file, createBy);
+    const record = await this.saveFile(filename, mimetype, buffer, createBy);
     return {
       id: record.id,
       url: record.url,
@@ -208,13 +203,11 @@ export class FileService {
   async remove(id: string) {
     const file = await this.findOne(id);
 
-    // 删除物理文件
     const fullPath = path.join(process.cwd(), file.filePath);
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
     }
 
-    // 删除数据库记录
     await this.prisma.sysFile.delete({ where: { id } });
 
     this.logger.log(`文件已删除: ${file.originalName}`);
@@ -229,7 +222,6 @@ export class FileService {
       where: { id: { in: ids } },
     });
 
-    // 删除物理文件
     for (const file of files) {
       const fullPath = path.join(process.cwd(), file.filePath);
       if (fs.existsSync(fullPath)) {
@@ -237,7 +229,6 @@ export class FileService {
       }
     }
 
-    // 删除数据库记录
     const result = await this.prisma.sysFile.deleteMany({
       where: { id: { in: ids } },
     });

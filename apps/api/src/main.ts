@@ -9,6 +9,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
+import fastifyMultipart from '@fastify/multipart';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -75,6 +76,11 @@ async function bootstrap() {
   await app.register(helmet, {
     contentSecurityPolicy: false,
     frameguard: false, // 允许前端 iframe 嵌入 Swagger 文档页
+  });
+
+  // 文件上传支持（multipart/form-data）
+  await app.register(fastifyMultipart, {
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   });
 
   // 静态文件服务：/files → uploads 目录（本地开发用，生产环境由 Nginx 直接处理）

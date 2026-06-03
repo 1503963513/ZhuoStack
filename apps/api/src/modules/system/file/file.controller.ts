@@ -8,12 +8,10 @@ import {
   Body,
   Query,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
   Res,
+  Req,
   BadRequestException,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -31,6 +29,8 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { FileService } from './file.service';
 import { QueryFileDto, UpdateFileDto } from './dto';
 import { FileEntity, UploadResultEntity } from './entities/file.entity';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @ApiTags('系统-文件管理')
 @ApiBearerAuth()
@@ -97,12 +97,14 @@ export class FileController {
     },
   })
   @ApiResponse({ status: 201, description: '上传成功', type: FileEntity })
-  @UseInterceptors(FileInterceptor('file'))
-  async upload(
-    @UploadedFile() file: any,
-    @CurrentUser('id') userId: string,
-  ) {
-    return this.fileService.upload(file, userId);
+  async upload(@Req() req: any, @CurrentUser('id') userId: string) {
+    const data = await req.file();
+    if (!data) {
+      throw new BadRequestException('请选择要上传的文件');
+    }
+
+    const buffer = await data.toBuffer();
+    return this.fileService.saveFile(data.filename, data.mimetype, buffer, userId);
   }
 
   @Post('upload/image')
@@ -117,12 +119,14 @@ export class FileController {
     },
   })
   @ApiResponse({ status: 201, description: '上传成功', type: UploadResultEntity })
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadImage(
-    @UploadedFile() file: any,
-    @CurrentUser('id') userId: string,
-  ) {
-    return this.fileService.uploadImage(file, userId);
+  async uploadImage(@Req() req: any, @CurrentUser('id') userId: string) {
+    const data = await req.file();
+    if (!data) {
+      throw new BadRequestException('请选择要上传的图片');
+    }
+
+    const buffer = await data.toBuffer();
+    return this.fileService.saveImage(data.filename, data.mimetype, buffer, userId);
   }
 
   @Get('download/:id')
@@ -131,14 +135,14 @@ export class FileController {
   @ApiResponse({ status: 200, description: '下载成功' })
   async download(@Param('id') id: string, @Res() res: any) {
     const file = await this.fileService.findOne(id);
-    const fullPath = require('path').join(process.cwd(), file.filePath);
+    const fullPath = path.join(process.cwd(), file.filePath);
 
-    if (!require('fs').existsSync(fullPath)) {
+    if (!fs.existsSync(fullPath)) {
       return res.status(404).send({ code: 404, message: '文件不存在' });
     }
 
     res.header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
     res.type(file.mimeType);
-    return res.send(require('fs').readFileSync(fullPath));
+    return res.send(fs.readFileSync(fullPath));
   }
 }
