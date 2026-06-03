@@ -335,29 +335,29 @@ export default function FilePage() {
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
             {files.map((file) => {
               const Icon = getFileIcon(file.mimeType);
               const selected = selectedIds.has(file.id);
               return (
                 <Card
                   key={file.id}
-                  className={`group relative cursor-pointer transition-colors ${selected ? 'ring-2 ring-primary' : 'hover:bg-muted/50'}`}
+                  className={`group relative cursor-pointer transition-all ${selected ? 'ring-2 ring-primary' : 'hover:border-primary/50 hover:shadow-sm'}`}
                   onClick={() => toggleSelect(file.id)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
                     {/* 选中指示 */}
-                    <div className="absolute top-2 left-2">
+                    <div className="absolute top-1.5 left-1.5">
                       {selected ? (
-                        <Check className="h-4 w-4 text-primary" />
+                        <Check className="h-3.5 w-3.5 text-primary" />
                       ) : (
-                        <div className="h-4 w-4 rounded border" />
+                        <div className="h-3.5 w-3.5 rounded border" />
                       )}
                     </div>
 
                     {/* 预览区域 */}
                     <div
-                      className="mb-3 flex h-24 items-center justify-center rounded-md bg-muted/30 overflow-hidden"
+                      className="mb-2 flex h-16 items-center justify-center rounded-md bg-muted/30 overflow-hidden"
                       onClick={(e) => { e.stopPropagation(); if (isImage(file.mimeType)) setPreviewFile(file); }}
                     >
                       {isImage(file.mimeType) ? (
@@ -367,26 +367,23 @@ export default function FilePage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <Icon className="h-10 w-10 text-muted-foreground" />
+                        <Icon className="h-8 w-8 text-muted-foreground" />
                       )}
                     </div>
 
                     {/* 文件信息 */}
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium truncate" title={file.originalName}>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium truncate" title={file.originalName}>
                         {file.originalName}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                         <span>{formatFileSize(file.fileSize)}</span>
                         <span>{file.ext.toUpperCase()}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(file.createdAt).toLocaleDateString('zh-CN')}
-                      </p>
                     </div>
 
                     {/* 操作按钮 */}
-                    <div className="mt-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="mt-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isImage(file.mimeType) && (
                         <Button
                           variant="ghost"
