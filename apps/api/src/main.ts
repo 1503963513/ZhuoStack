@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -7,6 +8,7 @@ import {
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
+import fastifyStatic from '@fastify/static';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -74,6 +76,21 @@ async function bootstrap() {
     contentSecurityPolicy: false,
     frameguard: false, // 允许前端 iframe 嵌入 Swagger 文档页
   });
+
+  // 静态文件服务：/files → uploads 目录（本地开发用，生产环境由 Nginx 直接处理）
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  await app.register(fastifyStatic, {
+    root: uploadsDir,
+    prefix: '/files/',
+    decorateReply: false,
+    setHeaders: (res: any) => {
+      res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 天
+    },
+  });
+  logger.log(`静态文件服务: /files → ${uploadsDir}`);
 
   // Global prefix
   app.setGlobalPrefix('api', {

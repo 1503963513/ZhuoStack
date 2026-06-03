@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { FileUpload } from '@/components/common/file-upload';
 
 interface User {
   id: string;
@@ -60,6 +61,7 @@ export default function UserPage() {
     deptId: '',
     postIds: [] as string[],
     roleIds: [] as string[],
+    avatar: '',
   });
 
   const { confirm, ConfirmDialog } = useConfirm();
@@ -94,7 +96,7 @@ export default function UserPage() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', password: '', role: 'USER', deptId: '', postIds: [], roleIds: [] });
+    setFormData({ name: '', email: '', password: '', role: 'USER', deptId: '', postIds: [], roleIds: [], avatar: '' });
     setEditingUser(null);
   };
 
@@ -114,6 +116,7 @@ export default function UserPage() {
       deptId: '',
       postIds: [],
       roleIds: [],
+      avatar: user.avatar || '',
     });
     setDialogOpen(true);
 
@@ -320,6 +323,15 @@ export default function UserPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>头像</Label>
+              <FileUpload
+                mode="image"
+                maxCount={1}
+                value={formData.avatar ? [{ id: 'avatar', url: formData.avatar, originalName: '头像', fileSize: 0 }] : []}
+                onChange={(files) => setFormData({ ...formData, avatar: files[0]?.url || '' })}
+              />
             </div>
           </div>
           <DialogFooter>

@@ -1,0 +1,19 @@
+model SysFile {
+  id           String   @id @default(cuid())
+  fileName     String   @db.VarChar(255)
+  originalName String   @db.VarChar(255)
+  filePath     String   @db.VarChar(500)
+  url          String   @db.VarChar(500)
+  fileSize     Int
+  mimeType     String   @db.VarChar(127)
+  ext          String   @db.VarChar(32)
+  storageType  String   @default("local") @db.VarChar(32)
+  md5          String?  @db.VarChar(64)
+  status       Status   @default(ACTIVE)
+  remark       String?  @db.VarChar(500)
+  createBy     String?  @db.VarChar(64)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("sys_files")
+}

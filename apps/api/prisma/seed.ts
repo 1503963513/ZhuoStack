@@ -171,6 +171,19 @@ async function main() {
     },
   });
 
+  const menuFile = await prisma.sysMenu.create({
+    data: {
+      name: '文件管理',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/system/file',
+      component: 'system/file/index',
+      icon: 'FolderOpen',
+      sort: 9,
+      status: Status.ACTIVE,
+    },
+  });
+
   // 三级菜单：按钮权限（部门管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
@@ -237,6 +250,16 @@ async function main() {
   await prisma.sysMenu.createMany({
     data: [
       { name: '登录日志删除', parentId: menuLoginLog.id, type: MenuType.BUTTON, perms: 'log:login:delete', sort: 1, status: Status.ACTIVE },
+    ],
+  });
+
+  // 三级菜单：按钮权限（文件管理下的操作按钮）
+  await prisma.sysMenu.createMany({
+    data: [
+      { name: '文件上传', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:upload', sort: 1, status: Status.ACTIVE },
+      { name: '文件下载', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:download', sort: 2, status: Status.ACTIVE },
+      { name: '文件删除', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:delete', sort: 3, status: Status.ACTIVE },
+      { name: '文件编辑', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:edit', sort: 4, status: Status.ACTIVE },
     ],
   });
 
@@ -374,6 +397,7 @@ async function main() {
           { id: menuUser.id },
           { id: menuOperLog.id },
           { id: menuLoginLog.id },
+          { id: menuFile.id },
           // 所有按钮权限
           ...buttonMenus.map((m) => ({ id: m.id })),
         ],
