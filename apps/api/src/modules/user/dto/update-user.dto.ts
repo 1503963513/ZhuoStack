@@ -1,19 +1,39 @@
-import { IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsArray } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto {
-  @ApiPropertyOptional({ description: 'User name', example: 'John Doe' })
+  @ApiPropertyOptional({ description: '用户名称', example: 'John Doe' })
   @IsOptional()
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: 'User email', example: 'user@example.com' })
+  @ApiPropertyOptional({ description: '用户邮箱', example: 'user@example.com' })
   @IsOptional()
-  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @IsEmail({}, { message: '请输入有效的邮箱地址' })
   email?: string;
 
-  @ApiPropertyOptional({ description: 'User avatar URL' })
+  @ApiPropertyOptional({ description: '用户头像 URL' })
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @ApiPropertyOptional({ description: '系统角色', example: 'USER' })
+  @IsOptional()
+  @IsString()
+  role?: string;
+
+  @ApiPropertyOptional({ description: '部门 ID' })
+  @IsOptional()
+  @IsString()
+  deptId?: string;
+
+  @ApiPropertyOptional({ description: '岗位 ID 列表', type: [String] })
+  @IsOptional()
+  @IsArray()
+  postIds?: string[];
+
+  @ApiPropertyOptional({ description: '角色 ID 列表', type: [String] })
+  @IsOptional()
+  @IsArray()
+  roleIds?: string[];
 }
