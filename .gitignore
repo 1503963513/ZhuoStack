@@ -33,6 +33,9 @@ coverage/
 *.swo
 *~
 
+# Code graph
+.codegraph/
+
 # OS
 .DS_Store
 Thumbs.db
