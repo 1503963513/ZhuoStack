@@ -38,6 +38,8 @@ fi
 cp apps/api/.env.example "${TEMP_DIR}/apps/api/"
 cp apps/api/package.json "${TEMP_DIR}/apps/api/"
 cp apps/api/tsconfig.json "${TEMP_DIR}/apps/api/"
+# 排除上传文件目录
+rm -rf "${TEMP_DIR}/apps/api/uploads" 2>/dev/null || true
 
 # 复制 Web 文件
 echo "  → 复制 Web..."
