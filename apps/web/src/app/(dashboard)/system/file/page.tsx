@@ -40,6 +40,7 @@ import {
   Eye,
   X,
   Check,
+  Copy,
 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 
@@ -396,6 +397,19 @@ export default function FilePage() {
                           <Eye className="h-3 w-3" />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = `${window.location.origin}${file.url}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success('链接已复制');
+                        }}
+                        title="复制链接"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                       <PermissionButton
                         perm="file:download"
                         variant="ghost"
