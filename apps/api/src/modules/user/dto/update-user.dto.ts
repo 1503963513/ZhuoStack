@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEmail, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsArray, MinLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto {
@@ -16,6 +16,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @ApiPropertyOptional({ description: '用户密码（留空不修改）' })
+  @IsOptional()
+  @IsString()
+  @MinLength(6, { message: '密码至少 6 个字符' })
+  password?: string;
 
   @ApiPropertyOptional({ description: '系统角色', example: 'USER' })
   @IsOptional()
