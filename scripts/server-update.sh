@@ -1,5 +1,5 @@
 #!/bin/bash
-# 服务器更新脚本 - 后续部署使用
+# 服务器更新脚本 - 后续部署使用（standalone 模式）
 # 用法: bash scripts/server-update.sh <tarball>
 
 set -e
@@ -16,13 +16,8 @@ fi
 
 echo "📦 正在更新: ${TARBALL}"
 
-# 检测依赖是否有变化
-NEED_INSTALL=false
-tar tzf "${TARBALL}" | grep -q "package.json" && NEED_INSTALL=true
-tar tzf "${TARBALL}" | grep -q "pnpm-lock.yaml" && NEED_INSTALL=true
-
 # 解压前清除旧的构建产物（--skip-old-files 会导致旧文件不被覆盖）
-echo "🧹 清除旧构建缓存..."
+echo "🧹 清除旧构建产物..."
 rm -rf apps/web/.next/cache apps/api/dist
 
 # 解压文件（排除 .env 避免覆盖生产配置）
@@ -35,19 +30,18 @@ tar xzf "${TARBALL}" \
 echo "🧹 清理系统隐藏文件..."
 find . -type f -name "._*" -delete 2>/dev/null || true
 
-# 仅在依赖变化时安装
-if [ "$NEED_INSTALL" = true ]; then
-  echo "📦 依赖有变化，正在安装..."
-  pnpm install --prod
-  echo "⚙️  批准构建脚本..."
-  pnpm approve-builds --all 2>/dev/null || true
-  pnpm rebuild 2>/dev/null || true
-fi
+# 安装根依赖（API 端仍需要 prisma 等）
+echo "📦 安装依赖..."
+pnpm install --prod
+echo "⚙️  批准构建脚本..."
+pnpm approve-builds --all 2>/dev/null || true
+pnpm rebuild 2>/dev/null || true
 
 # 重新生成 Prisma Client
 echo "🗄️  重新生成 Prisma Client..."
 cd apps/api
 DB_TYPE=$(grep "^DB_TYPE=" .env 2>/dev/null | cut -d'=' -f2 || echo "postgres")
+echo "   数据库类型: ${DB_TYPE}"
 if [ "$DB_TYPE" = "mysql" ]; then
   pnpm db:use:mysql
 else

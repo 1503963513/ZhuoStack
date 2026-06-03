@@ -45,6 +45,8 @@ rm -rf "${TEMP_DIR}/apps/api/uploads" 2>/dev/null || true
 echo "  → 复制 Web..."
 mkdir -p "${TEMP_DIR}/apps/web"
 cp -r apps/web/.next "${TEMP_DIR}/apps/web/"
+# 排除构建缓存（不需要部署）
+rm -rf "${TEMP_DIR}/apps/web/.next/cache"
 cp -r apps/web/public "${TEMP_DIR}/apps/web/"
 cp apps/web/.env.local.example "${TEMP_DIR}/apps/web/"
 cp apps/web/next.config.mjs "${TEMP_DIR}/apps/web/"
@@ -53,6 +55,9 @@ cp apps/web/tsconfig.json "${TEMP_DIR}/apps/web/"
 cp apps/web/postcss.config.js "${TEMP_DIR}/apps/web/"
 cp apps/web/tailwind.config.ts "${TEMP_DIR}/apps/web/"
 cp apps/web/components.json "${TEMP_DIR}/apps/web/"
+cp apps/web/.env.local.example "${TEMP_DIR}/apps/web/"
+cp apps/web/next.config.mjs "${TEMP_DIR}/apps/web/"
+cp apps/web/package.json "${TEMP_DIR}/apps/web/"
 
 # 复制共享类型包
 echo "  → 复制 shared-types..."

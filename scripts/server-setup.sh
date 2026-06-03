@@ -7,6 +7,7 @@ set -euo pipefail
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo -e "${GREEN}🔧 正在初始化服务器配置...${NC}\n"
@@ -57,20 +58,39 @@ pnpm approve-builds --all 2>/dev/null || true
 pnpm rebuild 2>/dev/null || true
 
 # 生成 Prisma Client（关键步骤！）
-echo -e "\n🗄️  生成 Prisma Client..."
+echo -e "\n🗄️  准备数据库配置..."
 cd apps/api
+
+# 检测 .env 中的数据库配置
 DB_TYPE=$(grep "^DB_TYPE=" .env 2>/dev/null | cut -d'=' -f2 || echo "postgres")
+DB_URL=$(grep "^DATABASE_URL=" .env 2>/dev/null | cut -d'=' -f2- || echo "")
+
+echo -e "   数据库类型: ${CYAN}${DB_TYPE}${NC}"
+echo -e "   连接地址:   ${CYAN}${DB_URL:0:30}...${NC}"
+echo ""
+echo -e "${YELLOW}⚠️  请确认 apps/api/.env 中以下配置正确:${NC}"
+echo -e "   ${CYAN}DB_TYPE${NC}       = postgres | mysql（必须与 DATABASE_URL 协议一致）"
+echo -e "   ${CYAN}DATABASE_URL${NC}  = postgresql://... 或 mysql://..."
+echo ""
+
 if [ "$DB_TYPE" = "mysql" ]; then
   pnpm db:use:mysql
 else
   pnpm db:use:pg
 fi
+echo -e "🗄️  生成 Prisma Client..."
 pnpm prisma:generate
 cd ../..
 
 echo -e "\n${GREEN}🎉 初始化完成！${NC}\n"
 echo -e "📋 ${YELLOW}下一步:${NC}"
 echo "   1. ✏️  编辑 apps/api/.env（数据库、JWT、AI 配置）"
+echo "      ⚠️  确保 DB_TYPE 与 DATABASE_URL 协议一致！"
+echo "         MySQL:  DB_TYPE=mysql   + DATABASE_URL=mysql://..."
+echo "         PgSQL:  DB_TYPE=postgres + DATABASE_URL=postgresql://..."
 echo "   2. ✏️  编辑 apps/web/.env.local（API 地址）"
-echo "   3. 🚀 pm2 start ecosystem.config.js"
-echo "   4. 💾 pm2 save && pm2 startup"
+echo "   3. 🗄️  同步数据库并填充数据:"
+echo "         cd apps/api && pnpm prisma:push && cd ../.."
+echo "         pnpm run db:seed"
+echo "   4. 🚀 pm2 start ecosystem.config.js"
+echo "   5. 💾 pm2 save && pm2 startup"
