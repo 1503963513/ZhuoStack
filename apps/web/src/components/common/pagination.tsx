@@ -53,7 +53,7 @@ export function Pagination({
     setInputPage(String(page));
   }, [page]);
 
-  if (totalPages <= 1 && !onPageSizeChange) return null;
+  if (totalPages <= 1) return null;
 
   const handleJump = () => {
     const num = parseInt(inputPage, 10);

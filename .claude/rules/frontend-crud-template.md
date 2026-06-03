@@ -171,17 +171,19 @@ export default function ResourcePage() {
 
 ### Pagination
 
-居中分页组件，支持 pageSize 切换和手动输入页码。
+居中分页组件，支持 pageSize 切换和手动输入页码。不足一页自动隐藏。
 
 ```tsx
-<Pagination
-  page={page}
-  totalPages={pagination.totalPages}
-  total={pagination.total}         // 可选：显示总数
-  pageSize={pageSize}              // 可选：当前每页条数
-  onPageChange={setPage}
-  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}  // 可选：切换每页条数
-/>
+{pagination && (
+  <Pagination
+    page={page}
+    totalPages={pagination.totalPages}
+    total={pagination.total}         // 可选：显示总数
+    pageSize={pageSize}              // 可选：当前每页条数
+    onPageChange={setPage}
+    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}  // 可选：切换每页条数
+  />
+)}
 ```
 
 ## URL 构建
