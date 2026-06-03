@@ -400,7 +400,19 @@ export default function FilePage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           const url = `${window.location.origin}${file.url}`;
-                          navigator.clipboard.writeText(url);
+                          // 降级方案：HTTP 环境下 navigator.clipboard 不可用
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(url);
+                          } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = url;
+                            textarea.style.position = 'fixed';
+                            textarea.style.opacity = '0';
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                          }
                           toast.success('链接已复制');
                         }}
                         title="复制链接"
