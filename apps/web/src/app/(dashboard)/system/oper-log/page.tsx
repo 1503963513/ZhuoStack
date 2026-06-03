@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
+import { Pagination } from '@/components/common/pagination';
 import { useDict } from '@/hooks/use-dict';
 import { useConfirm } from '@/hooks/use-confirm';
 
@@ -126,11 +127,7 @@ export default function OperLogPage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
-          <span className="flex items-center px-4">第 {page} / {pagination.totalPages} 页</span>
-          <Button variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
-        </div>
+        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
       )}
       <ConfirmDialog />
     </div>

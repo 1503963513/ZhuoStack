@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';
+import { Pagination } from '@/components/common/pagination';
 
 interface Role {
   id: string;
@@ -297,11 +298,7 @@ export default function RolePage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</Button>
-          <span className="flex items-center px-4">第 {page} / {pagination.totalPages} 页</span>
-          <Button variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>下一页</Button>
-        </div>
+        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
