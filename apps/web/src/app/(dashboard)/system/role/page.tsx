@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Folder, FileText, MousePointer } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, buildUrl } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';
 import { Pagination } from '@/components/common/pagination';
 
@@ -84,7 +84,7 @@ export default function RolePage() {
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['roles', String(page), String(pageSize), debouncedSearch],
-    `/api/system/role?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    buildUrl('/api/system/role', { page, pageSize, search: debouncedSearch || undefined }),
   );
 
   // 获取菜单树（用于权限选择）

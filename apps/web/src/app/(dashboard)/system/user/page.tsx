@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { buildUrl } from '@/lib/utils';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { Pagination } from '@/components/common/pagination';
@@ -70,7 +71,7 @@ export default function UserPage() {
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['users', String(page), String(pageSize), debouncedSearch],
-    `/api/user?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    buildUrl('/api/user', { page, pageSize, search: debouncedSearch || undefined }),
   );
 
   const { data: depts } = useApiQuery<Dept[]>(['dept-list'], '/api/system/dept');

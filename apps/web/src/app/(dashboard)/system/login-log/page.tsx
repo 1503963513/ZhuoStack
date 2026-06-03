@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { buildUrl } from '@/lib/utils';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { Pagination } from '@/components/common/pagination';
@@ -35,7 +36,7 @@ export default function LoginLogPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['login-logs', String(page), String(pageSize), debouncedUsername],
-    `/api/log/login?page=${page}&pageSize=${pageSize}${debouncedUsername ? `&username=${debouncedUsername}` : ''}`,
+    buildUrl('/api/log/login', { page, pageSize, username: debouncedUsername || undefined }),
   );
 
   const handleClear = async () => {

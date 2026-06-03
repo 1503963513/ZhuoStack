@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { buildUrl } from '@/lib/utils';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { Pagination } from '@/components/common/pagination';
@@ -39,7 +40,7 @@ export default function OperLogPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['oper-logs', String(page), String(pageSize), debouncedTitle],
-    `/api/log/oper?page=${page}&pageSize=${pageSize}${debouncedTitle ? `&title=${debouncedTitle}` : ''}`,
+    buildUrl('/api/log/oper', { page, pageSize, title: debouncedTitle || undefined }),
   );
 
   const handleClear = async () => {

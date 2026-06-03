@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { buildUrl } from '@/lib/utils';
 import {
   Upload,
   Download,
@@ -107,7 +108,7 @@ export default function FilePage() {
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['files', String(page), debouncedSearch, mimeType],
-    `/api/system/file?page=${page}&pageSize=12${debouncedSearch ? `&search=${debouncedSearch}` : ''}${mimeType !== 'all' ? `&mimeType=${mimeType}` : ''}`,
+    buildUrl('/api/system/file', { page, pageSize: 12, search: debouncedSearch || undefined, mimeType: mimeType !== 'all' ? mimeType : undefined }),
   );
 
   const files = data?.data?.data || [];

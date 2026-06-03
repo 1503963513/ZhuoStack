@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { buildUrl } from '@/lib/utils';
 import { Plus, Pencil, Trash2, List } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { Pagination } from '@/components/common/pagination';
@@ -79,7 +80,7 @@ export default function DictPage() {
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
     ['dicts', String(page), String(pageSize), debouncedSearch],
-    `/api/system/dict?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    buildUrl('/api/system/dict', { page, pageSize, search: debouncedSearch || undefined }),
   );
 
   const { data: dictDataList, refetch: refetchDictData } = useApiQuery<DictData[]>(
