@@ -92,13 +92,17 @@ export class DeptService {
    * 更新部门
    */
   async update(id: string, dto: UpdateDeptDto) {
-    await this.findOne(id);
+    const current = await this.findOne(id);
 
-    if (dto.name && dto.parentId !== undefined) {
+    // name 或 parentId 任一变化时，校验同级唯一性
+    if (dto.name !== undefined || dto.parentId !== undefined) {
+      const name = dto.name ?? current.name;
+      const parentId = dto.parentId !== undefined ? (dto.parentId || null) : current.parentId;
+
       const existing = await this.prisma.sysDept.findFirst({
         where: {
-          name: dto.name,
-          parentId: dto.parentId || null,
+          name,
+          parentId,
           id: { not: id },
         },
       });

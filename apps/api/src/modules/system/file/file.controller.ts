@@ -29,7 +29,6 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { FileService } from './file.service';
 import { QueryFileDto, UpdateFileDto } from './dto';
 import { FileEntity, UploadResultEntity } from './entities/file.entity';
-import * as path from 'path';
 import * as fs from 'fs';
 
 @ApiTags('系统-文件管理')
@@ -134,15 +133,11 @@ export class FileController {
   @ApiParam({ name: 'id', description: '文件 ID' })
   @ApiResponse({ status: 200, description: '下载成功' })
   async download(@Param('id') id: string, @Res() res: any) {
-    const file = await this.fileService.findOne(id);
-    const fullPath = path.join(process.cwd(), file.filePath);
+    const { filePath, originalName, mimeType } =
+      await this.fileService.getDownloadInfo(id);
 
-    if (!fs.existsSync(fullPath)) {
-      return res.status(404).send({ code: 404, message: '文件不存在' });
-    }
-
-    res.header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
-    res.type(file.mimeType);
-    return res.send(fs.readFileSync(fullPath));
+    res.header('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
+    res.type(mimeType);
+    return res.send(fs.readFileSync(filePath));
   }
 }

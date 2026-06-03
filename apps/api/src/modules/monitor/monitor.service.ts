@@ -7,7 +7,7 @@ import * as os from 'os';
 const ALLOWED_KEY_PREFIXES = ['cache:'];
 
 // 禁止删除的安全键前缀
-const PROTECTED_KEY_PREFIXES = ['login:', 'token:', 'online:'];
+const PROTECTED_KEY_PREFIXES = ['login:', 'token:', 'online:user:'];
 
 // 在线用户 Redis key 前缀
 const ONLINE_USER_PREFIX = 'online:user:';

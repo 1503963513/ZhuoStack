@@ -3,8 +3,10 @@
 import { useApiQuery } from '@/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Server, Cpu, HardDrive, Clock } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { PageHeader } from '@/components/common/page-header';
+import { Loading } from '@/components/common/loading';
+import { RefreshCw, Server, Cpu, MemoryStick, Clock } from 'lucide-react';
 
 interface ServerInfo {
   hostname: string;
@@ -37,128 +39,166 @@ function formatUptime(seconds: number): string {
   return `${d}天 ${h}小时 ${m}分钟`;
 }
 
+/** 根据使用率返回对应的进度条颜色 */
+function getProgressColor(usage: number): string {
+  if (usage >= 90) return 'bg-red-500';
+  if (usage >= 70) return 'bg-yellow-500';
+  return 'bg-primary';
+}
+
 export default function ServerPage() {
   const { data, isLoading, refetch } = useApiQuery<ServerInfo>(['server-info'], '/api/monitor/server');
 
   const info = data?.data;
+  const memoryPercent = info ? parseFloat(info.memoryUsage) : 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">服务器信息</h1>
-          <p className="text-muted-foreground">服务器运行状态监控</p>
-        </div>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          刷新
-        </Button>
-      </div>
+      <PageHeader
+        title="服务器信息"
+        description="服务器运行状态监控"
+        actions={
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            刷新
+          </Button>
+        }
+      />
 
       {isLoading ? (
-        <div className="p-8 text-center text-muted-foreground">加载中...</div>
+        <Loading />
       ) : info ? (
         <>
-          {/* 基本信息 */}
-          <div className="grid gap-4 md:grid-cols-4">
+          {/* 概览卡片 */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <Server className="h-8 w-8 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">主机名</p>
-                  <p className="font-medium">{info.hostname}</p>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">主机名</CardTitle>
+                <Server className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-bold truncate">{info.hostname}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {info.platform} / {info.arch}
+                </p>
               </CardContent>
             </Card>
+
             <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <Cpu className="h-8 w-8 text-green-500" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Node.js</p>
-                  <p className="font-medium">{info.nodeVersion}</p>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Node.js</CardTitle>
+                <Cpu className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-bold">{info.nodeVersion}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {info.cpuCount} 核 CPU
+                </p>
               </CardContent>
             </Card>
+
             <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <HardDrive className="h-8 w-8 text-blue-500" />
-                <div>
-                  <p className="text-sm text-muted-foreground">平台</p>
-                  <p className="font-medium">{info.platform} / {info.arch}</p>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">内存使用率</CardTitle>
+                <MemoryStick className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-bold">{info.memoryUsage}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatBytes(info.usedMemory)} / {formatBytes(info.totalMemory)}
+                </p>
               </CardContent>
             </Card>
+
             <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <Clock className="h-8 w-8 text-yellow-500" />
-                <div>
-                  <p className="text-sm text-muted-foreground">运行时间</p>
-                  <p className="font-medium">{formatUptime(info.uptime)}</p>
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">运行时间</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-bold">{formatUptime(info.uptime)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  进程运行时长
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* 内存信息 */}
+          {/* CPU 详情 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HardDrive className="h-5 w-5" />
-                内存使用
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Cpu className="h-5 w-5" />
+                CPU 信息
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span>已用: {formatBytes(info.usedMemory)}</span>
-                  <span>可用: {formatBytes(info.freeMemory)}</span>
-                  <span>总计: {formatBytes(info.totalMemory)}</span>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <p className="text-xs text-muted-foreground">CPU 型号</p>
+                  <p className="text-sm font-semibold mt-1">{info.cpuModel}</p>
                 </div>
-                <div className="w-full bg-muted rounded-full h-4">
-                  <div
-                    className="bg-primary h-4 rounded-full transition-all"
-                    style={{ width: info.memoryUsage }}
-                  />
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <p className="text-xs text-muted-foreground">CPU 核数</p>
+                  <p className="text-sm font-semibold mt-1">{info.cpuCount} 核</p>
                 </div>
-                <div className="text-center">
-                  <Badge variant="outline">内存使用率: {info.memoryUsage}</Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-3">系统负载（Load Average）</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: '1 分钟', value: info.loadAverage[0] },
+                    { label: '5 分钟', value: info.loadAverage[1] },
+                    { label: '15 分钟', value: info.loadAverage[2] },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="text-lg font-bold mt-1">{item.value}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* CPU 信息 */}
+          {/* 内存详情 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Cpu className="h-5 w-5" />
-                CPU 信息
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MemoryStick className="h-5 w-5" />
+                内存使用
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">CPU 型号</p>
-                  <p className="font-medium">{info.cpuModel}</p>
+            <CardContent className="space-y-4">
+              <Progress
+                value={memoryPercent}
+                className="h-3"
+                indicatorClassName={getProgressColor(memoryPercent)}
+              />
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">已用</p>
+                  <p className="text-sm font-semibold mt-1">{formatBytes(info.usedMemory)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">CPU 核数</p>
-                  <p className="font-medium">{info.cpuCount} 核</p>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">可用</p>
+                  <p className="text-sm font-semibold mt-1">{formatBytes(info.freeMemory)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">系统负载</p>
-                  <div className="flex gap-2">
-                    <Badge variant="outline">1分钟: {info.loadAverage[0]}</Badge>
-                    <Badge variant="outline">5分钟: {info.loadAverage[1]}</Badge>
-                    <Badge variant="outline">15分钟: {info.loadAverage[2]}</Badge>
-                  </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">总计</p>
+                  <p className="text-sm font-semibold mt-1">{formatBytes(info.totalMemory)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </>
       ) : (
-        <div className="p-8 text-center text-muted-foreground">无法获取服务器信息</div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Server className="h-12 w-12 mb-3 opacity-30" />
+            <p>无法获取服务器信息</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

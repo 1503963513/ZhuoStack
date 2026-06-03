@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -85,7 +86,9 @@ export class UserController {
   changePassword(
     @CurrentUser('id') userId: string,
     @Body() dto: ChangePasswordDto,
+    @Req() req: any,
   ) {
-    return this.userService.changePassword(userId, dto.oldPassword, dto.newPassword);
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    return this.userService.changePassword(userId, dto.oldPassword, dto.newPassword, token);
   }
 }

@@ -36,7 +36,7 @@ function createApiClient(): AxiosInstance {
     (error) => Promise.reject(error),
   );
 
-  // Response interceptor: handle 401 and unwrap errors
+  // Response interceptor: handle 401 and extract backend error message
   client.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -47,6 +47,13 @@ function createApiClient(): AxiosInstance {
         // 使用 replace 避免回退到已失效页面
         window.location.replace('/login');
       }
+
+      // 从后端响应体中提取 message，替换 Axios 默认错误信息
+      const backendMessage = error.response?.data?.message;
+      if (backendMessage) {
+        error.message = backendMessage;
+      }
+
       return Promise.reject(error);
     },
   );

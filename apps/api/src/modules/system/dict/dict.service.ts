@@ -193,15 +193,16 @@ export class DictService {
    * 删除字典
    */
   async remove(id: string) {
-    const dict = await this.findOne(id) as any;
+    const dict = await this.prisma.sysDict.findUnique({ where: { id } });
+    if (!dict) {
+      throw new NotFoundException(`字典 ${id} 不存在`);
+    }
 
     await this.prisma.sysDict.delete({ where: { id } });
 
     // 清除相关缓存
     await this.redisService.del(`${DICT_CACHE_PREFIX}${id}`);
-    if (dict.code) {
-      await this.redisService.del(`${DICT_DATA_CACHE_PREFIX}${dict.code}`);
-    }
+    await this.redisService.del(`${DICT_DATA_CACHE_PREFIX}${dict.code}`);
     await this.redisService.del(DICT_LIST_CACHE_KEY);
 
     return { message: '删除成功' };
@@ -291,5 +292,7 @@ export class DictService {
       await this.redisService.del(`${DICT_DATA_CACHE_PREFIX}${dict.code}`);
       await this.redisService.del(`${DICT_CACHE_PREFIX}${dictId}`);
     }
+    // 字典数据变更后，列表缓存也可能失效（如未来展示数据条数）
+    await this.redisService.del(DICT_LIST_CACHE_KEY);
   }
 }

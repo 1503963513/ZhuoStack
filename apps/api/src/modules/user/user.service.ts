@@ -185,7 +185,7 @@ export class UserService {
   /**
    * 修改密码（前端密文经 RSA 解密后验证）
    */
-  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+  async changePassword(userId: string, oldPassword: string, newPassword: string, token?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -208,6 +208,11 @@ export class UserService {
       where: { id: userId },
       data: { password: hashedNewPassword },
     });
+
+    // 将当前 Token 加入黑名单，强制重新登录
+    if (token) {
+      await this.authService.blacklistToken(token);
+    }
 
     return { message: '密码修改成功' };
   }

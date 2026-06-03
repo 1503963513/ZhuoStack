@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 // 日志清空时保留最近 N 天的记录
@@ -58,29 +58,33 @@ export class LogService {
   }
 
   /**
-   * 清空操作日志（保留最近 7 天，单次最多删 5000 条）
+   * 清空操作日志（保留最近 7 天，分批循环删除直到清完）
    */
   async clearOperLogs() {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
 
-    // 先查出要删除的 ID（限制数量）
-    const records = await this.prisma.sysOperLog.findMany({
-      where: { operTime: { lt: cutoffDate } },
-      select: { id: true },
-      take: MAX_DELETE_BATCH,
-    });
+    let totalDeleted = 0;
+    while (true) {
+      const records = await this.prisma.sysOperLog.findMany({
+        where: { operTime: { lt: cutoffDate } },
+        select: { id: true },
+        take: MAX_DELETE_BATCH,
+      });
 
-    if (records.length === 0) {
-      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+      if (records.length === 0) break;
+
+      const ids = records.map((r) => r.id);
+      await this.prisma.sysOperLog.deleteMany({
+        where: { id: { in: ids } },
+      });
+      totalDeleted += ids.length;
     }
 
-    const ids = records.map((r) => r.id);
-    await this.prisma.sysOperLog.deleteMany({
-      where: { id: { in: ids } },
-    });
-
-    return { message: `已清除 ${ids.length} 条超过 ${LOG_RETENTION_DAYS} 天的操作日志` };
+    if (totalDeleted === 0) {
+      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+    }
+    return { message: `已清除 ${totalDeleted} 条超过 ${LOG_RETENTION_DAYS} 天的操作日志` };
   }
 
   // ========== 登录日志 ==========
@@ -128,27 +132,32 @@ export class LogService {
   }
 
   /**
-   * 清空登录日志（保留最近 7 天，单次最多删 5000 条）
+   * 清空登录日志（保留最近 7 天，分批循环删除直到清完）
    */
   async clearLoginLogs() {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
 
-    const records = await this.prisma.sysLoginLog.findMany({
-      where: { loginTime: { lt: cutoffDate } },
-      select: { id: true },
-      take: MAX_DELETE_BATCH,
-    });
+    let totalDeleted = 0;
+    while (true) {
+      const records = await this.prisma.sysLoginLog.findMany({
+        where: { loginTime: { lt: cutoffDate } },
+        select: { id: true },
+        take: MAX_DELETE_BATCH,
+      });
 
-    if (records.length === 0) {
-      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+      if (records.length === 0) break;
+
+      const ids = records.map((r) => r.id);
+      await this.prisma.sysLoginLog.deleteMany({
+        where: { id: { in: ids } },
+      });
+      totalDeleted += ids.length;
     }
 
-    const ids = records.map((r) => r.id);
-    await this.prisma.sysLoginLog.deleteMany({
-      where: { id: { in: ids } },
-    });
-
-    return { message: `已清除 ${ids.length} 条超过 ${LOG_RETENTION_DAYS} 天的登录日志` };
+    if (totalDeleted === 0) {
+      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+    }
+    return { message: `已清除 ${totalDeleted} 条超过 ${LOG_RETENTION_DAYS} 天的登录日志` };
   }
 }

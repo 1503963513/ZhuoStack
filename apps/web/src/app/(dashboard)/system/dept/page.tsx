@@ -120,10 +120,13 @@ export default function DeptPage() {
     const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
     if (!ok) return;
     import('@/lib/api-client').then((m) =>
-      m.del(`/api/system/dept/${id}`).then(() => {
-        toast.success('删除成功');
-        refetch();
-      }).catch((err) => toast.error('删除失败', { description: err.message }))
+      m
+        .del(`/api/system/dept/${id}`)
+        .then(() => {
+          toast.success('删除成功');
+          refetch();
+        })
+        .catch((err) => toast.error('删除失败', { description: err.message })),
     );
   };
 
@@ -236,7 +239,9 @@ export default function DeptPage() {
                 <Input
                   type="number"
                   value={formData.sort}
-                  onChange={(e) => setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sort: parseInt(e.target.value) || 0 })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -268,7 +273,10 @@ export default function DeptPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button
+              onClick={handleSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
               {createMutation.isPending || updateMutation.isPending ? '提交中...' : '确定'}
             </Button>
           </DialogFooter>
@@ -302,7 +310,11 @@ function DeptRow({
           <div className="col-span-4 flex items-center" style={{ paddingLeft: `${level * 20}px` }}>
             {hasChildren ? (
               <button onClick={() => setExpanded(!expanded)} className="mr-1">
-                {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {expanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
               </button>
             ) : (
               <span className="mr-5" />
@@ -316,21 +328,46 @@ function DeptRow({
             </Badge>
           </div>
           <div className="col-span-4 flex gap-1">
-            <PermissionButton perm="system:dept:add" variant="ghost" size="sm" onClick={() => onCreateChild(dept)} title="新增子部门">
+            <PermissionButton
+              perm="system:dept:add"
+              variant="ghost"
+              size="sm"
+              onClick={() => onCreateChild(dept)}
+              title="新增子部门"
+            >
               <Plus className="h-4 w-4" />
             </PermissionButton>
-            <PermissionButton perm="system:dept:edit" variant="ghost" size="sm" onClick={() => onEdit(dept)}>
+            <PermissionButton
+              perm="system:dept:edit"
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(dept)}
+            >
               <Pencil className="h-4 w-4" />
             </PermissionButton>
-            <PermissionButton perm="system:dept:delete" variant="ghost" size="sm" onClick={() => onDelete(dept.id)}>
+            <PermissionButton
+              perm="system:dept:delete"
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(dept.id)}
+            >
               <Trash2 className="h-4 w-4 text-destructive" />
             </PermissionButton>
           </div>
         </div>
       </div>
-      {expanded && hasChildren && dept.children!.map((child) => (
-        <DeptRow key={child.id} dept={child} level={level + 1} onEdit={onEdit} onDelete={onDelete} onCreateChild={onCreateChild} />
-      ))}
+      {expanded &&
+        hasChildren &&
+        dept.children!.map((child) => (
+          <DeptRow
+            key={child.id}
+            dept={child}
+            level={level + 1}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onCreateChild={onCreateChild}
+          />
+        ))}
     </>
   );
 }

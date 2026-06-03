@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database/prisma.service';
 import { RedisService } from '../../../database/redis.service';
+import * as crypto from 'crypto';
 
 interface JwtPayload {
   sub: string;
@@ -31,10 +32,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: any, payload: JwtPayload) {
-    // 检查 Token 是否在黑名单中
+    // 检查 Token 是否在黑名单中（与 AuthService.blacklistToken 使用相同的哈希格式）
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
     if (token) {
-      const isBlacklisted = await this.redisService.exists(`token:blacklist:${token}`);
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+      const isBlacklisted = await this.redisService.exists(`token:blacklist:${tokenHash}`);
       if (isBlacklisted) {
         throw new UnauthorizedException('Token 已失效，请重新登录');
       }

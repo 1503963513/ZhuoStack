@@ -211,6 +211,23 @@ export class FileService {
   }
 
   /**
+   * 获取下载所需的文件信息（路径、名称、MIME 类型）
+   * 由 Controller 负责读取文件并发送响应
+   */
+  async getDownloadInfo(id: string) {
+    const file = await this.findOne(id);
+    const fullPath = this.getPhysicalPath(file);
+    if (!fs.existsSync(fullPath)) {
+      throw new NotFoundException(`文件 ${file.originalName} 在磁盘上不存在`);
+    }
+    return {
+      filePath: fullPath,
+      originalName: file.originalName,
+      mimeType: file.mimeType,
+    };
+  }
+
+  /**
    * 批量删除文件
    */
   async removeBatch(ids: string[]) {
