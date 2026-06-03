@@ -3,17 +3,18 @@
 import { useState } from 'react';
 import { useApiQuery } from '@/hooks/use-api';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useConfirm } from '@/hooks/use-confirm';
+import { useDict } from '@/hooks/use-dict';
+import { buildUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { buildUrl } from '@/lib/utils';
 import { RefreshCw, Trash2 } from 'lucide-react';
-import { PermissionButton } from '@/components/common/permission-button';
+import { PageHeader } from '@/components/common/page-header';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
-import { useDict } from '@/hooks/use-dict';
-import { useConfirm } from '@/hooks/use-confirm';
+import { PermissionButton } from '@/components/common/permission-button';
 
 interface LoginLog {
   id: string;
@@ -34,6 +35,7 @@ export default function LoginLogPage() {
   const debouncedUsername = useDebounce(username, 300);
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { confirm, ConfirmDialog } = useConfirm();
+
   const { data, isLoading, refetch } = useApiQuery<any>(
     ['login-logs', String(page), String(pageSize), debouncedUsername],
     buildUrl('/api/log/login', { page, pageSize, username: debouncedUsername || undefined }),
@@ -55,24 +57,41 @@ export default function LoginLogPage() {
   const logs = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
+  const columns: Column<LoginLog>[] = [
+    { label: '用户名', key: 'username', span: 2 },
+    { label: 'IP 地址', span: 2, render: (row) => <span className="font-mono text-sm">{row.ip}</span> },
+    { label: '浏览器', span: 2, render: (row) => <span className="text-muted-foreground">{row.browser || '-'}</span> },
+    { label: '操作系统', span: 2, render: (row) => <span className="text-muted-foreground">{row.os || '-'}</span> },
+    {
+      label: '状态', span: 1,
+      render: (row) => (
+        <Badge variant={row.status === 1 ? 'default' : 'destructive'}>
+          {operStatusMap[String(row.status)] || (row.status === 1 ? '成功' : '失败')}
+        </Badge>
+      ),
+    },
+    {
+      label: '登录时间', span: 3,
+      render: (row) => <span className="text-muted-foreground">{new Date(row.loginTime).toLocaleString('zh-CN')}</span>,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">登录日志</h1>
-          <p className="text-muted-foreground">记录用户登录行为</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            刷新
-          </Button>
-          <PermissionButton perm="log:login:delete" variant="destructive" onClick={handleClear}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            清空
-          </PermissionButton>
-        </div>
-      </div>
+      <PageHeader
+        title="登录日志"
+        description="记录用户登录行为"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+            </Button>
+            <PermissionButton perm="log:login:delete" variant="destructive" onClick={handleClear}>
+              <Trash2 className="mr-2 h-4 w-4" /> 清空
+            </PermissionButton>
+          </>
+        }
+      />
 
       <Input
         placeholder="搜索用户名"
@@ -81,46 +100,14 @@ export default function LoginLogPage() {
         className="max-w-sm"
       />
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">用户名</div>
-              <div className="col-span-2">IP 地址</div>
-              <div className="col-span-2">浏览器</div>
-              <div className="col-span-2">操作系统</div>
-              <div className="col-span-1">状态</div>
-              <div className="col-span-3">登录时间</div>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
-          ) : logs.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无登录日志</div>
-          ) : (
-            logs.map((log: LoginLog) => (
-              <div key={log.id} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2 font-medium">{log.username}</div>
-                  <div className="col-span-2 font-mono text-sm">{log.ip}</div>
-                  <div className="col-span-2 text-sm text-muted-foreground">{log.browser || '-'}</div>
-                  <div className="col-span-2 text-sm text-muted-foreground">{log.os || '-'}</div>
-                  <div className="col-span-1">
-                    <Badge variant={log.status === 1 ? 'default' : 'destructive'}>
-                      {operStatusMap[String(log.status)] || (log.status === 1 ? '成功' : '失败')}
-                    </Badge>
-                  </div>
-                  <div className="col-span-3 text-sm text-muted-foreground">
-                    {new Date(log.loginTime).toLocaleString('zh-CN')}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={logs}
+        isLoading={isLoading}
+        emptyText="暂无登录日志"
+      />
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <Pagination
           page={page}
           totalPages={pagination.totalPages}
@@ -130,6 +117,7 @@ export default function LoginLogPage() {
           onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
         />
       )}
+
       <ConfirmDialog />
     </div>
   );
