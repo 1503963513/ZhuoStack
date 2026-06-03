@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -134,9 +135,28 @@ export class UserService {
       }
     }
 
+    // 分离关系字段和普通字段
+    const { deptId, postIds, roleIds, role: roleValue, ...rest } = dto;
+
     return this.prisma.user.update({
       where: { id },
-      data: dto,
+      data: {
+        ...rest,
+        // role 字段需要转为 Prisma 枚举
+        ...(roleValue !== undefined && { role: roleValue as Role }),
+        // 部门：通过关系连接
+        ...(deptId !== undefined && {
+          dept: deptId ? { connect: { id: deptId } } : { disconnect: true },
+        }),
+        // 岗位：多对多关系
+        ...(postIds !== undefined && {
+          posts: { set: postIds.map((pid) => ({ id: pid })) },
+        }),
+        // 角色：多对多关系
+        ...(roleIds !== undefined && {
+          roles: { set: roleIds.map((rid) => ({ id: rid })) },
+        }),
+      },
       select: {
         id: true,
         email: true,
