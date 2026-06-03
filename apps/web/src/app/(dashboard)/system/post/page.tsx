@@ -47,6 +47,7 @@ export default function PostPage() {
   const { confirm, ConfirmDialog } = useConfirm();
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,8 +61,8 @@ export default function PostPage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['posts', String(page), debouncedSearch],
-    `/api/system/post?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    ['posts', String(page), String(pageSize), debouncedSearch],
+    `/api/system/post?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   const createMutation = useApiMutation('post', '/api/system/post', {
@@ -204,7 +205,14 @@ export default function PostPage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

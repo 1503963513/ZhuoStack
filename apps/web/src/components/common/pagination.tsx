@@ -65,60 +65,57 @@ export function Pagination({
   };
 
   return (
-    <div className="flex items-center justify-between gap-4">
-      {/* 左侧：总数 + pageSize 选择 */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        {total !== undefined && <span>共 {total} 条</span>}
-        {onPageSizeChange && (
-          <Select
-            value={String(pageSize || 10)}
-            onValueChange={(v) => onPageSizeChange(Number(v))}
-          >
-            <SelectTrigger className="h-8 w-20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {pageSizeOptions.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size} 条
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+    <div className="flex items-center justify-center gap-3 flex-wrap">
+      {total !== undefined && (
+        <span className="text-sm text-muted-foreground">共 {total} 条</span>
+      )}
+
+      {onPageSizeChange && (
+        <Select
+          value={String(pageSize || 10)}
+          onValueChange={(v) => onPageSizeChange(Number(v))}
+        >
+          <SelectTrigger className="h-8 w-24">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {pageSizeOptions.map((size) => (
+              <SelectItem key={size} value={String(size)}>
+                {size} 条/页
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+      >
+        上一页
+      </Button>
+
+      <div className="flex items-center gap-1">
+        <Input
+          className="h-8 w-12 text-center"
+          value={inputPage}
+          onChange={(e) => setInputPage(e.target.value)}
+          onBlur={handleJump}
+          onKeyDown={(e) => e.key === 'Enter' && handleJump()}
+        />
+        <span className="text-sm text-muted-foreground">/ {totalPages}</span>
       </div>
 
-      {/* 右侧：翻页 + 页码跳转 */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-
-        <div className="flex items-center gap-1">
-          <Input
-            className="h-8 w-12 text-center"
-            value={inputPage}
-            onChange={(e) => setInputPage(e.target.value)}
-            onBlur={handleJump}
-            onKeyDown={(e) => e.key === 'Enter' && handleJump()}
-          />
-          <span className="text-sm text-muted-foreground">/ {totalPages}</span>
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(page + 1)}
+      >
+        下一页
+      </Button>
     </div>
   );
 }

@@ -31,14 +31,15 @@ interface OperLog {
 
 export default function OperLogPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [title, setTitle] = useState('');
   const debouncedTitle = useDebounce(title, 300);
   const { labelMap: businessTypeMap } = useDict('sys_business_type');
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { confirm, ConfirmDialog } = useConfirm();
   const { data, isLoading, refetch } = useApiQuery<any>(
-    ['oper-logs', String(page), debouncedTitle],
-    `/api/log/oper?page=${page}&pageSize=10${debouncedTitle ? `&title=${debouncedTitle}` : ''}`,
+    ['oper-logs', String(page), String(pageSize), debouncedTitle],
+    `/api/log/oper?page=${page}&pageSize=${pageSize}${debouncedTitle ? `&title=${debouncedTitle}` : ''}`,
   );
 
   const handleClear = async () => {
@@ -127,7 +128,14 @@ export default function OperLogPage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
       <ConfirmDialog />
     </div>

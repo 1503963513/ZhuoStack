@@ -50,6 +50,7 @@ interface Role { id: string; name: string; code: string; }
 
 export default function UserPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,8 +69,8 @@ export default function UserPage() {
   const { confirm, ConfirmDialog } = useConfirm();
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['users', String(page), debouncedSearch],
-    `/api/user?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    ['users', String(page), String(pageSize), debouncedSearch],
+    `/api/user?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   const { data: depts } = useApiQuery<Dept[]>(['dept-list'], '/api/system/dept');
@@ -249,7 +250,14 @@ export default function UserPage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

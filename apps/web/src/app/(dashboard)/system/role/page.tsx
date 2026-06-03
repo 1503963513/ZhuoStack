@@ -67,6 +67,7 @@ const TYPE_COLOR_MAP: Record<string, string> = {
 
 export default function RolePage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,8 +83,8 @@ export default function RolePage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['roles', String(page), debouncedSearch],
-    `/api/system/role?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    ['roles', String(page), String(pageSize), debouncedSearch],
+    `/api/system/role?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   // 获取菜单树（用于权限选择）
@@ -298,7 +299,14 @@ export default function RolePage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

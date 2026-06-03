@@ -28,13 +28,14 @@ interface LoginLog {
 
 export default function LoginLogPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [username, setUsername] = useState('');
   const debouncedUsername = useDebounce(username, 300);
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { confirm, ConfirmDialog } = useConfirm();
   const { data, isLoading, refetch } = useApiQuery<any>(
-    ['login-logs', String(page), debouncedUsername],
-    `/api/log/login?page=${page}&pageSize=10${debouncedUsername ? `&username=${debouncedUsername}` : ''}`,
+    ['login-logs', String(page), String(pageSize), debouncedUsername],
+    `/api/log/login?page=${page}&pageSize=${pageSize}${debouncedUsername ? `&username=${debouncedUsername}` : ''}`,
   );
 
   const handleClear = async () => {
@@ -119,7 +120,14 @@ export default function LoginLogPage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
       <ConfirmDialog />
     </div>

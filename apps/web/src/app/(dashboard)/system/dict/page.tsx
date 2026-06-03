@@ -56,6 +56,7 @@ interface PaginatedResponse {
 export default function DictPage() {
   const { confirm, ConfirmDialog } = useConfirm();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,8 +78,8 @@ export default function DictPage() {
   });
 
   const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['dicts', String(page), debouncedSearch],
-    `/api/system/dict?page=${page}&pageSize=10${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
+    ['dicts', String(page), String(pageSize), debouncedSearch],
+    `/api/system/dict?page=${page}&pageSize=${pageSize}${debouncedSearch ? `&search=${debouncedSearch}` : ''}`,
   );
 
   const { data: dictDataList, refetch: refetchDictData } = useApiQuery<DictData[]>(
@@ -257,7 +258,14 @@ export default function DictPage() {
       </Card>
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+        />
       )}
 
       {/* 字典编辑弹窗 */}
