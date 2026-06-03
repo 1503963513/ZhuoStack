@@ -185,12 +185,21 @@ export class FileService {
   }
 
   /**
+   * 根据文件 URL 计算实际磁盘路径
+   */
+  private getPhysicalPath(file: { url: string }): string {
+    // url: /files/2026/06/03/xxx.ext → 去掉 urlPrefix 得到 2026/06/03/xxx.ext
+    const relative = file.url.replace(this.urlPrefix + '/', '');
+    return path.join(this.uploadsDir, relative);
+  }
+
+  /**
    * 删除文件（物理删除 + 数据库删除）
    */
   async remove(id: string) {
     const file = await this.findOne(id);
 
-    const fullPath = path.join(process.cwd(), file.filePath);
+    const fullPath = this.getPhysicalPath(file);
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
     }
@@ -210,7 +219,7 @@ export class FileService {
     });
 
     for (const file of files) {
-      const fullPath = path.join(process.cwd(), file.filePath);
+      const fullPath = this.getPhysicalPath(file);
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
       }
