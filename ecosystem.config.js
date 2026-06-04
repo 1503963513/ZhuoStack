@@ -6,6 +6,7 @@ module.exports = {
       cwd: './apps/api',
       instances: 1,
       exec_mode: 'fork',
+      node_args: '--max-old-space-size=256',
       env: {
         NODE_ENV: 'production',
         PORT: 3100,
@@ -24,6 +25,7 @@ module.exports = {
       cwd: './apps/web',
       instances: 1,
       exec_mode: 'fork',
+      node_args: '--max-old-space-size=512',
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
