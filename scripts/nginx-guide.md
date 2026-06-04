@@ -37,8 +37,11 @@ server {
     }
 
     # === 上传文件 ===
+    # ⚠️ alias 路径必须与 apps/api/.env 中的 FILE_STORAGE_PATH 一致
+    # FILE_STORAGE_PATH=uploads  →  /opt/node-app/test/uploads/
+    # FILE_STORAGE_PATH=/data/files  →  /data/files/
     location /files/ {
-        alias /opt/node-app/test/uploads/;
+        alias /opt/node-app/test/uploads/;  # 对应 FILE_STORAGE_PATH=uploads（相对路径基于项目 cwd）
         expires 30d;
         add_header Cache-Control "public, immutable";
 
@@ -165,6 +168,8 @@ ssh -p 15554 root@your-server 'cd /opt/node-app/test && bash scripts/server-upda
 | 文件 | 变量 | 说明 |
 |------|------|------|
 | `apps/api/.env` | `CORS_ORIGIN` | 允许的前端域名（逗号分隔），如 `https://your-domain.com` |
+| `apps/api/.env` | `FILE_STORAGE_PATH` | 文件存储路径，相对路径基于项目目录，绝对路径直接使用 |
+| `apps/api/.env` | `FILE_URL_PREFIX` | 文件访问前缀，默认 `/files` |
 | `apps/web/.env.local` | `NEXT_PUBLIC_API_URL` | 留空即可（Nginx 同域代理，无需跨域） |
 
 ### 关于 NEXT_PUBLIC_API_URL
@@ -175,9 +180,14 @@ ssh -p 15554 root@your-server 'cd /opt/node-app/test && bash scripts/server-upda
 
 ### 文件上传目录
 
-确保服务器上的 `uploads/` 目录存在且有写入权限：
+确保服务器上的文件存储目录存在且有写入权限（路径与 `FILE_STORAGE_PATH` 一致）：
 
 ```bash
+# FILE_STORAGE_PATH=uploads 时（相对路径，基于项目根目录）
 mkdir -p /opt/node-app/test/uploads
 chmod 755 /opt/node-app/test/uploads
+
+# FILE_STORAGE_PATH=/data/files 时（绝对路径）
+mkdir -p /data/files
+chmod 755 /data/files
 ```
