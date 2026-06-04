@@ -63,7 +63,7 @@ export function DataTable<T extends { id: string }>({
         <div className="border-b px-4 py-3 font-medium">
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${totalSpan}, 1fr)` }}>
             {columns.map((col, i) => (
-              <div key={i} style={{ gridColumn: `span ${col.span || 1}` }}>
+              <div key={i} className="overflow-hidden break-words" style={{ gridColumn: `span ${col.span || 1}`, minWidth: 0 }}>
                 {col.label}
               </div>
             ))}
@@ -87,8 +87,8 @@ export function DataTable<T extends { id: string }>({
                 {columns.map((col, i) => (
                   <div
                     key={i}
-                    className="text-sm"
-                    style={{ gridColumn: `span ${col.span || 1}` }}
+                    className="text-sm overflow-hidden break-words"
+                    style={{ gridColumn: `span ${col.span || 1}`, minWidth: 0 }}
                   >
                     {col.render
                       ? col.render(row)
