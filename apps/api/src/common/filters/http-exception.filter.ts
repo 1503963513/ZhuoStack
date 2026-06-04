@@ -64,6 +64,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message,
     };
 
+    // 静默处理浏览器自动请求的 favicon.ico 404
+    if (request.url === '/favicon.ico' && status === HttpStatus.NOT_FOUND) {
+      response.status(status).send(errorResponse);
+      return;
+    }
+
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${message}`,
     );
