@@ -11,6 +11,7 @@ import { useLogout } from '@/hooks/use-auth';
 import { useConfirm } from '@/hooks/use-confirm';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
+import { fileUrl } from '@/lib/utils';
 
 export function Header() {
   const user = useAuthStore((s) => s.user);
@@ -83,7 +84,7 @@ export function Header() {
           onClick={() => setMenuOpen(!menuOpen)}
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src={currentUser?.avatar || undefined} alt={currentUser?.name || '用户'} />
+            <AvatarImage src={fileUrl(currentUser?.avatar)} alt={currentUser?.name || '用户'} />
             <AvatarFallback>{getInitials(currentUser?.name)}</AvatarFallback>
           </Avatar>
         </Button>

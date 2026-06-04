@@ -3,6 +3,7 @@
 import { useState, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { fileUrl } from '@/lib/utils';
 import { Upload, X, Loader2 } from 'lucide-react';
 
 interface UploadedFile {
@@ -142,7 +143,7 @@ export function FileUpload({
               {mode === 'image' ? (
                 <div className="relative h-20 w-20 overflow-hidden rounded-md border">
                   <img
-                    src={file.url}
+                    src={fileUrl(file.url)}
                     alt={file.originalName}
                     className="h-full w-full object-cover"
                   />

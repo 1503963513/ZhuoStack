@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { buildUrl } from '@/lib/utils';
+import { buildUrl, fileUrl } from '@/lib/utils';
 import {
   Upload,
   Download,
@@ -365,7 +365,7 @@ export default function FilePage() {
                     >
                       {isImage(file.mimeType) ? (
                         <img
-                          src={file.url}
+                          src={fileUrl(file.url)}
                           alt={file.originalName}
                           className="h-full w-full object-cover"
                         />
@@ -510,7 +510,7 @@ export default function FilePage() {
           {previewFile && (
             <div className="flex justify-center">
               <img
-                src={previewFile.url}
+                src={fileUrl(previewFile.url)}
                 alt={previewFile.originalName}
                 className="max-h-[60vh] rounded-md object-contain"
               />
