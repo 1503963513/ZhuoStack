@@ -18,24 +18,7 @@ module.exports = {
       out_file: './logs/api-out.log',
       merge_logs: true,
     },
-    {
-      name: 'myapp-web',
-      script: './node_modules/next/dist/bin/next',
-      args: 'start -p 3000',
-      cwd: './apps/web',
-      instances: 1,
-      exec_mode: 'fork',
-      node_args: '--max-old-space-size=512',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3000,
-      },
-      env_file: './apps/web/.env.local',
-      max_memory_restart: '500M',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: './logs/web-error.log',
-      out_file: './logs/web-out.log',
-      merge_logs: true,
-    },
+    // Web 前端已改为纯静态导出（next export → out/ 目录）
+    // 生产环境由 Nginx 直接服务静态文件，无需 Node.js 进程
   ],
 };

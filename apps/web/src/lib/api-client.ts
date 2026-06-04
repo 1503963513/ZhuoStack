@@ -2,9 +2,10 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 import type { ApiResponse } from '@/types/api';
 
-// baseURL 为空，路径本身带 /api 前缀（如 /api/auth/login）
-// Next.js rewrites 会将 /api/* 代理到后端服务
-const BASE_URL = '';
+// 直接请求后端 API（静态站点无 Node.js 服务端，不做代理）
+// 开发环境 .env.local 设置 NEXT_PUBLIC_API_URL=http://localhost:3100
+// 生产环境通过 Nginx 同域反向代理，可设为空或后端地址
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 /** 防止 401 时多次跳转 */
 let isRedirecting = false;
