@@ -1,8 +1,9 @@
 'use client';
 
 export default function SwaggerPage() {
-  // 走 Next.js /api 代理，避免跨域和 helmet X-Frame-Options 限制
-  const swaggerUrl = '/api/docs';
+  // 直接指向后端 Swagger 地址（静态站点无代理）
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  const swaggerUrl = `${apiBase}/api/docs`;
 
   return (
     <div className="space-y-6">

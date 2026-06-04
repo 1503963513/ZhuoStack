@@ -134,7 +134,8 @@ export default function FilePage() {
         // 使用 XMLHttpRequest 实现进度
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/system/file/upload');
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+          xhr.open('POST', `${apiBase}/api/system/file/upload`);
           const stored = localStorage.getItem('auth-storage');
           if (stored) {
             try {
