@@ -4,7 +4,7 @@ import { RedisService } from '../../database/redis.service';
 import * as os from 'os';
 
 // 允许通过「清空缓存」删除的键前缀
-const ALLOWED_KEY_PREFIXES = ['menu:', 'dict:', 'captcha:', 'token:blacklist:', 'cache:'];
+const ALLOWED_KEY_PREFIXES = ['menu:', 'dict:', 'dept:', 'captcha:', 'token:blacklist:', 'cache:'];
 
 // 禁止删除的安全键前缀（优先级高于 ALLOWED_KEY_PREFIXES）
 const PROTECTED_KEY_PREFIXES = ['token:active:', 'login:', 'kicked:', 'online:user:'];

@@ -8,7 +8,7 @@
 
 ```typescript
 // 允许通过「清空缓存」删除的键前缀
-const ALLOWED_KEY_PREFIXES = ['menu:', 'dict:', 'captcha:', 'token:blacklist:', 'cache:'];
+const ALLOWED_KEY_PREFIXES = ['menu:', 'dict:', 'dept:', 'captcha:', 'token:blacklist:', 'cache:'];
 
 // 禁止删除的安全键前缀（优先级高于 ALLOWED_KEY_PREFIXES）
 const PROTECTED_KEY_PREFIXES = ['token:active:', 'login:', 'kicked:', 'online:user:'];
@@ -42,6 +42,8 @@ const PROTECTED_KEY_PREFIXES = ['token:active:', 'login:', 'kicked:', 'online:us
 | `menu:{id}` | 单个菜单缓存 | ALLOWED | 1 小时 |
 | `dict:list` | 字典列表缓存 | ALLOWED | 1 小时 |
 | `dict:data:{code}` | 字典数据缓存 | ALLOWED | 1 小时 |
+| `dept:list` | 部门列表缓存 | ALLOWED | 1 小时 |
+| `dept:tree` | 部门树缓存 | ALLOWED | 1 小时 |
 | `captcha:{id}` | 图形验证码答案 | ALLOWED | 5 分钟 |
 | `token:blacklist:{hash}` | 已废弃的 token 黑名单 | ALLOWED | token 剩余有效期 |
 | `token:active:{userId}` | 当前活跃 token 的 jti | PROTECTED | 90 天 |
