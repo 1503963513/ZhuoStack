@@ -237,7 +237,7 @@ export class MonitorService {
         id: name,
         name,
         cron: String((job as any).cronTime?.source || 'N/A'),
-        status: (job as any).running ? 'running' : 'stopped',
+        status: (job as any).isActive ? 'running' : 'stopped',
         description: this.getJobDescription(name),
         lastRun: lastDate ? new Date(lastDate as any).toISOString() : null,
         nextRun: nextDate ? new Date(nextDate as any).toISOString() : null,
@@ -292,6 +292,7 @@ export class MonitorService {
       'health-check': '定期检查系统健康状态',
       'cache-cleanup': '定期清理过期缓存数据',
       'online-cleanup': '清理过期的在线用户记录',
+      'log-cleanup': '每天凌晨清理 7 天前的操作日志和登录日志',
     };
     return descriptions[name] || '自定义定时任务';
   }

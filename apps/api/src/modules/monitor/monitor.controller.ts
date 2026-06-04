@@ -14,6 +14,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { MonitorService } from './monitor.service';
+import { SystemJobsService } from './system-jobs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators';
@@ -24,7 +25,10 @@ import { Role } from '@prisma/client';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('monitor')
 export class MonitorController {
-  constructor(private readonly monitorService: MonitorService) {}
+  constructor(
+    private readonly monitorService: MonitorService,
+    private readonly systemJobsService: SystemJobsService,
+  ) {}
 
   // ========== 缓存监控 ==========
 
@@ -110,6 +114,14 @@ export class MonitorController {
   }
 
   // ========== 服务器信息 ==========
+
+  @Get('health')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '获取最近一次健康检查结果' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  getHealthCheck() {
+    return this.systemJobsService.getLastHealthCheck();
+  }
 
   @Get('server')
   @Roles(Role.ADMIN)
