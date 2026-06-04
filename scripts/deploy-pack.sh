@@ -45,7 +45,7 @@ rm -rf "${TEMP_DIR}/apps/api/uploads" 2>/dev/null || true
 echo "  → 复制 Web..."
 mkdir -p "${TEMP_DIR}/apps/web"
 cp -r apps/web/out "${TEMP_DIR}/apps/web/"
-cp apps/web/.env.local.example "${TEMP_DIR}/apps/web/"
+cp apps/web/.env.production "${TEMP_DIR}/apps/web/"
 cp apps/web/next.config.mjs "${TEMP_DIR}/apps/web/"
 cp apps/web/package.json "${TEMP_DIR}/apps/web/"
 

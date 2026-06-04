@@ -13,7 +13,7 @@
     "db:seed": "pnpm --filter api prisma:seed",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
-    "release": "NEXT_PUBLIC_API_URL='' pnpm build && pnpm release:pack",
+    "release": "pnpm build && pnpm release:pack",
     "release:pack": "bash scripts/deploy-pack.sh",
     "clean": "turbo run clean && rm -rf node_modules"
   },

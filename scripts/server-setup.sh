@@ -40,7 +40,7 @@ setup_env() {
 }
 
 setup_env "apps/api/.env.example" "apps/api/.env"
-setup_env "apps/web/.env.local.example" "apps/web/.env.local"
+setup_env "apps/web/.env.development.example" "apps/web/.env.development"
 
 echo "🧹 清理系统隐藏文件..."
 find . -type f -name "._*" -delete 2>/dev/null || true

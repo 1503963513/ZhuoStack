@@ -20,10 +20,11 @@ echo "📦 正在更新: ${TARBALL}"
 echo "🧹 清除旧构建产物..."
 rm -rf apps/web/out apps/api/dist
 
-# 解压文件（排除 .env 避免覆盖生产配置）
+# 解压文件（排除开发环境配置，避免覆盖生产配置）
 echo "📂 解压文件（保留 .env）..."
 tar xzf "${TARBALL}" \
   --exclude="apps/api/.env" \
+  --exclude="apps/web/.env.development" \
   --exclude="apps/web/.env.local" \
   2>/dev/null || true
 
