@@ -30,7 +30,7 @@ export default function DashboardLayout({
 
   // hydrate 前显示 loading，避免闪跳
   if (!hydrated || !isAuthenticated) {
-    return <Loading />;
+    return <Loading fullscreen />;
   }
 
   return (
