@@ -78,7 +78,10 @@ export function FileUpload({
         const formData = new FormData();
         formData.append('file', file);
 
-        const endpoint = mode === 'image' ? '/api/system/file/upload/image' : '/api/system/file/upload';
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const endpoint = mode === 'image'
+          ? `${apiBase}/api/system/file/upload/image`
+          : `${apiBase}/api/system/file/upload`;
 
         const result = await new Promise<any>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
