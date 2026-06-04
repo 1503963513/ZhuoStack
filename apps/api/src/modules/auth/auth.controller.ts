@@ -31,6 +31,13 @@ export class AuthController {
     return { publicKey: this.authService.getPublicKey() };
   }
 
+  @Get('captcha')
+  @ApiOperation({ summary: '获取图形验证码' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getCaptcha() {
+    return this.authService.generateCaptcha();
+  }
+
   @Post('register')
   @ApiOperation({ summary: '用户注册' })
   @ApiResponse({ status: 201, description: '注册成功' })

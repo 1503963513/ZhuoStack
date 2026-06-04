@@ -16,7 +16,7 @@ export function useLogin() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const router = useRouter();
 
-  return useMutation<ApiResponse<AuthResponse>, Error, LoginFormData>({
+  return useMutation<ApiResponse<AuthResponse>, Error, LoginFormData & { captchaId: string }>({
     mutationFn: (data) => post<AuthResponse>('/api/auth/login', data),
     onSuccess: (response) => {
       const { access_token, user } = response.data;
@@ -31,7 +31,7 @@ export function useRegister() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const router = useRouter();
 
-  return useMutation<ApiResponse<AuthResponse>, Error, Omit<RegisterFormData, 'confirmPassword'>>({
+  return useMutation<ApiResponse<AuthResponse>, Error, Omit<RegisterFormData, 'confirmPassword'> & { captchaId: string }>({
     mutationFn: (data) => post<AuthResponse>('/api/auth/register', data),
     onSuccess: (response) => {
       const { access_token, user } = response.data;

@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const loginSchema = z.object({
   email: z.string().email('请输入有效的邮箱地址'),
   password: z.string().min(6, '密码至少需要 6 个字符'),
+  captchaCode: z.string().min(4, '请输入验证码'),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
@@ -13,6 +14,7 @@ export const registerSchema = z
     name: z.string().min(2, '用户名至少需要 2 个字符'),
     password: z.string().min(6, '密码至少需要 6 个字符'),
     confirmPassword: z.string(),
+    captchaCode: z.string().min(4, '请输入验证码'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: '两次输入的密码不一致',

@@ -3,6 +3,7 @@ import {
   ConflictException,
   UnauthorizedException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +15,7 @@ import { MonitorService } from '../monitor/monitor.service';
 import { LoginDto, RegisterDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import * as svgCaptcha from 'svg-captcha';
 
 interface JwtPayload {
   sub: string;
@@ -94,6 +96,12 @@ export class AuthService {
    * Register a new user
    */
   async register(dto: RegisterDto, ip?: string): Promise<AuthResponse> {
+    // 校验验证码
+    const captchaValid = await this.verifyCaptcha(dto.captchaId, dto.captchaCode);
+    if (!captchaValid) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -153,6 +161,12 @@ export class AuthService {
    * Login with email and password
    */
   async login(dto: LoginDto, ip?: string): Promise<AuthResponse> {
+    // 校验验证码
+    const captchaValid = await this.verifyCaptcha(dto.captchaId, dto.captchaCode);
+    if (!captchaValid) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
     // 检查账号是否被锁定
     const lockKey = `login:lock:${dto.email}`;
     const isLocked = await this.redisService.exists(lockKey);
@@ -314,6 +328,42 @@ export class AuthService {
     return menus
       .filter((m) => m.parentId === parentId)
       .map((m) => ({ ...m, children: this.buildTree(menus, m.id) }));
+  }
+
+  // ========== 图形验证码 ==========
+
+  /**
+   * 生成图形验证码
+   * @returns { captchaId, captchaImage (SVG 字符串) }
+   */
+  async generateCaptcha(): Promise<{ captchaId: string; captchaImage: string }> {
+    const captcha = svgCaptcha.create({
+      size: 4,
+      ignoreChars: '0o1ilI',
+      noise: 3,
+      color: true,
+      background: '#f0f0f0',
+    });
+
+    const captchaId = crypto.randomUUID();
+    // 答案存 Redis，5 分钟过期
+    await this.redisService.set(`captcha:${captchaId}`, captcha.text.toLowerCase(), 300);
+
+    return { captchaId, captchaImage: captcha.data };
+  }
+
+  /**
+   * 校验验证码（一次性，验证后自动删除）
+   */
+  async verifyCaptcha(captchaId: string, captchaCode: string): Promise<boolean> {
+    const key = `captcha:${captchaId}`;
+    const expected = await this.redisService.get<string>(key);
+    if (!expected) return false;
+
+    // 立即删除（一次性）
+    await this.redisService.del(key);
+    // 忽略大小写比对
+    return expected === captchaCode.toLowerCase();
   }
 
   /**

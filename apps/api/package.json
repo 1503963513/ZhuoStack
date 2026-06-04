@@ -55,6 +55,7 @@
     "prisma": "^5.8.0",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
+    "svg-captcha": "^1.4.0",
     "tsx": "^4.7.0"
   },
   "devDependencies": {

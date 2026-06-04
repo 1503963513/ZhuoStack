@@ -27,4 +27,14 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @ApiProperty({ description: '验证码 ID', example: 'abc123' })
+  @IsNotEmpty({ message: '验证码 ID 不能为空' })
+  @IsString()
+  captchaId: string;
+
+  @ApiProperty({ description: '验证码', example: 'aB3x' })
+  @IsNotEmpty({ message: '验证码不能为空' })
+  @IsString()
+  captchaCode: string;
 }

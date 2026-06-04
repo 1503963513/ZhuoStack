@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormData } from '@/schemas/auth.schema';
@@ -19,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
+import { get } from '@/lib/api-client';
 
 export function LoginForm() {
   const {
@@ -31,17 +33,36 @@ export function LoginForm() {
 
   const loginMutation = useLogin();
 
+  // 验证码状态
+  const [captchaId, setCaptchaId] = useState('');
+  const [captchaImage, setCaptchaImage] = useState('');
+
+  /** 获取验证码 */
+  const fetchCaptcha = useCallback(async () => {
+    try {
+      const res = await get<{ captchaId: string; captchaImage: string }>('/api/auth/captcha');
+      setCaptchaId(res.data.captchaId);
+      setCaptchaImage(res.data.captchaImage);
+    } catch {
+      toast.error('获取验证码失败');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, [fetchCaptcha]);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       const encryptedPassword = await encryptPassword(data.password);
       loginMutation.mutate(
-        { email: data.email, password: encryptedPassword },
+        { email: data.email, password: encryptedPassword, captchaId, captchaCode: data.captchaCode },
         {
-          onSuccess: (response) => {},
           onError: (error) => {
             toast.error('登录失败', {
               description: error.message || '邮箱或密码错误',
             });
+            fetchCaptcha();
           },
         },
       );
@@ -68,6 +89,27 @@ export function LoginForm() {
             <Input id="password" type="password" placeholder="••••••" {...register('password')} />
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="captchaCode">验证码</Label>
+            <div className="flex gap-2">
+              <Input
+                id="captchaCode"
+                placeholder="请输入验证码"
+                maxLength={4}
+                className="flex-1"
+                {...register('captchaCode')}
+              />
+              <div
+                className="shrink-0 cursor-pointer h-10 w-28 rounded-md border border-input bg-background overflow-hidden flex items-center justify-center [&>svg]:h-8 [&>svg]:w-full"
+                onClick={fetchCaptcha}
+                title="点击刷新验证码"
+                dangerouslySetInnerHTML={{ __html: captchaImage }}
+              />
+            </div>
+            {errors.captchaCode && (
+              <p className="text-sm text-destructive">{errors.captchaCode.message}</p>
             )}
           </div>
         </CardContent>
