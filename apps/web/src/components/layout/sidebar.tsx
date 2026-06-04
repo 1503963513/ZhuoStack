@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useLogout } from '@/hooks/use-auth';
+import { useConfirm } from '@/hooks/use-confirm';
 
 // 图标映射
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -55,6 +56,12 @@ interface MenuItem {
 export function Sidebar() {
   const pathname = usePathname();
   const logout = useLogout();
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  const handleLogout = async () => {
+    const ok = await confirm({ description: '确定要退出登录吗？', variant: 'destructive' });
+    if (ok) logout();
+  };
 
   // 从 API 获取当前用户的菜单（按角色过滤）
   const { data } = useApiQuery<MenuItem[]>(['user-menus'], '/api/auth/menus');
@@ -185,13 +192,14 @@ export function Sidebar() {
 
       <div className="border-t bg-card p-4">
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"
         >
           <LogOut className="h-4 w-4" />
           退出登录
         </button>
       </div>
+      <ConfirmDialog />
     </aside>
   );
 }
