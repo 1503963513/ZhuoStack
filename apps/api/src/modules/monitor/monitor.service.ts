@@ -3,11 +3,11 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { RedisService } from '../../database/redis.service';
 import * as os from 'os';
 
-// 允许通过 API 删除的缓存键前缀白名单（安全键不暴露）
-const ALLOWED_KEY_PREFIXES = ['cache:'];
+// 允许通过「清空缓存」删除的键前缀
+const ALLOWED_KEY_PREFIXES = ['menu:', 'dict:', 'captcha:', 'token:blacklist:', 'cache:'];
 
-// 禁止删除的安全键前缀
-const PROTECTED_KEY_PREFIXES = ['login:', 'token:', 'online:user:'];
+// 禁止删除的安全键前缀（优先级高于 ALLOWED_KEY_PREFIXES）
+const PROTECTED_KEY_PREFIXES = ['token:active:', 'login:', 'kicked:', 'online:user:'];
 
 // 在线用户 Redis key 前缀
 const ONLINE_USER_PREFIX = 'online:user:';
@@ -116,7 +116,7 @@ export class MonitorService {
   }
 
   /**
-   * 清空缓存（仅清除白名单前缀的键，不使用 flushdb）
+   * 清空缓存（仅清除白名单前缀的键，跳过受保护的安全键）
    */
   async clearAllCache() {
     const client = this.redisService.getClient();
@@ -133,8 +133,13 @@ export class MonitorService {
           keys.push(...found);
         } while (cursor !== '0');
 
-        if (keys.length > 0) {
-          const result = await client.del(...keys);
+        // 过滤掉受保护的安全键
+        const safeKeys = keys.filter(
+          (key) => !PROTECTED_KEY_PREFIXES.some((p) => key.startsWith(p)),
+        );
+
+        if (safeKeys.length > 0) {
+          const result = await client.del(...safeKeys);
           deletedCount += result;
         }
       }
