@@ -402,7 +402,8 @@ export default function FilePage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const url = `${window.location.origin}${file.url}`;
+                          const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+                          const url = `${apiBase}${file.url}`;
                           // 降级方案：HTTP 环境下 navigator.clipboard 不可用
                           if (navigator.clipboard) {
                             navigator.clipboard.writeText(url);
