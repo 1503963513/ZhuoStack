@@ -18,6 +18,7 @@ export interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 export interface ChatResponse {
@@ -104,6 +105,7 @@ export class AiService {
       model = this.defaultModel,
       temperature = 0.7,
       maxTokens = this.defaultMaxTokens,
+      abortSignal,
     } = options;
 
     this.logger.log(`Streaming chat request with model: ${model}`);
@@ -125,6 +127,7 @@ export class AiService {
       });
 
     for await (const chunk of stream) {
+      if (abortSignal?.aborted) break;
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) {
         yield delta;

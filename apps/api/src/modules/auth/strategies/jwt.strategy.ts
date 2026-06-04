@@ -15,6 +15,9 @@ interface JwtPayload {
 /** 在线用户 TTL 刷新间隔（5 分钟） */
 const ONLINE_REFRESH_INTERVAL = 5 * 60 * 1000;
 
+/** onlineRefreshMap 清理间隔（10 分钟） */
+const MAP_CLEANUP_INTERVAL = 10 * 60 * 1000;
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   /** 记录每个用户上次刷新 TTL 的时间，避免每次请求都刷 Redis */
@@ -36,6 +39,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: jwtSecret,
       passReqToCallback: true,
     });
+
+    // 定期清理过期的刷新记录，防止内存泄漏
+    setInterval(() => {
+      const now = Date.now();
+      for (const [userId, lastRefresh] of this.onlineRefreshMap) {
+        if (now - lastRefresh > MAP_CLEANUP_INTERVAL) {
+          this.onlineRefreshMap.delete(userId);
+        }
+      }
+    }, MAP_CLEANUP_INTERVAL);
   }
 
   async validate(req: any, payload: JwtPayload) {

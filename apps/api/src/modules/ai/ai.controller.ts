@@ -56,12 +56,15 @@ export class AiController {
     }));
 
     const self = this.aiService;
+    const abortController = new AbortController();
+
     async function* generate(): AsyncGenerator<SseMessage, void, undefined> {
       for await (const chunk of self.chatCompletionStream({
         messages,
         model: dto.model,
         temperature: dto.temperature,
         maxTokens: dto.maxTokens,
+        abortSignal: abortController.signal,
       })) {
         yield { data: JSON.stringify({ content: chunk }) };
       }
@@ -69,16 +72,28 @@ export class AiController {
     }
 
     return new Observable<SseMessage>((subscriber) => {
+      const iterator = generate();
+
       (async () => {
         try {
-          for await (const event of generate()) {
+          for await (const event of iterator) {
             subscriber.next(event);
           }
           subscriber.complete();
         } catch (err) {
-          subscriber.error(err);
+          // AbortError 是正常取消，不抛出
+          if (err instanceof Error && err.name === 'AbortError') {
+            subscriber.complete();
+          } else {
+            subscriber.error(err);
+          }
         }
       })();
+
+      // 客户端断开时取消 OpenAI 请求
+      return () => {
+        abortController.abort();
+      };
     });
   }
 
