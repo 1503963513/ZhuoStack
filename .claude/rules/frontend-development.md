@@ -1,6 +1,7 @@
-# 前端开发（Next.js）
+# 前端开发（Next.js 纯静态导出）
 
 本项目使用 Next.js 14 App Router + shadcn/ui + TanStack Query + Zustand + Tailwind CSS。
+**架构：纯静态导出（`output: 'export'`），构建产物为 `out/` 目录，由 Nginx 直接服务，无 Node.js 服务端。**
 
 ## 目录结构
 
@@ -52,7 +53,7 @@ const { data, isLoading, error } = useApiQuery<User>(['user', id], `/api/user/${
 
 ```typescript
 const updateMutation = useApiMutation<User>('put', `/api/user/${id}`, {
-  invalidateKeys: [['user', id]],  // 成功后自动刷新关联查询
+  invalidateKeys: [['user', id]], // 成功后自动刷新关联查询
   onSuccess: () => toast.success('更新成功！'),
 });
 
@@ -60,6 +61,7 @@ updateMutation.mutate({ name: '新名称' });
 ```
 
 ### 数据请求核心规则：
+
 - 始终使用 `useApiQuery` / `useApiMutation` — 不要在组件中直接调用 `api-client`
 - 查询键格式：`['资源名', ...标识符]`
 - 使用 `invalidateKeys` 选项在变更后自动刷新关联查询
@@ -116,6 +118,8 @@ const form = useForm<MyFormValues>({
 - **路径别名**：`@/*` 映射到 `./src/*`，`@myapp/shared-types` 映射到共享类型包
 - **禁止 `any`** — 强制 TypeScript 严格模式
 - **CSS**：仅使用 Tailwind — 不用 CSS Modules、不用 styled-components
-- **API 代理**：`next.config.ts` 将 `/api/*` 重写到 `NEXT_PUBLIC_API_URL` — 前端开发时直接调用 `/api/*`
-- **环境变量**：`.env.local` 中只需 `NEXT_PUBLIC_API_URL`
+- **API 请求**：`api-client.ts` 通过 `NEXT_PUBLIC_API_URL` 直接请求后端（静态站点无代理）
+- **环境变量**：`.env.local` 中设置 `NEXT_PUBLIC_API_URL=http://localhost:3100`（开发环境）
+- **生产环境**：Nginx 同域反向代理 `/api/*` 到后端，`NEXT_PUBLIC_API_URL` 可留空
+- **无 middleware**：路由保护由客户端 `DashboardLayout` 的 Zustand 认证检查实现
 - **常量管理**：路由和魔法字符串放在 `lib/constants.ts`，不要硬编码
