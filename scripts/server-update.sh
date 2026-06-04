@@ -16,9 +16,9 @@ fi
 
 echo "📦 正在更新: ${TARBALL}"
 
-# 解压前清除旧的构建产物（--skip-old-files 会导致旧文件不被覆盖）
+# 解压前清除旧的构建产物
 echo "🧹 清除旧构建产物..."
-rm -rf apps/web/.next/cache apps/api/dist
+rm -rf apps/web/out apps/api/dist
 
 # 解压文件（排除 .env 避免覆盖生产配置）
 echo "📂 解压文件（保留 .env）..."
