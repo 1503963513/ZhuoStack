@@ -33,6 +33,22 @@ export interface AuthResponse {
   };
 }
 
+/** 菜单树节点（buildTree 返回值） */
+export interface MenuTreeNode {
+  id: string;
+  parentId: string | null;
+  name: string;
+  type: string;
+  path: string | null;
+  component: string | null;
+  icon: string | null;
+  sort: number;
+  status: string;
+  perms: string | null;
+  remark: string | null;
+  children: MenuTreeNode[];
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -270,64 +286,53 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    let menus: any[];
+    // 一次性查出所有活跃菜单，后续在内存中过滤（避免 N+1 查询）
+    const allActiveMenus = await this.prisma.sysMenu.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { sort: 'asc' },
+    });
 
     if (user.role === 'ADMIN') {
-      menus = await this.prisma.sysMenu.findMany({
-        where: { status: 'ACTIVE' },
-        orderBy: { sort: 'asc' },
-      });
-    } else {
-      const roleIds = user.roles.map((r) => r.id);
-      if (roleIds.length === 0) return [];
-
-      const roles = await this.prisma.sysRole.findMany({
-        where: { id: { in: roleIds } },
-        include: { menus: true },
-      });
-
-      const menuIdSet = new Set<string>();
-      for (const role of roles) {
-        for (const menu of role.menus) {
-          menuIdSet.add(menu.id);
-        }
-      }
-
-      if (menuIdSet.size === 0) return [];
-
-      // 获取分配的菜单
-      const assignedMenus = await this.prisma.sysMenu.findMany({
-        where: { id: { in: Array.from(menuIdSet) }, status: 'ACTIVE' },
-      });
-
-      // 递归补全父菜单（保证树形完整）
-      const allIds = new Set(menuIdSet);
-      for (const menu of assignedMenus) {
-        let pid = menu.parentId;
-        while (pid && !allIds.has(pid)) {
-          allIds.add(pid);
-          const parent = await this.prisma.sysMenu.findUnique({
-            where: { id: pid },
-            select: { parentId: true },
-          });
-          if (!parent) break;
-          pid = parent.parentId;
-        }
-      }
-
-      menus = await this.prisma.sysMenu.findMany({
-        where: { id: { in: Array.from(allIds) }, status: 'ACTIVE' },
-        orderBy: { sort: 'asc' },
-      });
+      return this.buildTree(allActiveMenus);
     }
 
+    // 普通用户：先收集角色关联的菜单 ID
+    const roleIds = user.roles.map((r) => r.id);
+    if (roleIds.length === 0) return [];
+
+    const roles = await this.prisma.sysRole.findMany({
+      where: { id: { in: roleIds } },
+      include: { menus: true },
+    });
+
+    const menuIdSet = new Set<string>();
+    for (const role of roles) {
+      for (const menu of role.menus) {
+        menuIdSet.add(menu.id);
+      }
+    }
+
+    if (menuIdSet.size === 0) return [];
+
+    // 在内存中用 Map 补全父菜单链（O(1) 查找，无额外数据库查询）
+    const menuMap = new Map(allActiveMenus.map((m) => [m.id, m]));
+    for (const menuId of new Set(menuIdSet)) {
+      let pid = menuMap.get(menuId)?.parentId ?? null;
+      while (pid && !menuIdSet.has(pid)) {
+        menuIdSet.add(pid);
+        pid = menuMap.get(pid)?.parentId ?? null;
+      }
+    }
+
+    // 过滤出用户有权访问的菜单
+    const menus = allActiveMenus.filter((m) => menuIdSet.has(m.id));
     return this.buildTree(menus);
   }
 
-  private buildTree(menus: any[], parentId: string | null = null): any[] {
+  private buildTree(menus: { id: string; parentId: string | null; [key: string]: unknown }[], parentId: string | null = null): MenuTreeNode[] {
     return menus
       .filter((m) => m.parentId === parentId)
-      .map((m) => ({ ...m, children: this.buildTree(menus, m.id) }));
+      .map((m) => ({ ...m, children: this.buildTree(menus, m.id) }) as MenuTreeNode);
   }
 
   // ========== 图形验证码 ==========
@@ -353,16 +358,14 @@ export class AuthService {
   }
 
   /**
-   * 校验验证码（一次性，验证后自动删除）
+   * 校验验证码（一次性，原子获取并删除，避免并发竞态）
    */
   async verifyCaptcha(captchaId: string, captchaCode: string): Promise<boolean> {
     const key = `captcha:${captchaId}`;
-    const expected = await this.redisService.get<string>(key);
+    // GETDEL 原子操作：获取的同时删除，杜绝并发重复验证
+    const expected = await this.redisService.getdel<string>(key);
     if (!expected) return false;
 
-    // 立即删除（一次性）
-    await this.redisService.del(key);
-    // 忽略大小写比对
     return expected === captchaCode.toLowerCase();
   }
 
@@ -386,18 +389,25 @@ export class AuthService {
    * 使用 SHA-256 哈希的前 32 字符作为 Redis key，节省内存
    */
   async blacklistToken(token: string): Promise<void> {
+    let decoded: { exp?: number } | null = null;
     try {
-      const decoded = this.jwtService.decode(token) as any;
-      if (decoded?.exp) {
-        const ttl = decoded.exp - Math.floor(Date.now() / 1000);
-        if (ttl > 0) {
-          const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
-          await this.redisService.set(`token:blacklist:${tokenHash}`, true, ttl);
-        }
-      }
-    } catch {
-      // 静默
+      decoded = this.jwtService.decode(token) as { exp?: number } | null;
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      this.logger.warn(`Token 解码失败，跳过黑名单写入: ${errMsg}`);
+      return;
     }
+
+    if (!decoded?.exp) {
+      this.logger.warn('Token 无 exp 字段，跳过黑名单写入');
+      return;
+    }
+
+    const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+    if (ttl <= 0) return;
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+    await this.redisService.set(`token:blacklist:${tokenHash}`, true, ttl);
   }
 
   /**

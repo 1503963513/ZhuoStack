@@ -97,6 +97,20 @@ export class RedisService implements OnModuleInit {
   }
 
   /**
+   * 原子获取并删除（用于验证码等一次性消费场景，避免 TOCTOU 竞态）
+   */
+  async getdel<T>(key: string): Promise<T | null> {
+    if (!this.isConnected || !this.client) return null;
+    try {
+      const value = await this.client.getdel(key);
+      return value ? JSON.parse(value) : null;
+    } catch (e) {
+      this.logger.warn(`Redis GETDEL 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }
+  }
+
+  /**
    * 检查 key 是否存在
    */
   async exists(key: string): Promise<boolean> {
