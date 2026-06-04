@@ -76,6 +76,7 @@ async function bootstrap() {
   await app.register(helmet, {
     contentSecurityPolicy: false,
     frameguard: false, // 允许前端 iframe 嵌入 Swagger 文档页
+    crossOriginResourcePolicy: false, // 允许跨源访问静态文件（/files/*）
   });
 
   // 文件上传支持（multipart/form-data）
