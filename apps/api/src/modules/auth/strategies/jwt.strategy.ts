@@ -11,8 +11,14 @@ interface JwtPayload {
   email: string;
 }
 
+/** 在线用户 TTL 刷新间隔（5 分钟） */
+const ONLINE_REFRESH_INTERVAL = 5 * 60 * 1000;
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  /** 记录每个用户上次刷新 TTL 的时间，避免每次请求都刷 Redis */
+  private readonly onlineRefreshMap = new Map<string, number>();
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -57,6 +63,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException('用户不存在');
+    }
+
+    // 检查是否被管理员踢出
+    const isKicked = await this.redisService.exists(`kicked:user:${user.id}`);
+    if (isKicked) {
+      throw new UnauthorizedException('您的账号已被强制下线，请重新登录');
+    }
+
+    // 刷新在线用户 TTL（节流：同一用户 5 分钟内只刷新一次）
+    const now = Date.now();
+    const lastRefresh = this.onlineRefreshMap.get(user.id) || 0;
+    if (now - lastRefresh > ONLINE_REFRESH_INTERVAL) {
+      const client = this.redisService.getClient();
+      if (client) {
+        const onlineKey = `online:user:${user.id}`;
+        const exists = await client.exists(onlineKey);
+        if (exists) {
+          await client.expire(onlineKey, 1800);
+          this.onlineRefreshMap.set(user.id, now);
+        }
+      }
     }
 
     return user;

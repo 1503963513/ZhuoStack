@@ -1,9 +1,13 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { toast } from 'sonner';
 import type { ApiResponse } from '@/types/api';
 
 // baseURL 为空，路径本身带 /api 前缀（如 /api/auth/login）
 // Next.js rewrites 会将 /api/* 代理到后端服务
 const BASE_URL = '';
+
+/** 防止 401 时多次跳转 */
+let isRedirecting = false;
 
 /** Create axios instance with default config */
 function createApiClient(): AxiosInstance {
@@ -40,12 +44,18 @@ function createApiClient(): AxiosInstance {
   client.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401 && typeof window !== 'undefined') {
+      if (error.response?.status === 401 && typeof window !== 'undefined' && !isRedirecting) {
+        isRedirecting = true;
+        // 提取后端错误信息并弹出提示
+        const message = error.response?.data?.message || '登录已过期，请重新登录';
+        toast.error(message);
         // 清除 localStorage 和 Cookie
         localStorage.removeItem('auth-storage');
         document.cookie = 'auth-token=; path=/; max-age=0';
-        // 使用 replace 避免回退到已失效页面
-        window.location.replace('/login');
+        // 延迟跳转，让 toast 显示一会儿
+        setTimeout(() => {
+          window.location.replace('/login');
+        }, 1500);
       }
 
       // 从后端响应体中提取 message，替换 Axios 默认错误信息

@@ -188,8 +188,9 @@ export class AuthService {
       throw new UnauthorizedException('邮箱或密码错误');
     }
 
-    // 登录成功，清除失败计数
+    // 登录成功，清除失败计数和踢出标记
     await this.redisService.del(`login:attempts:${dto.email}`);
+    await this.redisService.del(`kicked:user:${user.id}`);
 
     // Generate JWT token
     const token = this.generateToken({ sub: user.id, email: user.email });

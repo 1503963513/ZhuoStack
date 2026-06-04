@@ -182,7 +182,13 @@ export class MonitorService {
       const keys: string[] = [];
       let cursor = '0';
       do {
-        const [next, found] = await client.scan(cursor, 'MATCH', `${ONLINE_USER_PREFIX}*`, 'COUNT', 100);
+        const [next, found] = await client.scan(
+          cursor,
+          'MATCH',
+          `${ONLINE_USER_PREFIX}*`,
+          'COUNT',
+          100,
+        );
         cursor = next;
         keys.push(...found);
       } while (cursor !== '0');
@@ -207,6 +213,7 @@ export class MonitorService {
 
   /**
    * 强制用户下线
+   * 删除在线状态 + 设置踢出标记（踢出后 24 小时内该用户的 token 将被拒绝）
    */
   async kickUser(userId: string) {
     const client = this.redisService.getClient();
@@ -216,7 +223,11 @@ export class MonitorService {
     const exists = await client.exists(key);
     if (!exists) return { success: false, message: '用户不在线' };
 
+    // 删除在线状态
     await client.del(key);
+    // 设置踢出标记（30 秒后过期，足够触发前端 401 跳转登录，之后用户可重新登录）
+    await client.set(`kicked:user:${userId}`, '1', 'EX', 30);
+
     return { success: true, message: '已强制下线' };
   }
 
