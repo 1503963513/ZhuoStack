@@ -9,6 +9,7 @@ import * as crypto from 'crypto';
 interface JwtPayload {
   sub: string;
   email: string;
+  jti?: string;
 }
 
 /** 在线用户 TTL 刷新间隔（5 分钟） */
@@ -38,16 +39,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: any, payload: JwtPayload) {
-    // 检查 Token 是否在黑名单中（与 AuthService.blacklistToken 使用相同的哈希格式）
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    if (token) {
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
-      const isBlacklisted = await this.redisService.exists(`token:blacklist:${tokenHash}`);
-      if (isBlacklisted) {
-        throw new UnauthorizedException('Token 已失效，请重新登录');
-      }
-    }
-
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -63,6 +54,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException('用户不存在');
+    }
+
+    // 检查 Token 是否在黑名单中（登出时写入）
+    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    if (token) {
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+      const isBlacklisted = await this.redisService.exists(`token:blacklist:${tokenHash}`);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('Token 已失效，请重新登录');
+      }
+    }
+
+    // jti 校验：单设备登录，旧 token 自动失效
+    if (payload.jti) {
+      const activeJti = await this.redisService.get<string>(`token:active:${user.id}`);
+      if (activeJti && activeJti !== payload.jti) {
+        throw new UnauthorizedException('账号已在其他设备登录，请重新登录');
+      }
     }
 
     // 检查是否被管理员踢出

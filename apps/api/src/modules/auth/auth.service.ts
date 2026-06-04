@@ -20,6 +20,13 @@ import * as svgCaptcha from 'svg-captcha';
 interface JwtPayload {
   sub: string;
   email: string;
+  jti?: string;
+}
+
+/** generateToken 返回值 */
+interface TokenResult {
+  token: string;
+  jti: string;
 }
 
 export interface AuthResponse {
@@ -156,7 +163,10 @@ export class AuthService {
     });
 
     // Generate JWT token
-    const token = this.generateToken({ sub: user.id, email: user.email });
+    const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
+
+    // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
+    await this.redisService.set(`token:active:${user.id}`, jti, 90 * 24 * 3600);
 
     // 记录注册成功日志
     await this.logService.createLoginLog({
@@ -223,7 +233,10 @@ export class AuthService {
     await this.redisService.del(`kicked:user:${user.id}`);
 
     // Generate JWT token
-    const token = this.generateToken({ sub: user.id, email: user.email });
+    const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
+
+    // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
+    await this.redisService.set(`token:active:${user.id}`, jti, 90 * 24 * 3600);
 
     // 记录登录成功日志
     await this.logService.createLoginLog({
@@ -419,17 +432,23 @@ export class AuthService {
   }
 
   /**
-   * Generate JWT token
+   * Generate JWT token（附带唯一 jti，用于单设备登录控制）
    */
-  private generateToken(payload: JwtPayload): string {
+  private generateToken(payload: Omit<JwtPayload, 'jti'>): TokenResult {
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
       throw new Error('JWT_SECRET environment variable is required');
     }
 
-    return this.jwtService.sign(payload, {
-      secret: jwtSecret,
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
-    });
+    const jti = crypto.randomUUID();
+    const token = this.jwtService.sign(
+      { ...payload, jti },
+      {
+        secret: jwtSecret,
+        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
+      },
+    );
+
+    return { token, jti };
   }
 }
