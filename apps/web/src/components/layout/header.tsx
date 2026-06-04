@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import { Moon, Sun, LogOut, User } from 'lucide-react';
 import { useLogout } from '@/hooks/use-auth';
+import { useConfirm } from '@/hooks/use-confirm';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
 
@@ -16,8 +17,14 @@ export function Header() {
   const { data: profileData } = useProfile();
   const { setTheme, theme } = useTheme();
   const logout = useLogout();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    const ok = await confirm({ description: '确定要退出登录吗？', variant: 'destructive' });
+    if (ok) logout();
+  };
 
   const currentUser = profileData?.data || user;
 
@@ -54,6 +61,7 @@ export function Header() {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-30 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* 主题切换 */}
       <Button
@@ -99,7 +107,7 @@ export function Header() {
             </Link>
             <div className="-mx-1 my-1 h-px bg-muted" />
             <button
-              onClick={() => { setMenuOpen(false); logout(); }}
+              onClick={() => { setMenuOpen(false); handleLogout(); }}
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -109,5 +117,7 @@ export function Header() {
         )}
       </div>
     </header>
+    <ConfirmDialog />
+    </>
   );
 }
