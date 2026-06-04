@@ -1,5 +1,6 @@
 model SysLoginLog {
   id         String   @id @default(cuid())
+  userId     String?
   username   String
   ip         String
   location   String?

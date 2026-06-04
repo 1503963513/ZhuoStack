@@ -93,6 +93,7 @@ export class LogService {
    * 记录登录日志
    */
   async createLoginLog(data: {
+    userId?: string;
     username: string;
     ip: string;
     location?: string;
@@ -121,6 +122,17 @@ export class LogService {
         skip,
         take: pageSize,
         orderBy: { loginTime: 'desc' },
+        select: {
+          id: true,
+          username: true,
+          ip: true,
+          location: true,
+          browser: true,
+          os: true,
+          status: true,
+          msg: true,
+          loginTime: true,
+        },
       }),
       this.prisma.sysLoginLog.count({ where }),
     ]);

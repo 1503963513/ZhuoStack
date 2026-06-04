@@ -1,5 +1,6 @@
 model SysLoginLog {
   id         String   @id @default(cuid())
+  userId     String?  @db.VarChar(50)
   username   String   @db.VarChar(50)
   ip         String   @db.VarChar(128)
   location   String?  @db.VarChar(255)

@@ -118,7 +118,7 @@ export class AuthService {
   /**
    * Register a new user
    */
-  async register(dto: RegisterDto, ip?: string): Promise<AuthResponse> {
+  async register(dto: RegisterDto, ip?: string, uaInfo?: { browser?: string; os?: string }): Promise<AuthResponse> {
     // 校验验证码
     const captchaValid = await this.verifyCaptcha(dto.captchaId, dto.captchaCode);
     if (!captchaValid) {
@@ -133,8 +133,11 @@ export class AuthService {
     if (existingUser) {
       // 记录注册失败日志
       await this.logService.createLoginLog({
+        userId: existingUser.id,
         username: dto.email,
         ip: ip || 'unknown',
+        browser: uaInfo?.browser,
+        os: uaInfo?.os,
         status: 0,
         msg: '邮箱已注册',
       });
@@ -170,8 +173,11 @@ export class AuthService {
 
     // 记录注册成功日志
     await this.logService.createLoginLog({
+      userId: user.id,
       username: dto.email,
       ip: ip || 'unknown',
+      browser: uaInfo?.browser,
+      os: uaInfo?.os,
       status: 1,
       msg: '注册成功',
     });
@@ -186,7 +192,7 @@ export class AuthService {
   /**
    * Login with email and password
    */
-  async login(dto: LoginDto, ip?: string): Promise<AuthResponse> {
+  async login(dto: LoginDto, ip?: string, uaInfo?: { browser?: string; os?: string }): Promise<AuthResponse> {
     // 校验验证码
     const captchaValid = await this.verifyCaptcha(dto.captchaId, dto.captchaCode);
     if (!captchaValid) {
@@ -207,7 +213,7 @@ export class AuthService {
 
     if (!user) {
       // 记录登录失败
-      await this.recordLoginFailure(dto.email, ip, '用户不存在');
+      await this.recordLoginFailure(dto.email, ip, '用户不存在', uaInfo);
       throw new UnauthorizedException('邮箱或密码错误');
     }
 
@@ -217,7 +223,7 @@ export class AuthService {
 
     if (!isPasswordValid) {
       // 记录登录失败
-      const attempts = await this.recordLoginFailure(dto.email, ip, '密码错误');
+      const attempts = await this.recordLoginFailure(dto.email, ip, '密码错误', uaInfo, user.id);
 
       if (attempts >= this.MAX_LOGIN_ATTEMPTS) {
         await this.redisService.set(lockKey, true, this.LOCKOUT_DURATION);
@@ -240,8 +246,11 @@ export class AuthService {
 
     // 记录登录成功日志
     await this.logService.createLoginLog({
+      userId: user.id,
       username: dto.email,
       ip: ip || 'unknown',
+      browser: uaInfo?.browser,
+      os: uaInfo?.os,
       status: 1,
       msg: '登录成功',
     });
@@ -385,10 +394,13 @@ export class AuthService {
   /**
    * 记录登录失败并返回累计失败次数
    */
-  private async recordLoginFailure(email: string, ip: string | undefined, msg: string): Promise<number> {
+  private async recordLoginFailure(email: string, ip: string | undefined, msg: string, uaInfo?: { browser?: string; os?: string }, userId?: string): Promise<number> {
     await this.logService.createLoginLog({
+      userId,
       username: email,
       ip: ip || 'unknown',
+      browser: uaInfo?.browser,
+      os: uaInfo?.os,
       status: 0,
       msg,
     });

@@ -18,11 +18,23 @@ import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const UAParser = require('ua-parser-js');
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /** 从请求头解析浏览器和操作系统信息 */
+  private parseUA(req: { headers: Record<string, string | string[] | undefined> }): { browser?: string; os?: string } {
+    const ua = new UAParser(req.headers['user-agent'] as string);
+    const browser = ua.getBrowser().name || undefined;
+    const osName = ua.getOS().name;
+    const osVersion = ua.getOS().version;
+    const os = osName ? `${osName}${osVersion ? ` ${osVersion}` : ''}` : undefined;
+    return { browser, os };
+  }
 
   @Get('public-key')
   @ApiOperation({ summary: '获取 RSA 公钥（用于密码加密传输）' })
@@ -44,7 +56,8 @@ export class AuthController {
   @ApiResponse({ status: 409, description: '邮箱已注册' })
   register(@Body() dto: RegisterDto, @Req() req: any) {
     const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-    return this.authService.register(dto, ip);
+    const uaInfo = this.parseUA(req);
+    return this.authService.register(dto, ip, uaInfo);
   }
 
   @Post('login')
@@ -54,7 +67,8 @@ export class AuthController {
   @ApiResponse({ status: 401, description: '认证失败' })
   login(@Body() dto: LoginDto, @Req() req: any) {
     const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-    return this.authService.login(dto, ip);
+    const uaInfo = this.parseUA(req);
+    return this.authService.login(dto, ip, uaInfo);
   }
 
   @Get('profile')
