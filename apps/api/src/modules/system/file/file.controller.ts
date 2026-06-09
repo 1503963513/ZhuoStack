@@ -11,6 +11,7 @@ import {
   Res,
   Req,
   BadRequestException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -103,11 +104,14 @@ export class FileController {
     }
 
     const buffer = await data.toBuffer();
+    if (buffer.length === 0) {
+      throw new PayloadTooLargeException(`文件大小超过限制，请上传 ${this.fileService.maxFileSizeMB}MB 以内的文件`);
+    }
     return this.fileService.saveFile(data.filename, data.mimetype, buffer, userId);
   }
 
   @Post('upload/image')
-  @ApiOperation({ summary: '上传图片（限制 5MB）' })
+  @ApiOperation({ summary: `上传图片（限制 5MB）` })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -125,6 +129,9 @@ export class FileController {
     }
 
     const buffer = await data.toBuffer();
+    if (buffer.length === 0) {
+      throw new PayloadTooLargeException(`图片大小超过限制，请上传 ${this.fileService.maxImageSizeMB}MB 以内的图片`);
+    }
     return this.fileService.saveImage(data.filename, data.mimetype, buffer, userId);
   }
 

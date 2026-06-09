@@ -60,12 +60,23 @@ export function FileUpload({
 
   const acceptTypes = accept || (mode === 'image' ? 'image/jpeg,image/png,image/gif,image/webp' : undefined);
 
+  /** 文件大小限制（字节）：普通文件 50MB，图片 5MB */
+  const maxSizeBytes = mode === 'image' ? 5 * 1024 * 1024 : 50 * 1024 * 1024;
+
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
     // 检查数量限制
     if (maxCount > 0 && value.length + fileList.length > maxCount) {
       toast.error(`最多上传 ${maxCount} 个文件`);
+      return;
+    }
+
+    // 前端预检文件大小，避免上传到一半才报错
+    const oversized = Array.from(fileList).find((f) => f.size > maxSizeBytes);
+    if (oversized) {
+      const maxLabel = mode === 'image' ? '5MB' : '50MB';
+      toast.error(`文件「${oversized.name}」超过 ${maxLabel} 大小限制`);
       return;
     }
 
@@ -102,11 +113,17 @@ export function FileUpload({
               const json = JSON.parse(xhr.responseText);
               resolve(json.data || json);
             } else {
-              reject(new Error(`上传失败: ${xhr.statusText}`));
+              // 尝试从后端响应中提取错误信息
+              try {
+                const json = JSON.parse(xhr.responseText);
+                reject(new Error(json.message || `上传失败 (${xhr.status})`));
+              } catch {
+                reject(new Error(`上传失败: ${xhr.statusText || '服务器错误'} (${xhr.status})`));
+              }
             }
           };
 
-          xhr.onerror = () => reject(new Error('网络错误'));
+          xhr.onerror = () => reject(new Error('网络错误，请检查网络连接'));
           xhr.send(formData);
         });
 

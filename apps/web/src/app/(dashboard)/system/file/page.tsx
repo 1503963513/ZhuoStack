@@ -114,16 +114,24 @@ export default function FilePage() {
   const files = data?.data?.data || [];
   const pagination = data?.data?.pagination;
 
+  /** 文件大小限制：50MB */
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
   /** 上传文件 */
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
+
+    // 前端预检文件大小，避免上传到一半才报错
+    const oversized = Array.from(fileList).find((f) => f.size > MAX_FILE_SIZE);
+    if (oversized) {
+      toast.error(`文件「${oversized.name}」超过 50MB 大小限制`);
+      return;
+    }
 
     setUploading(true);
     setUploadProgress(0);
 
     try {
-      const { post } = await import('@/lib/api-client');
-
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
         const formData = new FormData();
@@ -157,11 +165,17 @@ export default function FilePage() {
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve();
             } else {
-              reject(new Error(`上传失败: ${xhr.statusText}`));
+              // 尝试从后端响应中提取错误信息
+              try {
+                const json = JSON.parse(xhr.responseText);
+                reject(new Error(json.message || `上传失败 (${xhr.status})`));
+              } catch {
+                reject(new Error(`上传失败: ${xhr.statusText || '服务器错误'} (${xhr.status})`));
+              }
             }
           };
 
-          xhr.onerror = () => reject(new Error('网络错误'));
+          xhr.onerror = () => reject(new Error('网络错误，请检查网络连接'));
           xhr.send(formData);
         });
       }

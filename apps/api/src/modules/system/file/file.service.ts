@@ -11,8 +11,12 @@ export class FileService {
   private readonly logger = new Logger(FileService.name);
   private readonly uploadsDir: string;
   private readonly urlPrefix: string;
-  private readonly maxFileSize: number;
-  private readonly maxImageSize: number;
+  private readonly _maxFileSize: number;
+  private readonly _maxImageSize: number;
+
+  /** 文件大小限制（MB），供 Controller 使用 */
+  get maxFileSizeMB() { return Math.round(this._maxFileSize / 1024 / 1024); }
+  get maxImageSizeMB() { return Math.round(this._maxImageSize / 1024 / 1024); }
   private readonly allowedMimeTypes: string[];
 
   constructor(
@@ -22,8 +26,8 @@ export class FileService {
     const storagePath = this.configService.get<string>('FILE_STORAGE_PATH', 'uploads');
     this.uploadsDir = path.isAbsolute(storagePath) ? storagePath : path.join(process.cwd(), storagePath);
     this.urlPrefix = this.configService.get<string>('FILE_URL_PREFIX', '/files');
-    this.maxFileSize = this.configService.get<number>('FILE_MAX_SIZE_MB', 50) * 1024 * 1024;
-    this.maxImageSize = 5 * 1024 * 1024; // 图片固定 5MB
+    this._maxFileSize = this.configService.get<number>('FILE_MAX_SIZE_MB', 50) * 1024 * 1024;
+    this._maxImageSize = 5 * 1024 * 1024; // 图片固定 5MB
     this.allowedMimeTypes = this.configService.get<string>(
       'FILE_ALLOWED_MIME_TYPES',
       'image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,video/mp4,video/webm,audio/mpeg',
@@ -35,7 +39,7 @@ export class FileService {
     }
 
     this.logger.log(`文件存储: ${this.uploadsDir} → ${this.urlPrefix}`);
-    this.logger.log(`文件限制: ${this.maxFileSize / 1024 / 1024}MB, ${this.allowedMimeTypes.length} 种类型`);
+    this.logger.log(`文件限制: ${this._maxFileSize / 1024 / 1024}MB, ${this.allowedMimeTypes.length} 种类型`);
   }
 
   /**
@@ -48,8 +52,8 @@ export class FileService {
     }
 
     // 验证文件大小
-    if (buffer.length > this.maxFileSize) {
-      throw new BadRequestException(`文件大小超过限制: ${this.maxFileSize / 1024 / 1024}MB`);
+    if (buffer.length > this._maxFileSize) {
+      throw new BadRequestException(`文件大小超过限制: ${this._maxFileSize / 1024 / 1024}MB`);
     }
 
     // 生成存储路径：uploads/2026/06/02/xxx.ext
@@ -102,8 +106,8 @@ export class FileService {
       throw new BadRequestException('仅支持 JPG/PNG/GIF/WebP 格式的图片');
     }
 
-    if (buffer.length > this.maxImageSize) {
-      throw new BadRequestException(`图片大小超过限制: ${this.maxImageSize / 1024 / 1024}MB`);
+    if (buffer.length > this._maxImageSize) {
+      throw new BadRequestException(`图片大小超过限制: ${this._maxImageSize / 1024 / 1024}MB`);
     }
 
     const record = await this.saveFile(filename, mimetype, buffer, createBy);
