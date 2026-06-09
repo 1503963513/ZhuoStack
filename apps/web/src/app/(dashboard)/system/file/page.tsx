@@ -190,11 +190,23 @@ export default function FilePage() {
   };
 
   /** 下载文件 */
-  const handleDownload = (file: FileItem) => {
-    const link = document.createElement('a');
-    link.href = `/api/system/file/download/${file.id}`;
-    link.download = file.originalName;
-    link.click();
+  const handleDownload = async (file: FileItem) => {
+    try {
+      const { default: apiClient } = await import('@/lib/api-client');
+      const response = await apiClient.get(`/api/system/file/download/${file.id}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: file.mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.originalName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '下载失败';
+      toast.error('下载失败', { description: message });
+    }
   };
 
   /** 删除文件 */

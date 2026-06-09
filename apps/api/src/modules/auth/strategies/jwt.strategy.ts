@@ -93,7 +93,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('您的账号已被强制下线，请重新登录');
     }
 
-    // 刷新在线用户 TTL（节流：同一用户 5 分钟内只刷新一次）
+    // 刷新或重新激活在线用户状态（节流：同一用户 5 分钟内只处理一次）
     const now = Date.now();
     const lastRefresh = this.onlineRefreshMap.get(user.id) || 0;
     if (now - lastRefresh > ONLINE_REFRESH_INTERVAL) {
@@ -102,9 +102,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const onlineKey = `online:user:${user.id}`;
         const exists = await client.exists(onlineKey);
         if (exists) {
+          // 在线 key 存在 → 刷新 TTL
           await client.expire(onlineKey, 1800);
-          this.onlineRefreshMap.set(user.id, now);
+        } else {
+          // 在线 key 已过期（用户空闲超过 30 分钟），但 JWT 仍然有效 → 重新激活在线状态
+          const ip = req.ip || req.headers?.['x-forwarded-for'] || 'unknown';
+          await client.set(
+            onlineKey,
+            JSON.stringify({
+              userId: user.id,
+              username: user.name || user.email,
+              ip,
+              loginTime: new Date().toISOString(),
+            }),
+            'EX',
+            1800,
+          );
         }
+        this.onlineRefreshMap.set(user.id, now);
       }
     }
 
