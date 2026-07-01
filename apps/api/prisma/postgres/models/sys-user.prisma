@@ -1,10 +1,10 @@
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique(length: 50)
-  name      String?  @db.VarChar(255)
+  email     String   @unique
+  name      String?
   password  String
   role      Role     @default(USER)
-  avatar    String?  @db.VarChar(500)
+  avatar    String?
   deptId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -16,5 +16,5 @@ model User {
   @@index([deptId])
   @@index([role])
   @@index([createdAt])
-  @@map("users")
+  @@map("sys_user")
 }
