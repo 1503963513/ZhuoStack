@@ -1,3 +1,8 @@
+---
+name: frontend-crud-page
+description: 用 PageHeader+DataTable+Pagination 组合新建前端 CRUD 管理页面时使用。提供标准页面骨架、列配置、分页、搜索、权限按钮、确认对话框的完整代码模板与组件 API。
+---
+
 # 前端 CRUD 页面模板
 
 所有系统管理页面统一使用 `PageHeader` + `DataTable` + `Pagination` 组合。

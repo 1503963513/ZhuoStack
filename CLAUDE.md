@@ -100,3 +100,14 @@ Next.js App Router 路由分组：
 - Git：使用约定式提交（`feat/fix/chore/docs...`）
 - Pre-commit 钩子运行 lint-staged（ESLint + Prettier 处理 `.ts`/`.tsx` 文件）
 - `BaseRepository<T>`（位于 `database/prisma.repository.ts`）可用于新模块的通用 CRUD，当前 UserService 未使用它
+
+## 操作技能（Skills，按需调用）
+
+操作模板/参考文档放在 `.claude/skills/` 下，**不会自动加载**，写对应功能时再调用（输入 `/<skill名>` 或让 Claude 自动触发）。常驻规则见 `.claude/rules/`（认证、数据库、API 规范、Redis、前端开发）。
+
+| Skill | 触发场景 |
+|-------|----------|
+| `/frontend-crud-page` | 新建前端 CRUD 管理页面（PageHeader + DataTable + Pagination 骨架） |
+| `/backend-module` | 新建 NestJS 后端模块（controller/service/dto/entities） |
+| `/file-upload` | 集成文件/图片上传功能（@fastify/multipart + FileUpload 组件） |
+| `/frontend-hooks` | 查阅前端 Hooks 用法（useApiQuery、useDict、usePermissions、encryptPassword 等） |

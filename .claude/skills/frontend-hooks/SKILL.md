@@ -1,3 +1,8 @@
+---
+name: frontend-hooks
+description: 查阅前端自定义 Hooks 用法时使用：useApiQuery/useApiMutation 数据请求、useDict 字典、usePermissions/PermissionButton 权限、encryptPassword RSA 加密、useDebounce 防抖、useConfirm 确认框。
+---
+
 # 前端 Hooks 与通用模式
 
 本项目封装了多个自定义 Hooks，统一数据请求、权限控制、字典管理等模式。

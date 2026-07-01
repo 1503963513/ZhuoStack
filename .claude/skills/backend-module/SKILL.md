@@ -1,3 +1,8 @@
+---
+name: backend-module
+description: 新建 NestJS 后端 CRUD 模块（controller/service/dto/entities）时使用。涵盖目录结构、Service 开发模式（Prisma+分页+异常）、Controller 装饰器、模块注册规范。
+---
+
 # 后端 CRUD 模块开发
 
 本项目使用 NestJS 10 + Fastify 适配器 + Prisma ORM。所有后端模块遵循统一的开发模式。

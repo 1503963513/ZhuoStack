@@ -1,3 +1,8 @@
+---
+name: file-upload
+description: 集成文件/图片上传功能时使用。涵盖 @fastify/multipart 上传、FileService.saveFile、前端 FileUpload 组件、静态文件服务（开发 @fastify/static / 生产 Nginx）、SysFile 模型字段。
+---
+
 # 文件管理模块
 
 本项目实现了统一的文件管理功能，包含上传、下载、预览、删除等操作。
