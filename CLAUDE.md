@@ -45,11 +45,11 @@ pnpm docker:down
 
 基于 **pnpm monorepo** + Turborepo 的全栈项目，包含三个工作区包：
 
-| 包 | 技术栈 | 端口 |
-|---|--------|------|
-| `apps/api` | NestJS 10 + Fastify + Prisma | 3100 |
-| `apps/web` | Next.js 14 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
-| `packages/shared-types` | 共享 TypeScript 类型（`ApiResponse<T>`, `User`, `Role`） | — |
+| 包                      | 技术栈                                                         | 端口 |
+| ----------------------- | -------------------------------------------------------------- | ---- |
+| `apps/api`              | NestJS 10 + Fastify + Prisma                                   | 3100 |
+| `apps/web`              | Next.js 14 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
+| `packages/shared-types` | 共享 TypeScript 类型（`ApiResponse<T>`, `User`, `Role`）       | —    |
 
 路径别名：`@/*` → `./src/*`（两个应用通用），`@myapp/shared-types` → `packages/shared-types/src`。
 
@@ -58,6 +58,7 @@ pnpm docker:down
 使用 **Fastify**（非 Express）作为 HTTP 适配器。异常过滤器使用 `FastifyRequestLike`/`FastifyReplyLike` 接口。
 
 在 `AppModule` 中注册的**全局中间件**：
+
 - `TransformInterceptor`（`APP_INTERCEPTOR`）— 将所有响应包装为 `{ code, data, message }`
 - `HttpExceptionFilter`（`APP_FILTER`）— 捕获异常，返回 `{ code, <状态码>, data: null, message }`
 - `ValidationPipe` — `whitelist: true`、`forbidNonWhitelisted: true`、`transform: true`（含隐式类型转换）
@@ -71,6 +72,7 @@ pnpm docker:down
 ### 前端 (`apps/web`)
 
 Next.js App Router 路由分组：
+
 - `(auth)/` — `/login`、`/register`（公开页面）
 - `(dashboard)/` — `/dashboard`、`/profile`（需认证，layout 检查 Zustand Store）
 
@@ -81,6 +83,7 @@ Next.js App Router 路由分组：
 ### 数据库 — 双 PostgreSQL/MySQL 支持
 
 `apps/api/prisma/` 下有两套并行的 Prisma Schema 目录：
+
 - `postgres/` — PostgreSQL 模型（无数据库特定注解）
 - `mysql/` — MySQL 模型（含 `@db.VarChar(length)`、`@unique(length)` 注解）
 
@@ -90,8 +93,16 @@ Next.js App Router 路由分组：
 
 ## 环境变量
 
-- `apps/api/.env` — `DATABASE_URL`、`DB_TYPE`、`JWT_SECRET`、`JWT_EXPIRES_IN`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`、`PORT`、`CORS_ORIGIN`
-- `apps/web/.env.local` — `NEXT_PUBLIC_API_URL`
+本地配置文件均已 gitignore（含密钥/连接串）。**clone 后需从模板恢复**：
+
+```bash
+cp apps/api/.env.example apps/api/.env                  # 后端
+cp apps/web/.env.example apps/web/.env.development      # 前端 dev
+```
+
+- `apps/api/.env` — `DATABASE_URL`、`DB_TYPE`、`JWT_SECRET`、`JWT_EXPIRES_IN`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`、`PORT`、`CORS_ORIGIN`、`FILE_STORAGE_PATH`
+- `apps/web/.env.development` — `NEXT_PUBLIC_API_URL`（dev 直连后端 `http://localhost:3100`；生产走 Nginx 同域代理留空）
+- 模板 `*.env.example`（tracked，团队共享默认值）
 
 ## 编码规范
 
@@ -105,9 +116,9 @@ Next.js App Router 路由分组：
 
 操作模板/参考文档放在 `.claude/skills/` 下，**不会自动加载**，写对应功能时再调用（输入 `/<skill名>` 或让 Claude 自动触发）。常驻规则见 `.claude/rules/`（认证、数据库、API 规范、Redis、前端开发）。
 
-| Skill | 触发场景 |
-|-------|----------|
-| `/frontend-crud-page` | 新建前端 CRUD 管理页面（PageHeader + DataTable + Pagination 骨架） |
-| `/backend-module` | 新建 NestJS 后端模块（controller/service/dto/entities） |
-| `/file-upload` | 集成文件/图片上传功能（@fastify/multipart + FileUpload 组件） |
-| `/frontend-hooks` | 查阅前端 Hooks 用法（useApiQuery、useDict、usePermissions、encryptPassword 等） |
+| Skill                 | 触发场景                                                                        |
+| --------------------- | ------------------------------------------------------------------------------- |
+| `/frontend-crud-page` | 新建前端 CRUD 管理页面（PageHeader + DataTable + Pagination 骨架）              |
+| `/backend-module`     | 新建 NestJS 后端模块（controller/service/dto/entities）                         |
+| `/file-upload`        | 集成文件/图片上传功能（@fastify/multipart + FileUpload 组件）                   |
+| `/frontend-hooks`     | 查阅前端 Hooks 用法（useApiQuery、useDict、usePermissions、encryptPassword 等） |

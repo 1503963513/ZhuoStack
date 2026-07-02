@@ -25,9 +25,9 @@ coverage/
 .env
 .env.local
 .env.*.local
-# API 本地环境配置（含密钥，不进版本库；web 的同名文件已 tracked 不受影响）
-apps/api/.env.development
-apps/api/.env.production
+# 本地环境配置（含连接串/密钥，不进版本库；新人从 .env.example 复制）
+.env.development
+.env.production
 
 # IDE
 .vscode/
