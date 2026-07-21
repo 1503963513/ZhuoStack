@@ -1,54 +1,63 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1.7
+FROM node:20-bookworm-slim AS base
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-# Copy workspace config
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/shared-types/package.json ./packages/shared-types/
+FROM base AS dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/shared-types/package.json packages/shared-types/package.json
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+FROM dependencies AS builder
+ARG DB_TYPE=postgres
+COPY tsconfig.base.json turbo.json ./
+COPY apps/api apps/api
+COPY packages/shared-types packages/shared-types
+RUN if [ "$DB_TYPE" = "mysql" ]; then pnpm --filter api db:use:mysql; else pnpm --filter api db:use:pg; fi \
+    && pnpm --filter api prisma:generate \
+    && pnpm --filter api build
 
-# Copy source code
-COPY apps/api ./apps/api
-COPY packages/shared-types ./packages/shared-types
-COPY tsconfig.base.json ./
+FROM base AS production-dependencies
+ARG DB_TYPE=postgres
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY apps/api/prisma apps/api/prisma
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod --filter "api..." \
+    && if [ "$DB_TYPE" = "mysql" ]; then pnpm --filter api db:use:mysql; else pnpm --filter api db:use:pg; fi \
+    && pnpm --filter api prisma:generate
 
-# Generate Prisma client and build
-WORKDIR /app/apps/api
-RUN pnpm db:use:pg
-RUN pnpm prisma:generate
-RUN pnpm build
-
-# Stage 2: Production
-FROM node:20-alpine AS production
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-WORKDIR /app
-
-# Set NODE_ENV
+FROM node:20-bookworm-slim AS runtime
 ENV NODE_ENV=production
+ENV PORT=3100
+WORKDIR /app
 
-# Copy workspace config
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY apps/api/package.json ./apps/api/
-COPY packages/shared-types/package.json ./packages/shared-types/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 nodeapp \
+    && useradd --system --uid 1001 --gid nodeapp --home-dir /app nodeapp
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/node_modules ./node_modules
+COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/prisma ./apps/api/prisma
+COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder --chown=nodeapp:nodeapp /app/apps/api/dist ./apps/api/dist
+COPY --chown=nodeapp:nodeapp docker/entrypoint-api.sh /usr/local/bin/entrypoint-api
 
-# Copy built application
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.prisma
-
+RUN chmod +x /usr/local/bin/entrypoint-api && mkdir -p /app/apps/api/uploads && chown -R nodeapp:nodeapp /app
+USER nodeapp
 WORKDIR /app/apps/api
-
 EXPOSE 3100
 
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["entrypoint-api"]
+CMD ["node", "dist/src/main.js"]

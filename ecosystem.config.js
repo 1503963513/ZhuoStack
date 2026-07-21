@@ -1,24 +1,31 @@
+const path = require('path');
+
+const root = __dirname;
+
 module.exports = {
   apps: [
     {
-      name: 'myapp-api',
-      script: 'dist/src/main.js',
-      cwd: './apps/api',
-      instances: 1,
-      exec_mode: 'fork',
-      node_args: '--max-old-space-size=256',
+      name: process.env.PM2_APP_NAME || 'myapp-api',
+      script: path.join(root, 'apps/api/dist/src/main.js'),
+      cwd: path.join(root, 'apps/api'),
+      interpreter: process.env.NODE_BINARY || 'node',
+      instances: Number(process.env.PM2_INSTANCES || 1),
+      exec_mode: Number(process.env.PM2_INSTANCES || 1) > 1 ? 'cluster' : 'fork',
+      node_args: process.env.NODE_ARGS || '--max-old-space-size=512',
       env: {
         NODE_ENV: 'production',
-        PORT: 3100,
       },
-      env_file: './apps/api/.env',
-      max_memory_restart: '500M',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: './logs/api-error.log',
-      out_file: './logs/api-out.log',
+      autorestart: true,
+      min_uptime: '10s',
+      max_restarts: 10,
+      restart_delay: 2000,
+      kill_timeout: 10000,
+      listen_timeout: 10000,
+      max_memory_restart: process.env.PM2_MAX_MEMORY || '750M',
+      time: true,
+      error_file: path.join(root, 'logs/api-error.log'),
+      out_file: path.join(root, 'logs/api-out.log'),
       merge_logs: true,
     },
-    // Web 前端已改为纯静态导出（next export → out/ 目录）
-    // 生产环境由 Nginx 直接服务静态文件，无需 Node.js 进程
   ],
 };

@@ -78,7 +78,7 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 
 # 前端
-cp apps/web/.env.local.example apps/web/.env.local
+cp apps/web/.env.example apps/web/.env.local
 ```
 
 ### 3. 启动数据库服务
@@ -86,11 +86,9 @@ cp apps/web/.env.local.example apps/web/.env.local
 使用 Docker（推荐）：
 
 ```bash
-# 启动 PostgreSQL + Redis
-pnpm docker:up
-
-# 或启动全部服务（PostgreSQL + MySQL + Redis）
-docker compose -f docker/docker-compose.yml up -d postgres mysql redis
+# 仅启动 PostgreSQL + Redis（本地开发）
+cp .env.deploy.example .env.deploy
+docker compose --env-file .env.deploy up -d db redis
 ```
 
 ### 4. 初始化数据库
@@ -176,15 +174,28 @@ pnpm --filter api db:setup:mysql
 
 > 💡 密码传输流程：前端 SHA-256 哈希 → 后端 bcrypt 二次哈希存储
 
-## Docker 部署
+## 一键部署
+
+项目使用同一个入口管理 Docker、PM2 和离线内网部署：
 
 ```bash
-# 使用 PostgreSQL 启动所有服务
-docker compose -f docker/docker-compose.yml up -d postgres redis api web
+# Docker：首次运行自动创建 .env.deploy，构建并启动完整服务
+pnpm ops docker up
 
-# 使用 MySQL 启动
-docker compose -f docker/docker-compose.yml up -d mysql redis api web
+# PM2：运行 API（Web 静态文件由 Nginx 托管）
+pnpm build:deploy
+pnpm ops pm2 start
+
+# 生成无需访问镜像仓库的 Docker 离线包
+pnpm ops pack docker-offline postgres
+
+# 生成自带 Linux Node、PM2、依赖和 Prisma Client 的 PM2 离线包
+pnpm ops pack pm2-offline postgres
 ```
+
+Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_URL` 改为 MySQL 后，部署脚本会自动加载 MySQL Compose 配置。完整操作、升级、日志、备份和内网搬运说明见 [部署指南](doc/deployment.md)。
+
+部署脚本采用单入口结构：`scripts/deploy.sh` 只负责命令路由，具体实现集中在 `scripts/deploy/`，不再保留重复的安装、更新和打包包装脚本。
 
 ## 可用脚本
 
@@ -192,10 +203,15 @@ docker compose -f docker/docker-compose.yml up -d mysql redis api web
 |------|------|
 | `pnpm dev` | 启动所有服务（开发模式） |
 | `pnpm build` | 构建所有包 |
+| `pnpm build:deploy` | 不依赖 Turbo 远程能力，直接构建部署产物 |
 | `pnpm lint` | 代码检查 |
 | `pnpm test` | 运行测试 |
 | `pnpm docker:up` | 启动 Docker 服务 |
 | `pnpm docker:down` | 停止 Docker 服务 |
+| `pnpm ops --help` | 查看统一部署命令 |
+| `pnpm ops pm2 start` | 使用项目内置 PM2 启动 API |
+| `pnpm ops pack pm2-offline postgres` | 生成 PM2 离线包 |
+| `pnpm ops pack docker-offline postgres` | 生成 Docker 离线镜像包 |
 | `pnpm --filter api db:setup:pg` | PostgreSQL 完整初始化 |
 | `pnpm --filter api db:setup:mysql` | MySQL 完整初始化 |
 | `pnpm --filter api prisma:studio` | 打开 Prisma Studio |

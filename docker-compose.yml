@@ -1,59 +1,81 @@
-# Docker Compose — MySQL + Redis
-# 用于部署环境启动数据库和缓存服务
-#
-# 使用方式：
-#   docker compose up -d          # 启动
-#   docker compose down           # 停止
-#   docker compose logs -f        # 查看日志
-#
-# 数据持久化：数据存储在 ./docker/data/ 目录下（已加入 .gitignore）
-#
-# .env 中对应的连接字符串：
-#   DATABASE_URL=mysql://myapp:myapp123@localhost:3306/myapp
-#   REDIS_URL=redis://localhost:6379
+name: ${COMPOSE_PROJECT_NAME:-myapp}
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: myapp-mysql
+  db:
+    image: postgres:16-alpine
     restart: unless-stopped
-    ports:
-      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-myapp}
-      MYSQL_USER: ${MYSQL_USER:-myapp}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-myapp123}
-      MYSQL_CHARSET: utf8mb4
-      MYSQL_COLLATION: utf8mb4_unicode_ci
-      TZ: Asia/Shanghai
+      POSTGRES_USER: ${POSTGRES_USER:-myapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myapp123}
+      POSTGRES_DB: ${POSTGRES_DB:-myapp}
+      PGDATA: /var/lib/database/postgres
+      TZ: ${TZ:-Asia/Shanghai}
     volumes:
-      - ./docker/data/mysql:/var/lib/mysql
-      - ./docker/mysql-init:/docker-entrypoint-initdb.d
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-authentication-plugin=mysql_native_password
-      - --max-connections=200
-      - --innodb-buffer-pool-size=256M
+      - postgres_data:/var/lib/database
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 20s
 
   redis:
-    image: redis:alpine
-    container_name: myapp-redis
+    image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     volumes:
-      - ./docker/data/redis:/data
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
-      retries: 3
+      retries: 10
+
+  api:
+    image: ${APP_IMAGE_PREFIX:-myapp}-api:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+      args:
+        DB_TYPE: ${DB_TYPE:-postgres}
+    restart: unless-stopped
+    env_file:
+      - .env.deploy
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      REDIS_URL: redis://redis:6379
+      FILE_STORAGE_PATH: /app/apps/api/uploads
+    volumes:
+      - api_uploads:/app/apps/api/uploads
+    ports:
+      - "127.0.0.1:${API_PORT:-3100}:3100"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  web:
+    image: ${APP_IMAGE_PREFIX:-myapp}-web:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  mysql_data:
+  redis_data:
+  api_uploads:

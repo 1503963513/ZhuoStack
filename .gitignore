@@ -23,6 +23,7 @@ coverage/
 
 # Environment
 .env
+.env.deploy
 .env.local
 .env.*.local
 # 本地环境配置（含连接串/密钥，不进版本库；新人从 .env.example 复制）
