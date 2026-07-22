@@ -167,7 +167,7 @@ usage() {
   pnpm ops pm2 restart        # 重启 API
   pnpm ops pm2 stop           # 停止 API
 
-更多说明：doc/deployment.md
+更多说明：docs/deployment.md
 EOF
 }
 

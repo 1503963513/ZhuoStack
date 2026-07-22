@@ -45,7 +45,7 @@
 
 ## 架构概览
 
-![ZhuoStack 架构图](docs/images/architecture.svg)
+![ZhuoStack 架构图](docs/images/architecture.png)
 
 ## 项目结构
 
@@ -247,7 +247,7 @@ pnpm ops pack docker-offline postgres
 pnpm ops pack pm2-offline postgres
 ```
 
-Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_URL` 改为 MySQL 后，部署脚本会自动加载 MySQL Compose 配置。完整操作、升级、日志、备份和内网搬运说明见 [部署指南](doc/deployment.md)。
+Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_URL` 改为 MySQL 后，部署脚本会自动加载 MySQL Compose 配置。完整操作、升级、日志、备份和内网搬运说明见 [部署指南](docs/deployment.md)。
 
 部署脚本采用单入口结构：`scripts/deploy.sh` 只负责命令路由，具体实现集中在 `scripts/deploy/`，不再保留重复的安装、更新和打包包装脚本。
 
