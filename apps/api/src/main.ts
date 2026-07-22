@@ -1,10 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
@@ -38,7 +35,7 @@ async function bootstrap() {
     logger.error(
       'JWT_SECRET 不安全！当前值为已知的弱密钥或长度不足 32 字符。' +
         '请运行以下命令生成安全密钥：\n' +
-        '  node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"',
+        "  node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"",
     );
     process.exit(1);
   }
@@ -50,9 +47,7 @@ async function bootstrap() {
 
   // HTTPS 配置（仅生产环境）
   const hasHttps =
-    process.env.NODE_ENV === 'production' &&
-    process.env.SSL_CERT_PATH &&
-    process.env.SSL_KEY_PATH;
+    process.env.NODE_ENV === 'production' && process.env.SSL_CERT_PATH && process.env.SSL_KEY_PATH;
 
   const httpsOptions = hasHttps
     ? {
@@ -85,22 +80,28 @@ async function bootstrap() {
     limits: { fileSize: maxFileSizeMB * 1024 * 1024 },
   });
 
-  // 静态文件服务（本地开发用，生产环境由 Nginx 直接处理）
+  // 本地静态文件服务；云存储模式下如果本地目录仍存在，继续提供历史文件。
+  const fileStorageType = process.env.FILE_STORAGE_TYPE || 'local';
   const storagePath = process.env.FILE_STORAGE_PATH || 'uploads';
   const urlPrefix = process.env.FILE_URL_PREFIX || '/files';
-  const uploadsDir = path.isAbsolute(storagePath) ? storagePath : path.join(process.cwd(), storagePath);
-  if (!fs.existsSync(uploadsDir)) {
+  const uploadsDir = path.isAbsolute(storagePath)
+    ? storagePath
+    : path.join(process.cwd(), storagePath);
+  const shouldServeLocalFiles = fileStorageType === 'local' || fs.existsSync(uploadsDir);
+  if (shouldServeLocalFiles) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+    await app.register(fastifyStatic, {
+      root: uploadsDir,
+      prefix: `${urlPrefix}/`,
+      decorateReply: false,
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 天
+      },
+    });
+    logger.log(`本地静态文件服务: ${urlPrefix} → ${uploadsDir}`);
+  } else {
+    logger.log(`云文件存储已启用: ${fileStorageType}`);
   }
-  await app.register(fastifyStatic, {
-    root: uploadsDir,
-    prefix: `${urlPrefix}/`,
-    decorateReply: false,
-    setHeaders: (res: any) => {
-      res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 天
-    },
-  });
-  logger.log(`静态文件服务: ${urlPrefix} → ${uploadsDir}`);
 
   // Global prefix
   app.setGlobalPrefix('api', {
@@ -109,7 +110,10 @@ async function bootstrap() {
 
   // Enable CORS（支持多源配置，逗号分隔）
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
         .split(',')
         .map((s) => s.trim())

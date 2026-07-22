@@ -66,7 +66,17 @@ DATABASE_URL=mysql://myapp:myapp123@db:3306/myapp
 
 可将 `DATABASE_URL` 指向外部地址。当前 Compose 仍会启动内置 `db` 容器；若生产环境只允许外部数据库，可在项目自己的 Compose override 中移除依赖或把 `api` 服务单独接入现有编排。
 
-持久化数据保存在 Compose volumes：`postgres_data` / `mysql_data`、`redis_data`、`api_uploads`。执行 `docker compose down` 不会删除数据；不要在未备份时执行 `down -v`。
+持久化数据保存在 Compose volumes：`postgres_data` / `mysql_data`、`redis_data`、`api_uploads`。执行 `docker compose down` 不会删除数据；不要在未备份时执行 `down -v`。`api_uploads` 用于本地文件存储，切换到阿里云 OSS 或腾讯云 COS 后仍保留该 volume，以便继续访问历史本地文件。
+
+### 切换对象存储
+
+在 `.env.deploy` 中设置 `FILE_STORAGE_TYPE=aliyun` 或 `FILE_STORAGE_TYPE=tencent`，并填写同文件中对应的 OSS/COS 变量，然后重启 API：
+
+```bash
+pnpm ops docker restart
+```
+
+切换只影响新上传文件，不会自动迁移历史文件。请给服务端 AccessKey/Secret 最小化的对象读、写、删权限，不要将真实密钥提交到仓库。如使用内网 Endpoint，必须另外配置可供浏览器访问的 `*_PUBLIC_URL`。
 
 ## PM2 部署
 
@@ -93,7 +103,7 @@ pnpm ops pm2 restart
 pnpm ops pm2 stop
 ```
 
-复制 `docker/nginx.pm2.conf` 到 Nginx 配置目录，将 `__WEB_ROOT__` 替换成 `apps/web/out` 的绝对路径，然后执行 `nginx -t && nginx -s reload`。上传文件仍由 API 的 `/files/` 提供；确保 `FILE_STORAGE_PATH` 指向持久化目录。
+复制 `docker/nginx.pm2.conf` 到 Nginx 配置目录，将 `__WEB_ROOT__` 替换成 `apps/web/out` 的绝对路径，然后执行 `nginx -t && nginx -s reload`。本地上传文件由 API 的 `/files/` 提供；确保 `FILE_STORAGE_PATH` 指向持久化目录。云存储文件使用 OSS/COS 或配置的 CDN 域名。
 
 ## PM2 在线发布包
 
@@ -170,5 +180,5 @@ bash scripts/deploy.sh docker up
 - 使用强数据库密码，并限制 `.env.deploy` / `apps/api/.env.production` 文件权限。
 - `CORS_ORIGIN` 填写实际 HTTPS 域名；多个域名用英文逗号分隔。
 - 生产环境通常关闭 Swagger，或只允许内网访问。
-- 对数据库 volume、上传 volume 和环境文件做定期备份。
+- 对数据库 volume、本地上传 volume / OSS / COS 和环境文件做定期备份。
 - 在更新前先运行健康检查并准备回滚包；不要依赖 `prisma db push` 完成跨版本的数据迁移。

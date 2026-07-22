@@ -129,6 +129,23 @@ pnpm dev
 
 Swagger UI 地址：http://localhost:3100/api/docs
 
+## 文件存储
+
+上传模块支持本地磁盘、阿里云 OSS 和腾讯云 COS，由 API 环境变量切换：
+
+```dotenv
+# local | aliyun | tencent
+FILE_STORAGE_TYPE=local
+```
+
+- `local`：使用 `FILE_STORAGE_PATH` 和 `FILE_URL_PREFIX`。
+- `aliyun`：配置 `ALIYUN_OSS_REGION`、`ALIYUN_OSS_BUCKET`、`ALIYUN_OSS_ACCESS_KEY_ID`、`ALIYUN_OSS_ACCESS_KEY_SECRET`。
+- `tencent`：配置 `TENCENT_COS_REGION`、`TENCENT_COS_BUCKET`、`TENCENT_COS_SECRET_ID`、`TENCENT_COS_SECRET_KEY`。腾讯云 Bucket 名称需包含 APPID。
+
+完整变量见 `apps/api/.env.example`。如果使用 CDN、自定义域名或云厂商内网 Endpoint，请同时设置 `ALIYUN_OSS_PUBLIC_URL` / `TENCENT_COS_PUBLIC_URL`。前端会直接访问返回的公网 URL，因此 Bucket 或 CDN 需允许文件读取；API 下载接口仍可使用服务端密钥读取。
+
+切换存储只影响新上传文件。系统会按数据库中的 `storageType` 下载和删除历史文件；若仍需管理历史云端文件，请保留对应厂商的密钥配置。
+
 ## Prisma Schema 多文件拆分
 
 本项目使用 `prismaSchemaFolder` 预览特性支持多文件 Schema 组织。

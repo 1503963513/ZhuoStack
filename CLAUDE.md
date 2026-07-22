@@ -100,7 +100,7 @@ cp apps/api/.env.example apps/api/.env.development      # 后端 dev
 cp apps/web/.env.example apps/web/.env.development      # 前端 dev
 ```
 
-- `apps/api/.env.development` / `apps/api/.env.production` — `DATABASE_URL`、`DB_TYPE`、`JWT_SECRET`、`JWT_EXPIRES_IN`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`、`PORT`、`CORS_ORIGIN`、`FILE_STORAGE_PATH`
+- `apps/api/.env.development` / `apps/api/.env.production` — `DATABASE_URL`、`DB_TYPE`、`JWT_SECRET`、`JWT_EXPIRES_IN`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL`、`PORT`、`CORS_ORIGIN`、`FILE_STORAGE_TYPE` 及对应的本地 / 阿里云 OSS / 腾讯云 COS 配置
 - `apps/web/.env.development` — `NEXT_PUBLIC_API_URL`（dev 直连后端 `http://localhost:3100`；生产走 Nginx 同域代理留空）
 - 模板 `*.env.example`（tracked，团队共享默认值）
 
