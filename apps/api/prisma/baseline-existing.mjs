@@ -53,8 +53,8 @@ run(['validate', '--schema=prisma/schema.active']);
 run([
   'migrate',
   'diff',
-  '--from-schema-datasource=prisma/schema.active',
-  '--to-schema-datamodel=prisma/schema.active',
+  '--from-config-datasource',
+  '--to-schema=prisma/schema.active',
   '--exit-code',
 ]);
 
