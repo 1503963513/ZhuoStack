@@ -12,7 +12,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": ".",
     "paths": {
       "@zhuostack/shared-types": ["./packages/shared-types/src"]
     }

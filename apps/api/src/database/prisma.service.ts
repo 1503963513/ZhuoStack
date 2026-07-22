@@ -4,7 +4,29 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+
+function createPrismaAdapter(): PrismaMariaDb | PrismaPg {
+  const databaseUrl = process.env.DATABASE_URL;
+  const configuredType = process.env.DB_TYPE ?? 'postgres';
+  const dbType = configuredType === 'postgresql' ? 'postgres' : configuredType;
+
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL is required to initialize Prisma');
+  }
+
+  if (dbType === 'mysql') {
+    return new PrismaMariaDb(databaseUrl);
+  }
+
+  if (dbType === 'postgres') {
+    return new PrismaPg({ connectionString: databaseUrl });
+  }
+
+  throw new Error(`DB_TYPE must be postgres or mysql, received: ${configuredType}`);
+}
 
 @Injectable()
 export class PrismaService
@@ -17,6 +39,7 @@ export class PrismaService
     const isProduction = process.env.NODE_ENV === 'production';
 
     super({
+      adapter: createPrismaAdapter(),
       log: isProduction
         ? [
             { emit: 'stdout', level: 'error' },
@@ -26,12 +49,6 @@ export class PrismaService
             { emit: 'stdout', level: 'warn' },
             { emit: 'stdout', level: 'error' },
           ],
-      // 连接池配置 - 针对远程数据库优化
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
     });
   }
 

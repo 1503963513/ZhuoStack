@@ -48,7 +48,7 @@ export function useConfirm() {
     description: '',
   });
 
-  const resolveRef = useRef<(value: boolean) => void>();
+  const resolveRef = useRef<((value: boolean) => void) | null>(null);
 
   const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
     return new Promise((resolve) => {
