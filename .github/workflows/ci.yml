@@ -117,14 +117,14 @@ jobs:
       - name: Build Web image
         run: docker build -f docker/Dockerfile.web -t zhuostack-web:ci .
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: zhuostack-api:ci
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan Web image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: zhuostack-web:ci
           severity: CRITICAL,HIGH
