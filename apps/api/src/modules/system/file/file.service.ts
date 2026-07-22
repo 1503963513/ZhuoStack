@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  FileTypeValidator,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
@@ -6,6 +12,25 @@ import { QueryFileDto, UpdateFileDto } from './dto';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { FileStorageService } from './storage/file-storage.service';
+
+const MIME_EXTENSION_MAP: Readonly<Record<string, string>> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'text/plain': 'txt',
+  'text/csv': 'csv',
+  'application/zip': 'zip',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'audio/mpeg': 'mp3',
+};
+
+const DEFAULT_ALLOWED_MIME_TYPES = Object.keys(MIME_EXTENSION_MAP).join(',');
+const TEXT_MIME_TYPES = new Set(['text/plain', 'text/csv']);
 
 @Injectable()
 export class FileService {
@@ -32,12 +57,19 @@ export class FileService {
     this._maxFileSize = this.configService.get<number>('FILE_MAX_SIZE_MB', 50) * 1024 * 1024;
     this._maxImageSize = 5 * 1024 * 1024; // 图片固定 5MB
     this.allowedMimeTypes = this.configService
-      .get<string>(
-        'FILE_ALLOWED_MIME_TYPES',
-        'image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv,application/zip,video/mp4,video/webm,audio/mpeg',
-      )
+      .get<string>('FILE_ALLOWED_MIME_TYPES', DEFAULT_ALLOWED_MIME_TYPES)
       .split(',')
-      .map((s) => s.trim());
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const unsupportedMimeTypes = this.allowedMimeTypes.filter(
+      (mimeType) => MIME_EXTENSION_MAP[mimeType] === undefined,
+    );
+    if (unsupportedMimeTypes.length > 0) {
+      throw new Error(
+        `FILE_ALLOWED_MIME_TYPES 包含不安全或无法验证的类型: ${unsupportedMimeTypes.join(', ')}`,
+      );
+    }
 
     this.logger.log(
       `文件限制: ${this._maxFileSize / 1024 / 1024}MB, ${this.allowedMimeTypes.length} 种类型`,
@@ -48,7 +80,7 @@ export class FileService {
    * 保存上传的文件到当前配置的存储并记录到数据库
    */
   async saveFile(filename: string, mimetype: string, buffer: Buffer, createBy?: string) {
-    // 验证文件类型
+    // 客户端提供的 MIME 只能用于声明；后续还会用文件魔数验证实际内容。
     if (!this.allowedMimeTypes.includes(mimetype)) {
       throw new BadRequestException(`不支持的文件类型: ${mimetype}`);
     }
@@ -58,14 +90,18 @@ export class FileService {
       throw new BadRequestException(`文件大小超过限制: ${this._maxFileSize / 1024 / 1024}MB`);
     }
 
+    await this.validateFileContent(mimetype, buffer);
+
     // 生成存储键：2026/06/02/xxx.ext
     const now = new Date();
     const dateDir = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
-    const ext = path.extname(filename).toLowerCase();
-    const uniqueName = `${crypto.randomUUID()}${ext}`;
+    // 存储扩展名完全由已验证的 MIME 决定，绝不沿用客户端文件名中的扩展名。
+    const ext = MIME_EXTENSION_MAP[mimetype];
+    const uniqueName = `${crypto.randomUUID()}.${ext}`;
     const objectKey = `${dateDir}/${uniqueName}`;
     const stored = await this.fileStorage.put(objectKey, buffer, mimetype);
+    const originalName = this.sanitizeOriginalName(filename);
 
     // 计算 MD5
     const md5 = crypto.createHash('md5').update(new Uint8Array(buffer)).digest('hex');
@@ -76,12 +112,12 @@ export class FileService {
       record = await this.prisma.sysFile.create({
         data: {
           fileName: uniqueName,
-          originalName: filename,
+          originalName,
           filePath: stored.key,
           url: stored.url,
           fileSize: buffer.length,
           mimeType: mimetype,
-          ext: ext.replace('.', ''),
+          ext,
           storageType: stored.storageType,
           md5,
           createBy,
@@ -97,8 +133,52 @@ export class FileService {
       throw error;
     }
 
-    this.logger.log(`文件上传成功: ${filename} → ${stored.url}`);
+    this.logger.log(`文件上传成功: ${originalName} → ${stored.url}`);
     return record;
+  }
+
+  /**
+   * 使用文件魔数校验二进制类型；文本类型没有稳定魔数，因此严格验证 UTF-8 编码，
+   * 并统一使用服务端分配的 .txt/.csv 扩展名配合 nosniff 响应头。
+   */
+  private async validateFileContent(mimetype: string, buffer: Buffer): Promise<void> {
+    if (TEXT_MIME_TYPES.has(mimetype)) {
+      try {
+        new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+      } catch {
+        throw new BadRequestException('文本文件必须使用有效的 UTF-8 编码');
+      }
+
+      if (buffer.includes(0)) {
+        throw new BadRequestException('文本文件包含非法的二进制内容');
+      }
+      return;
+    }
+
+    const escapedMimeType = mimetype.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const validator = new FileTypeValidator({
+      fileType: new RegExp(`^${escapedMimeType}$`),
+    });
+    const isValid = await validator.isValid({
+      buffer,
+      mimetype,
+      size: buffer.length,
+    });
+
+    if (!isValid) {
+      throw new BadRequestException('文件实际内容与声明类型不一致');
+    }
+  }
+
+  private sanitizeOriginalName(filename: string): string {
+    const sanitized = Array.from(path.basename(filename))
+      .filter((character) => {
+        const codePoint = character.codePointAt(0) ?? 0;
+        return codePoint > 31 && codePoint !== 127;
+      })
+      .join('')
+      .slice(0, 255);
+    return sanitized || 'file';
   }
 
   /**

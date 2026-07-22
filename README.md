@@ -144,6 +144,8 @@ FILE_STORAGE_TYPE=local
 
 完整变量见 `apps/api/.env.example`。如果使用 CDN、自定义域名或云厂商内网 Endpoint，请同时设置 `ALIYUN_OSS_PUBLIC_URL` / `TENCENT_COS_PUBLIC_URL`。前端会直接访问返回的公网 URL，因此 Bucket 或 CDN 需允许文件读取；API 下载接口仍可使用服务端密钥读取。
 
+上传文件会按文件魔数校验实际内容，存储扩展名由服务端根据验证后的 MIME 类型生成，不使用客户端文件名中的扩展名。HTML、SVG 以及无法可靠识别的旧式 `.doc/.xls` 不允许作为新文件上传；请使用 `.docx/.xlsx`。
+
 切换存储只影响新上传文件。系统会按数据库中的 `storageType` 下载和删除历史文件；若仍需管理历史云端文件，请保留对应厂商的密钥配置。
 
 ## Prisma Schema 多文件拆分

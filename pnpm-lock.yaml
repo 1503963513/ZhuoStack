@@ -95,6 +95,9 @@ importers:
       fastify:
         specifier: ^4.28.1
         version: 4.28.1
+      file-type:
+        specifier: 20.4.1
+        version: 20.4.1
       ioredis:
         specifier: ^5.11.0
         version: 5.11.0

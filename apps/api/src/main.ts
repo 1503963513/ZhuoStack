@@ -96,6 +96,9 @@ async function bootstrap() {
       decorateReply: false,
       setHeaders: (res) => {
         res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30 天
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        // 即使历史目录中残留 HTML/SVG，也禁止其在同源上下文执行脚本。
+        res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
       },
     });
     logger.log(`本地静态文件服务: ${urlPrefix} → ${uploadsDir}`);

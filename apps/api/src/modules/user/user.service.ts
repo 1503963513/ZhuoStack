@@ -138,13 +138,15 @@ export class UserService {
       }
     }
 
-    // 分离关系字段和普通字段
-    const { deptId, postIds, roleIds, role: roleValue, ...rest } = dto;
+    // 分离密码、关系字段和普通字段，避免管理员重置密码时把明文直接写入数据库。
+    const { password, deptId, postIds, roleIds, role: roleValue, ...rest } = dto;
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
 
     return this.prisma.user.update({
       where: { id },
       data: {
         ...rest,
+        ...(hashedPassword !== undefined && { password: hashedPassword }),
         // role 字段需要转为 Prisma 枚举
         ...(roleValue !== undefined && { role: roleValue as Role }),
         // 部门：通过关系连接
