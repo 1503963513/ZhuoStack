@@ -6,7 +6,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../database/redis.service';
@@ -453,11 +453,15 @@ export class AuthService {
     }
 
     const jti = crypto.randomUUID();
+    const expiresIn = this.configService.get<string>(
+      'JWT_EXPIRES_IN',
+      '7d',
+    ) as JwtSignOptions['expiresIn'];
     const token = this.jwtService.sign(
       { ...payload, jti },
       {
         secret: jwtSecret,
-        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
+        expiresIn,
       },
     );
 

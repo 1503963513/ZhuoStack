@@ -1,17 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { FastifyAdapter } from '@nestjs/platform-fastify';
+import { ValidationPipe } from '@nestjs/common';
+import {
+  FastifyAdapter,
+  type NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import { AppModule } from '../src/app.module';
 
 describe('App (e2e)', () => {
-  let app: INestApplication;
+  let app: NestFastifyApplication;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication<NestApplication>(
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter(),
     );
 

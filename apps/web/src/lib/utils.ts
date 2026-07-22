@@ -13,8 +13,8 @@ export function cn(...inputs: ClassValue[]) {
  * // → 'http://localhost:3100/files/2026/06/04/abc.png'（开发环境）
  * // → '/files/2026/06/04/abc.png'（生产环境，Nginx 同域代理时留空）
  */
-export function fileUrl(path: string | null | undefined): string {
-  if (!path) return '';
+export function fileUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const base = process.env.NEXT_PUBLIC_API_URL || '';
   return `${base}${path}`;

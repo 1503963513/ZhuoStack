@@ -115,7 +115,10 @@ async function bootstrap() {
   app.enableCors({
     origin: (
       origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
+      callback: (
+        err: Error | null,
+        allow: string | boolean | RegExp | Array<string | boolean | RegExp>,
+      ) => void,
     ) => {
       const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
         .split(',')

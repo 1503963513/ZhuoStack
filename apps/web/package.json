@@ -4,10 +4,10 @@
   "private": true,
   "description": "Next.js web application",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "clean": "rm -rf .next out"
   },
   "dependencies": {
@@ -20,11 +20,11 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-switch": "^1.2.6",
     "@tanstack/react-query": "^5.17.0",
-    "axios": "^1.6.5",
+    "axios": "^1.18.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.312.0",
-    "next": "14.1.0",
+    "next": "16.2.11",
     "next-themes": "^0.2.1",
     "node-forge": "^1.4.0",
     "react": "^18.2.0",
@@ -42,8 +42,8 @@
     "@types/react": "^18.2.47",
     "@types/react-dom": "^18.2.18",
     "autoprefixer": "^10.4.16",
-    "eslint": "^8.50.0",
-    "eslint-config-next": "14.1.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.2.11",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.2.2"
