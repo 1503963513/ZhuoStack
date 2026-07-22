@@ -17,7 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@myapp/shared-types": ["../../packages/shared-types/src"]
+      "@zhuostack/shared-types": ["../../packages/shared-types/src"]
     }
   },
   "include": [

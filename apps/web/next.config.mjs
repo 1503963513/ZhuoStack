@@ -7,7 +7,7 @@ const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 const nextConfig = {
   output: 'export',
   outputFileTracingRoot: workspaceRoot,
-  reactStrictMode: true,
+  reactStrictMode: false,
   // 静态导出时图片优化不可用，直接输出原图
   images: {
     unoptimized: true,

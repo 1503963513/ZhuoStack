@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-myapp}
+name: ${COMPOSE_PROJECT_NAME:-zhuostack}
 
 services:
   db:
@@ -11,9 +11,9 @@ services:
     mem_limit: ${DB_MEMORY_LIMIT:-1g}
     cpus: ${DB_CPU_LIMIT:-1.0}
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-myapp}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myapp123}
-      POSTGRES_DB: ${POSTGRES_DB:-myapp}
+      POSTGRES_USER: ${POSTGRES_USER:-zhuostack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zhuostack123}
+      POSTGRES_DB: ${POSTGRES_DB:-zhuostack}
       PGDATA: /var/lib/database/postgres
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
@@ -61,7 +61,7 @@ services:
         max-file: ${LOG_MAX_FILES:-5}
 
   api:
-    image: ${APP_IMAGE_PREFIX:-myapp}-api:${APP_VERSION:-latest}
+    image: ${APP_IMAGE_PREFIX:-zhuostack}-api:${APP_VERSION:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile.api
@@ -109,7 +109,7 @@ services:
         max-file: ${LOG_MAX_FILES:-5}
 
   web:
-    image: ${APP_IMAGE_PREFIX:-myapp}-web:${APP_VERSION:-latest}
+    image: ${APP_IMAGE_PREFIX:-zhuostack}-web:${APP_VERSION:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile.web

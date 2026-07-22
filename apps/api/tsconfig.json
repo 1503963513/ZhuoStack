@@ -16,7 +16,7 @@
     "types": ["node"],
     "paths": {
       "@/*": ["./src/*"],
-      "@myapp/shared-types": ["../../packages/shared-types/src"]
+      "@zhuostack/shared-types": ["../../packages/shared-types/src"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],

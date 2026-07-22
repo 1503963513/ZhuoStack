@@ -3,9 +3,9 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-myapp}
-      MYSQL_USER: ${MYSQL_USER:-myapp}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-myapp123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zhuostack}
+      MYSQL_USER: ${MYSQL_USER:-zhuostack}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-zhuostack123}
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
       - mysql_data:/var/lib/database

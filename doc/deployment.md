@@ -70,7 +70,7 @@ API 容器启动前默认在 `DB_MIGRATE_ON_START=true` 时执行 `prisma migrat
 
 ```dotenv
 DB_TYPE=mysql
-DATABASE_URL=mysql://myapp:myapp123@db:3306/myapp
+DATABASE_URL=mysql://zhuostack:zhuostack123@db:3306/zhuostack
 ```
 
 然后运行 `pnpm ops docker up`。脚本会自动叠加 `docker/compose.mysql.yml`，不需要手写多条 Compose 命令。已有 PostgreSQL 数据不会自动迁移到 MySQL。
@@ -129,7 +129,7 @@ pnpm ops pack pm2-online postgres
 上传 `deploy_pm2_online_*.tar.gz` 后，在目标机执行：
 
 ```bash
-mkdir -p /opt/myapp && cd /opt/myapp
+mkdir -p /opt/zhuostack && cd /opt/zhuostack
 tar -xzf deploy_pm2_online_*.tar.gz
 cp apps/api/.env.example apps/api/.env.production
 # 编辑 apps/api/.env.production
@@ -159,7 +159,7 @@ TARGET_ARCH=linux/arm64 pnpm ops pack pm2-offline postgres
 包内包含 Linux Node、项目本地 PM2、API 生产依赖和对应数据库的 Prisma Client。目标机无需 Node、pnpm、npm 源或 Docker：
 
 ```bash
-mkdir -p /opt/myapp && cd /opt/myapp
+mkdir -p /opt/zhuostack && cd /opt/zhuostack
 tar -xzf deploy_pm2_offline_*.tar.gz
 cp apps/api/.env.example apps/api/.env.production
 # 编辑 apps/api/.env.production，DB_TYPE 必须与包名一致
@@ -181,7 +181,7 @@ TARGET_ARCH=linux/arm64 pnpm ops pack docker-offline mysql
 将生成的单个压缩包拷入内网目标机：
 
 ```bash
-mkdir -p /opt/myapp && cd /opt/myapp
+mkdir -p /opt/zhuostack && cd /opt/zhuostack
 tar -xzf deploy_docker_offline_*.tar.gz
 bash scripts/deploy.sh docker up
 ```

@@ -1,9 +1,9 @@
 {
-  "name": "my-fullstack-app",
+  "name": "zhuostack",
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.32.1",
-  "description": "NestJS + Next.js fullstack monorepo",
+  "description": "Production-oriented NestJS + Next.js full-stack monorepo",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",

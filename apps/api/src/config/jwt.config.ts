@@ -24,8 +24,8 @@ export const jwtConfig = registerAs('jwt', () => {
   return {
     secret,
     expiresIn: process.env.JWT_EXPIRES_IN || '8h',
-    issuer: process.env.JWT_ISSUER || 'myapp-api',
-    audience: process.env.JWT_AUDIENCE || 'myapp-web',
+    issuer: process.env.JWT_ISSUER || 'zhuostack-api',
+    audience: process.env.JWT_AUDIENCE || 'zhuostack-web',
     algorithm: 'HS256',
   };
 });

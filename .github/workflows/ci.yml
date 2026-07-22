@@ -50,13 +50,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: myapp
+          POSTGRES_USER: zhuostack
           POSTGRES_PASSWORD: ci-postgres-password
-          POSTGRES_DB: myapp
+          POSTGRES_DB: zhuostack
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U myapp -d myapp"
+          --health-cmd "pg_isready -U zhuostack -d zhuostack"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -64,7 +64,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: ci-mysql-password
-          MYSQL_DATABASE: myapp
+          MYSQL_DATABASE: zhuostack
         ports:
           - 3306:3306
         options: >-
@@ -85,12 +85,12 @@ jobs:
       - name: Deploy PostgreSQL migration chain
         working-directory: apps/api
         env:
-          MIGRATION_TEST_DATABASE_URL: postgresql://myapp:ci-postgres-password@127.0.0.1:5432/myapp
+          MIGRATION_TEST_DATABASE_URL: postgresql://zhuostack:ci-postgres-password@127.0.0.1:5432/zhuostack
         run: pnpm db:verify:pg
       - name: Deploy MySQL migration chain
         working-directory: apps/api
         env:
-          MIGRATION_TEST_DATABASE_URL: mysql://root:ci-mysql-password@127.0.0.1:3306/myapp
+          MIGRATION_TEST_DATABASE_URL: mysql://root:ci-mysql-password@127.0.0.1:3306/zhuostack
         run: pnpm db:verify:mysql
 
   secrets:
@@ -113,20 +113,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build API image
-        run: docker build --build-arg DB_TYPE=postgres -f docker/Dockerfile.api -t myapp-api:ci .
+        run: docker build --build-arg DB_TYPE=postgres -f docker/Dockerfile.api -t zhuostack-api:ci .
       - name: Build Web image
-        run: docker build -f docker/Dockerfile.web -t myapp-web:ci .
+        run: docker build -f docker/Dockerfile.web -t zhuostack-web:ci .
       - name: Scan API image
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: myapp-api:ci
+          image-ref: zhuostack-api:ci
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
       - name: Scan Web image
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: myapp-web:ci
+          image-ref: zhuostack-web:ci
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'

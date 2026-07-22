@@ -1,6 +1,6 @@
-# NodeJs 全栈模板 - NestJS + Next.js 全栈 Monorepo
+# ZhuoStack
 
-基于现代 Web 技术构建的生产级全栈应用，采用 pnpm monorepo + Turborepo 组织。
+面向生产环境的 NestJS + Next.js 全栈中后台开发脚手架，采用 pnpm Monorepo + Turborepo 组织，内置双数据库迁移、RBAC、Redis、多云文件存储和 Docker/PM2 部署能力。
 
 ## 技术栈
 
@@ -26,7 +26,7 @@
 ## 项目结构
 
 ```
-my-fullstack-app/
+zhuostack/
 ├── apps/
 │   ├── api/                  # NestJS 后端
 │   │   ├── src/
@@ -270,6 +270,6 @@ GitHub Actions 会在主分支推送和 Pull Request 上执行类型检查、零
 
 生产 Compose 默认给容器配置了进程数、CPU、内存和日志轮转上限；API 与 Web 文件系统均为只读，API 仅 `/tmp` 与上传卷可写，并移除全部 Linux capabilities，Web 只保留 Nginx 启动所需的最小 capabilities 和临时目录。实际上线前仍需结合业务容量调整 `.env.deploy` 中的资源值，并在平台侧配置指标、告警与数据库备份恢复演练。
 
-## 许可证
+## 开源协议
 
-MIT
+本项目基于 [Apache License 2.0](LICENSE) 开源。你可以在遵守协议条款的前提下使用、修改和分发本项目；完整授权范围、再分发要求、专利许可及免责声明以 [LICENSE](LICENSE) 中的英文正文为准。

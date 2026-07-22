@@ -250,8 +250,8 @@ async function bootstrap() {
   // Swagger setup（通过 SWAGGER_ENABLED=true 启用，不受 NODE_ENV 限制）
   if (swaggerEnabled) {
     const config = new DocumentBuilder()
-      .setTitle('NodeJs 全栈模板 API')
-      .setDescription('基于 NestJS + Fastify + Prisma 的 API 文档')
+      .setTitle('ZhuoStack API')
+      .setDescription('ZhuoStack 基于 NestJS + Fastify + Prisma 的 API 文档')
       .setVersion('1.0')
       .addBearerAuth()
       .build();

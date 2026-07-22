@@ -5,7 +5,7 @@ const root = __dirname;
 module.exports = {
   apps: [
     {
-      name: process.env.PM2_APP_NAME || 'myapp-api',
+      name: process.env.PM2_APP_NAME || 'zhuostack-api',
       script: path.join(root, 'apps/api/dist/src/main.js'),
       cwd: path.join(root, 'apps/api'),
       interpreter: process.env.NODE_BINARY || 'node',

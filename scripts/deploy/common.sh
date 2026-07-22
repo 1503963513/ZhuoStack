@@ -102,9 +102,9 @@ ensure_deploy_env() {
     set_env_value .env.deploy MYSQL_ROOT_PASSWORD "$mysql_root_password"
     db_type=$(db_type_from_file .env.deploy)
     if [ "$db_type" = mysql ]; then
-      set_env_value .env.deploy DATABASE_URL "mysql://myapp:${mysql_password}@db:3306/myapp"
+      set_env_value .env.deploy DATABASE_URL "mysql://zhuostack:${mysql_password}@db:3306/zhuostack"
     else
-      set_env_value .env.deploy DATABASE_URL "postgresql://myapp:${postgres_password}@db:5432/myapp"
+      set_env_value .env.deploy DATABASE_URL "postgresql://zhuostack:${postgres_password}@db:5432/zhuostack"
     fi
     chmod 600 .env.deploy 2>/dev/null || true
     warn "已创建 .env.deploy 并生成数据库密码和 JWT 密钥；生产部署前请检查 CORS_ORIGIN 与 TLS 证书"

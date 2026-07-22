@@ -115,7 +115,7 @@ const form = useForm<MyFormValues>({
 ## 核心规则
 
 - **`'use client'` 指令**：任何使用 hooks、state 或浏览器 API 的组件都必须添加
-- **路径别名**：`@/*` 映射到 `./src/*`，`@myapp/shared-types` 映射到共享类型包
+- **路径别名**：`@/*` 映射到 `./src/*`，`@zhuostack/shared-types` 映射到共享类型包
 - **禁止 `any`** — 强制 TypeScript 严格模式
 - **CSS**：仅使用 Tailwind — 不用 CSS Modules、不用 styled-components
 - **API 请求**：`api-client.ts` 通过 `NEXT_PUBLIC_API_URL` 直接请求后端（静态站点无代理）

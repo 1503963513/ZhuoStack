@@ -1,4 +1,4 @@
-name: myapp-dev
+name: zhuostack-dev
 
 services:
   mysql:
@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-myapp}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zhuostack}
       TZ: ${TZ:-Asia/Shanghai}
     ports:
       - '127.0.0.1:${MYSQL_DEV_PORT:-3307}:3306'

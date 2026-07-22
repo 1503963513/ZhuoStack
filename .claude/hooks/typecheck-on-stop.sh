@@ -14,7 +14,7 @@ if ! has_ts_changes; then
   exit 0
 fi
 
-# 跑类型检查（用 api 的 typescript + tsconfig，含 @/* 与 @myapp/shared-types 别名）
+# 跑类型检查（用 api 的 typescript + tsconfig，含 @/* 与 @zhuostack/shared-types 别名）
 if out=$(pnpm --filter api exec tsc --noEmit 2>&1); then
   exit 0
 fi

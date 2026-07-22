@@ -45,13 +45,13 @@ describe('FileStorageService', () => {
     const service = new FileStorageService(
       new ConfigService({
         FILE_STORAGE_PATH: storageDir,
-        FILE_OBJECT_PREFIX: 'myapp/uploads/',
+        FILE_OBJECT_PREFIX: 'zhuostack/uploads/',
       }),
     );
 
     const stored = await service.put('2026/demo.txt', Buffer.from('demo'), 'text/plain');
 
-    expect(stored.key).toBe('myapp/uploads/2026/demo.txt');
+    expect(stored.key).toBe('zhuostack/uploads/2026/demo.txt');
     expect(fs.existsSync(path.join(storageDir, stored.key))).toBe(true);
   });
 

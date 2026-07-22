@@ -2,7 +2,7 @@
   "name": "web",
   "version": "1.0.0",
   "private": true,
-  "description": "Next.js web application",
+  "description": "ZhuoStack Next.js web application",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",

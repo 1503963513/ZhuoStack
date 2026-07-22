@@ -41,8 +41,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
       algorithms: ['HS256'],
-      issuer: configService.get<string>('JWT_ISSUER', 'myapp-api'),
-      audience: configService.get<string>('JWT_AUDIENCE', 'myapp-web'),
+      issuer: configService.get<string>('JWT_ISSUER', 'zhuostack-api'),
+      audience: configService.get<string>('JWT_AUDIENCE', 'zhuostack-web'),
       passReqToCallback: true,
     });
 

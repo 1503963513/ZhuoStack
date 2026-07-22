@@ -73,7 +73,7 @@ pm2_start() {
   mkdir -p logs
   pm2_command start ecosystem.config.js --update-env
   pm2_health_check || {
-    pm2_command logs myapp-api --lines 50 --nostream || true
+    pm2_command logs zhuostack-api --lines 50 --nostream || true
     die "API 健康检查失败"
   }
   pm2_command save
@@ -125,7 +125,7 @@ pm2_deploy() {
     restart) pm2_restart ;;
     update) pm2_update "${1:-}" ;;
     stop) pm2_command stop ecosystem.config.js ;;
-    logs) pm2_command logs myapp-api --lines 200 ;;
+    logs) pm2_command logs zhuostack-api --lines 200 ;;
     status|ps) pm2_command status ;;
     db-sync|db-migrate) pm2_migrate_database ;;
     *) usage; exit 1 ;;

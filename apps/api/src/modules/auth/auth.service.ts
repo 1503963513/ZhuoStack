@@ -479,8 +479,8 @@ export class AuthService {
         secret: jwtSecret,
         expiresIn,
         algorithm: 'HS256',
-        issuer: this.configService.get<string>('JWT_ISSUER', 'myapp-api'),
-        audience: this.configService.get<string>('JWT_AUDIENCE', 'myapp-web'),
+        issuer: this.configService.get<string>('JWT_ISSUER', 'zhuostack-api'),
+        audience: this.configService.get<string>('JWT_AUDIENCE', 'zhuostack-web'),
       },
     );
 

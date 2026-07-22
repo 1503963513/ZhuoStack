@@ -14,7 +14,7 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "@myapp/shared-types": ["./packages/shared-types/src"]
+      "@zhuostack/shared-types": ["./packages/shared-types/src"]
     }
   },
   "exclude": ["node_modules", "dist"]

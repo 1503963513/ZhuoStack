@@ -51,7 +51,7 @@ pnpm docker:down
 | `apps/web`              | Next.js 14 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
 | `packages/shared-types` | 共享 TypeScript 类型（`ApiResponse<T>`, `User`, `Role`）       | —    |
 
-路径别名：`@/*` → `./src/*`（两个应用通用），`@myapp/shared-types` → `packages/shared-types/src`。
+路径别名：`@/*` → `./src/*`（两个应用通用），`@zhuostack/shared-types` → `packages/shared-types/src`。
 
 ### 后端 API 层 (`apps/api`)
 

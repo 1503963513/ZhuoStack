@@ -3,8 +3,8 @@ import { Providers } from '@/components/layout/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'NodeJs 全栈模板',
-  description: '基于 NestJS + Next.js 的全栈应用模板',
+  title: 'ZhuoStack',
+  description: '面向生产环境的 NestJS + Next.js 全栈中后台开发脚手架',
 };
 
 export default function RootLayout({

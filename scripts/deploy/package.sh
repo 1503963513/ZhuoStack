@@ -69,13 +69,13 @@ pack_docker_offline() {
   mkdir -p "$staging/docker" "$staging/scripts"
 
   cp .env.deploy.example "$staging/.env.deploy.example"
-  set_env_value "$staging/.env.deploy.example" APP_IMAGE_PREFIX myapp
+  set_env_value "$staging/.env.deploy.example" APP_IMAGE_PREFIX zhuostack
   set_env_value "$staging/.env.deploy.example" APP_VERSION "$version"
   set_env_value "$staging/.env.deploy.example" DB_TYPE "$db_type"
   if [ "$db_type" = mysql ]; then
-    set_env_value "$staging/.env.deploy.example" DATABASE_URL 'mysql://myapp:myapp123@db:3306/myapp'
+    set_env_value "$staging/.env.deploy.example" DATABASE_URL 'mysql://zhuostack:zhuostack123@db:3306/zhuostack'
   else
-    set_env_value "$staging/.env.deploy.example" DATABASE_URL 'postgresql://myapp:myapp123@db:5432/myapp'
+    set_env_value "$staging/.env.deploy.example" DATABASE_URL 'postgresql://zhuostack:zhuostack123@db:5432/zhuostack'
   fi
   cp docker-compose.yml "$staging/"
   cp docker/compose.mysql.yml "$staging/docker/"
@@ -86,12 +86,12 @@ pack_docker_offline() {
   info "为 $platform 构建 $db_type 应用镜像"
   if [ "$db_type" = mysql ]; then
     db_image=mysql:8.0
-    DOCKER_DEFAULT_PLATFORM="$platform" APP_IMAGE_PREFIX=myapp APP_VERSION="$version" DB_TYPE=mysql docker compose --env-file .env.deploy -f docker-compose.yml -f docker/compose.mysql.yml build
-    image_list=$(APP_IMAGE_PREFIX=myapp APP_VERSION="$version" DB_TYPE=mysql docker compose --env-file .env.deploy -f docker-compose.yml -f docker/compose.mysql.yml config --images)
+    DOCKER_DEFAULT_PLATFORM="$platform" APP_IMAGE_PREFIX=zhuostack APP_VERSION="$version" DB_TYPE=mysql docker compose --env-file .env.deploy -f docker-compose.yml -f docker/compose.mysql.yml build
+    image_list=$(APP_IMAGE_PREFIX=zhuostack APP_VERSION="$version" DB_TYPE=mysql docker compose --env-file .env.deploy -f docker-compose.yml -f docker/compose.mysql.yml config --images)
   else
     db_image=postgres:16-alpine
-    DOCKER_DEFAULT_PLATFORM="$platform" APP_IMAGE_PREFIX=myapp APP_VERSION="$version" DB_TYPE=postgres docker compose --env-file .env.deploy -f docker-compose.yml build
-    image_list=$(APP_IMAGE_PREFIX=myapp APP_VERSION="$version" DB_TYPE=postgres docker compose --env-file .env.deploy -f docker-compose.yml config --images)
+    DOCKER_DEFAULT_PLATFORM="$platform" APP_IMAGE_PREFIX=zhuostack APP_VERSION="$version" DB_TYPE=postgres docker compose --env-file .env.deploy -f docker-compose.yml build
+    image_list=$(APP_IMAGE_PREFIX=zhuostack APP_VERSION="$version" DB_TYPE=postgres docker compose --env-file .env.deploy -f docker-compose.yml config --images)
   fi
   docker pull --platform "$platform" "$db_image"
   docker pull --platform "$platform" redis:7-alpine

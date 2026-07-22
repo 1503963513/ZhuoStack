@@ -2,7 +2,7 @@
   "name": "api",
   "version": "1.0.0",
   "private": true,
-  "description": "NestJS API application",
+  "description": "ZhuoStack NestJS API application",
   "scripts": {
     "build": "nest build",
     "dev": "pnpm prisma:prepare:dev && nest start --watch",
