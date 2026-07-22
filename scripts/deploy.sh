@@ -55,7 +55,7 @@ usage() {
   Nginx 模板：docker/nginx.pm2.conf
 
 ────────────────────────────────────────────────────────────
-3. 制作部署包
+3. 制作 PM2 部署包
 
   # PM2 在线包：目标机需要 Node.js、pnpm 和 npm 源
   pnpm ops pack pm2-online postgres
@@ -66,18 +66,44 @@ usage() {
   # 同时生成 PM2 在线包和离线包
   pnpm ops pack pm2-all postgres
 
-  # Docker 离线包：自带应用、数据库和 Redis 镜像
-  pnpm ops pack docker-offline postgres
-
   # 交互式选择包类型与数据库
   pnpm release
 
   postgres 可替换为 mysql。离线包数据库类型必须与目标环境一致。
-  ARM64 目标机示例：
+
+────────────────────────────────────────────────────────────
+4. 构建并导出 Docker 镜像
+
+  AMD x86 Ubuntu 服务器对应 linux/amd64，服务器执行 uname -m 应输出 x86_64。
+
+  # PostgreSQL：构建 API、Web，并导出 PostgreSQL、Redis 等全部镜像
+  TARGET_ARCH=linux/amd64 pnpm ops pack docker-offline postgres
+
+  # MySQL：构建 API、Web，并导出 MySQL、Redis 等全部镜像
+  TARGET_ARCH=linux/amd64 pnpm ops pack docker-offline mysql
+
+  linux/amd64 是默认目标，AMD x86 服务器也可直接执行：
+  pnpm ops pack docker-offline postgres
+
+  输出文件：
+  deploy_docker_offline_<数据库>_<时间>.tar.gz
+
+  压缩包包含：
+    offline-images.tar       # docker save 导出的全部镜像
+    docker-compose.yml       # 服务编排
+    .env.deploy.example      # 生产配置模板，不包含生产密钥
+    docker/                  # MySQL override 等配置
+    scripts/                 # 内网服务器部署入口
+
+  # 只构建 API 和 Web 镜像，不导出、不启动
+  pnpm ops docker config >/dev/null
+  docker compose --env-file .env.deploy build
+
+  其他架构示例：
   TARGET_ARCH=linux/arm64 pnpm ops pack docker-offline postgres
 
 ────────────────────────────────────────────────────────────
-4. 部署离线包
+5. 部署离线包
 
   Docker 离线包：
     tar -xzf deploy_docker_offline_*.tar.gz
@@ -94,7 +120,7 @@ usage() {
   生产密钥不会从打包机写入离线包，应在目标服务器配置。
 
 ────────────────────────────────────────────────────────────
-5. 更新服务
+6. 更新服务
 
   Docker 联网更新：
     # 更新代码后重新构建并替换发生变化的容器，保留 .env.deploy 和数据卷
@@ -113,7 +139,7 @@ usage() {
   回滚时使用上一个部署包重复对应更新流程。
 
 ────────────────────────────────────────────────────────────
-6. 数据库结构变更
+7. 数据库结构变更
 
   Docker：
     .env.deploy 中 DB_AUTO_SYNC=true 时，API 启动前自动执行 prisma db push。
@@ -126,7 +152,7 @@ usage() {
   应用更新不会清空 Docker 数据卷或外部数据库中的业务数据。
 
 ────────────────────────────────────────────────────────────
-7. 常用运维
+8. 常用运维
 
   pnpm ops docker status      # 查看容器状态
   pnpm ops docker logs        # 持续查看容器日志
