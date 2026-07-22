@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormData } from '@/schemas/auth.schema';
@@ -20,7 +19,7 @@ import {
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
-import { get } from '@/lib/api-client';
+import { useApiQuery } from '@/hooks/use-api';
 
 export function LoginForm() {
   const {
@@ -33,24 +32,15 @@ export function LoginForm() {
 
   const loginMutation = useLogin();
 
-  // 验证码状态
-  const [captchaId, setCaptchaId] = useState('');
-  const [captchaImage, setCaptchaImage] = useState('');
-
-  /** 获取验证码 */
-  const fetchCaptcha = useCallback(async () => {
-    try {
-      const res = await get<{ captchaId: string; captchaImage: string }>('/api/auth/captcha');
-      setCaptchaId(res.data.captchaId);
-      setCaptchaImage(res.data.captchaImage);
-    } catch {
-      toast.error('获取验证码失败');
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCaptcha();
-  }, [fetchCaptcha]);
+  const { data: captchaResponse, refetch: fetchCaptcha } = useApiQuery<{
+    captchaId: string;
+    captchaImage: string;
+  }>(['login-captcha'], '/api/auth/captcha', {
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+  const captchaId = captchaResponse?.data.captchaId ?? '';
+  const captchaImage = captchaResponse?.data.captchaImage ?? '';
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -62,11 +52,11 @@ export function LoginForm() {
             toast.error('登录失败', {
               description: error.message || '邮箱或密码错误',
             });
-            fetchCaptcha();
+            void fetchCaptcha();
           },
         },
       );
-    } catch (e) {
+    } catch {
       toast.error('加密失败，请刷新页面重试');
     }
   };
@@ -103,7 +93,7 @@ export function LoginForm() {
               />
               <div
                 className="shrink-0 cursor-pointer h-10 w-28 rounded-md border border-input bg-background overflow-hidden flex items-center justify-center [&>svg]:h-8 [&>svg]:w-full"
-                onClick={fetchCaptcha}
+                onClick={() => void fetchCaptcha()}
                 title="点击刷新验证码"
                 dangerouslySetInnerHTML={{ __html: captchaImage }}
               />

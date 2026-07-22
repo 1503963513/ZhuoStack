@@ -24,7 +24,6 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -34,7 +33,7 @@ import { FileEntity, UploadResultEntity } from './entities/file.entity';
 
 @ApiTags('系统-文件管理')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('system/file')
 export class FileController {
   constructor(private readonly fileService: FileService) {}

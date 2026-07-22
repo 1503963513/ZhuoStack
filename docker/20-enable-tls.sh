@@ -11,5 +11,6 @@ elif [ -f "$cert" ] || [ -f "$key" ]; then
   echo "Both tls.crt and tls.key are required." >&2
   exit 1
 else
+  cp /etc/nginx/nginx.http.conf /etc/nginx/conf.d/default.conf
   echo "No local TLS certificate found; expecting HTTPS termination at an upstream proxy."
 fi

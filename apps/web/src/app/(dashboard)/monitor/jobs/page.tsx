@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Play, Pause, Timer, Zap } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 
 interface Job {
   id: string;
@@ -29,8 +30,8 @@ export default function JobsPage() {
       const actionMap = { start: '启动', stop: '停止', run: '执行' };
       toast.success(`任务 ${name} 已${actionMap[action]}`);
       refetch();
-    } catch (err: any) {
-      toast.error('操作失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('操作失败', { description: getErrorMessage(error) });
     }
   };
 

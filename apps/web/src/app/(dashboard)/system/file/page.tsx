@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import NextImage from 'next/image';
 import { useApiQuery } from '@/hooks/use-api';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -381,13 +382,15 @@ export default function FilePage() {
 
                     {/* 预览区域 */}
                     <div
-                      className="mb-2 flex h-16 items-center justify-center rounded-md bg-muted/30 overflow-hidden"
+                      className="relative mb-2 flex h-16 items-center justify-center overflow-hidden rounded-md bg-muted/30"
                       onClick={(e) => { e.stopPropagation(); if (isImage(file.mimeType)) setPreviewFile(file); }}
                     >
                       {isImage(file.mimeType) ? (
-                        <img
-                          src={fileUrl(file.url)}
+                        <NextImage
+                          src={fileUrl(file.url) ?? file.url}
                           alt={file.originalName}
+                          fill
+                          sizes="(min-width: 1536px) 16vw, (min-width: 1024px) 20vw, 50vw"
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -531,9 +534,11 @@ export default function FilePage() {
           </DialogHeader>
           {previewFile && (
             <div className="flex justify-center">
-              <img
-                src={fileUrl(previewFile.url)}
+              <NextImage
+                src={fileUrl(previewFile.url) ?? previewFile.url}
                 alt={previewFile.originalName}
+                width={1200}
+                height={800}
                 className="max-h-[60vh] rounded-md object-contain"
               />
             </div>

@@ -24,14 +24,13 @@ import {
   CreateDictDataDto,
   UpdateDictDataDto,
 } from './dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-字典管理')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('system/dict')
 export class DictController {
   constructor(private readonly dictService: DictService) {}

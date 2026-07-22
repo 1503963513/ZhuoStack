@@ -17,14 +17,13 @@ import {
 } from '@nestjs/swagger';
 import { MenuService } from './menu.service';
 import { CreateMenuDto, UpdateMenuDto } from './dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-菜单管理')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('system/menu')
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}

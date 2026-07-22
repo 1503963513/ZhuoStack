@@ -2,6 +2,9 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../../../database/prisma.service';
 import { RedisService } from '../../../database/redis.service';
 import { CreateDeptDto, UpdateDeptDto } from './dto';
+import type { SysDept } from '@prisma/client';
+
+type DeptTreeNode = SysDept & { children: DeptTreeNode[] };
 
 // 缓存键
 const DEPT_TREE_CACHE_KEY = 'dept:tree';
@@ -164,7 +167,10 @@ export class DeptService {
   /**
    * 构建树形结构
    */
-  private buildTree(depts: any[], parentId: string | null = null): any[] {
+  private buildTree(
+    depts: SysDept[],
+    parentId: string | null = null,
+  ): DeptTreeNode[] {
     return depts
       .filter((dept) => dept.parentId === parentId)
       .map((dept) => ({

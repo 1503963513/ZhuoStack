@@ -60,7 +60,9 @@ pnpm ops docker restart
 pnpm ops docker down
 ```
 
-数据库结构默认在 API 容器启动前通过 `prisma db push` 同步。希望由独立迁移流程管理时，把 `.env.deploy` 中的 `DB_AUTO_SYNC` 改为 `false`。
+API 容器启动前默认在 `DB_MIGRATE_ON_START=true` 时执行 `prisma migrate deploy`，只应用已经提交并审核过的迁移。若迁移由独立发布任务执行，可设为 `false`，但必须在启动新版本应用前完成迁移；生产环境不使用 `prisma db push`。
+
+从旧版 `DB_AUTO_SYNC/db push` 升级的已有非空数据库没有迁移元数据，不能直接启动新版容器。请先停止写入并完成备份，再按 [Prisma 双数据库与迁移规范](../apps/api/prisma/README.md#从旧版-db-push-部署升级) 做一次零漂移基线登记。全新空库不需要基线。
 
 ### 切换 MySQL
 
@@ -98,10 +100,10 @@ pnpm build:deploy
 pnpm ops pm2 start
 ```
 
-首次运行会创建 `apps/api/.env.production` 并生成 JWT 密钥。旧版的 `apps/api/.env` 会自动迁移。修改数据库连接后，如需手动同步结构：
+首次运行会创建 `apps/api/.env.production` 并生成 JWT 密钥。旧版的 `apps/api/.env` 会自动迁移。`DB_MIGRATE_ON_START=true` 时，`start/restart/update` 会先执行已审核迁移；若关闭自动迁移，可手动执行：
 
 ```bash
-pnpm ops pm2 db-sync
+pnpm ops pm2 db-migrate
 pnpm ops pm2 restart
 ```
 

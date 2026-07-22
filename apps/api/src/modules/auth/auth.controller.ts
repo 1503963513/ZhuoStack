@@ -3,7 +3,6 @@ import {
   Post,
   Get,
   Body,
-  UseGuards,
   HttpCode,
   HttpStatus,
   Req,
@@ -20,8 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import * as crypto from 'crypto';
 import { LoginDto, RegisterDto } from './dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../../common/decorators';
+import { CurrentUser, Public } from '../../common/decorators';
 import {
   AUTH_COOKIE_NAME,
   CSRF_COOKIE_NAME,
@@ -79,6 +77,7 @@ export class AuthController {
   }
 
   @Get('public-key')
+  @Public()
   @ApiOperation({ summary: '获取 RSA 公钥（用于密码加密传输）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   getPublicKey() {
@@ -86,6 +85,7 @@ export class AuthController {
   }
 
   @Get('captcha')
+  @Public()
   @ApiOperation({ summary: '获取图形验证码' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getCaptcha() {
@@ -93,6 +93,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   @ApiOperation({ summary: '用户注册' })
   @ApiResponse({ status: 201, description: '注册成功' })
   @ApiResponse({ status: 409, description: '邮箱已注册' })
@@ -101,7 +102,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const ip = req.ip || 'unknown';
     const uaInfo = this.parseUA(req);
     const result = await this.authService.register(dto, String(ip), uaInfo);
     this.issueAuthCookies(reply, result.access_token);
@@ -109,6 +110,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登录' })
   @ApiResponse({ status: 200, description: '登录成功' })
@@ -118,7 +120,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const ip = req.ip || 'unknown';
     const uaInfo = this.parseUA(req);
     const result = await this.authService.login(dto, String(ip), uaInfo);
     this.issueAuthCookies(reply, result.access_token);
@@ -126,7 +128,6 @@ export class AuthController {
   }
 
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户资料' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -137,7 +138,6 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '退出登录（Token 失效）' })
   @ApiResponse({ status: 200, description: '退出成功' })
@@ -154,7 +154,6 @@ export class AuthController {
   }
 
   @Get('menus')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户的菜单权限（按角色过滤）' })
   @ApiResponse({ status: 200, description: '获取成功' })

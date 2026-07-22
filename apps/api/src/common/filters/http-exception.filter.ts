@@ -51,7 +51,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // 未受控异常的原始消息只写服务端日志，避免泄露 SQL、路径和 SDK 细节。
       this.logger.error(
         `Unhandled exception: ${exception.message}`,
         exception.stack,

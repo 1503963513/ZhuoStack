@@ -67,6 +67,9 @@ pm2_health_check() {
 pm2_start() {
   [ -f apps/api/dist/src/main.js ] || die "缺少 apps/api/dist/src/main.js，请先 pnpm build:deploy 或使用部署包"
   pm2_prepare
+  if [ "$(env_value apps/api/.env.production DB_MIGRATE_ON_START true)" = true ]; then
+    pm2_migrate_database
+  fi
   mkdir -p logs
   pm2_command start ecosystem.config.js --update-env
   pm2_health_check || {
@@ -79,6 +82,9 @@ pm2_start() {
 
 pm2_restart() {
   pm2_prepare
+  if [ "$(env_value apps/api/.env.production DB_MIGRATE_ON_START true)" = true ]; then
+    pm2_migrate_database
+  fi
   pm2_command restart ecosystem.config.js --update-env
   pm2_health_check
   ok "API 已重启"
@@ -99,14 +105,15 @@ pm2_update() {
   pm2_restart
 }
 
-pm2_sync_database() {
+pm2_migrate_database() {
   ensure_api_env
   select_node_runtime
   local db_type
   db_type=$(db_type_from_file apps/api/.env.production)
   activate_prisma_schema "$db_type"
-  (cd apps/api && ./node_modules/.bin/prisma db push --schema=prisma/schema.active --skip-generate)
-  ok "数据库结构同步完成"
+  # 显式加载 .env.production；直接使用随离线包携带的 Node，不依赖目标机安装 pnpm。
+  (cd apps/api && "$NODE_BINARY" --env-file-if-exists=.env.production ./node_modules/prisma/build/index.js migrate deploy --schema=prisma/schema.active)
+  ok "数据库迁移完成"
 }
 
 pm2_deploy() {
@@ -120,7 +127,7 @@ pm2_deploy() {
     stop) pm2_command stop ecosystem.config.js ;;
     logs) pm2_command logs myapp-api --lines 200 ;;
     status|ps) pm2_command status ;;
-    db-sync) pm2_sync_database ;;
+    db-sync|db-migrate) pm2_migrate_database ;;
     *) usage; exit 1 ;;
   esac
 }

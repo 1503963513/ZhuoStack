@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { PermissionButton } from '@/components/common/permission-button';
+import { getErrorMessage } from '@/lib/utils';
 
 interface LoginLog {
   id: string;
@@ -28,6 +29,11 @@ interface LoginLog {
   loginTime: string;
 }
 
+interface PaginatedLoginLogs {
+  data: LoginLog[];
+  pagination: { total: number; page: number; pageSize: number; totalPages: number };
+}
+
 export default function LoginLogPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -36,7 +42,7 @@ export default function LoginLogPage() {
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const { data, isLoading, refetch } = useApiQuery<any>(
+  const { data, isLoading, refetch } = useApiQuery<PaginatedLoginLogs>(
     ['login-logs', String(page), String(pageSize), debouncedUsername],
     buildUrl('/api/log/login', { page, pageSize, username: debouncedUsername || undefined }),
   );
@@ -49,8 +55,8 @@ export default function LoginLogPage() {
       await del('/api/log/login');
       toast.success('登录日志已清空');
       refetch();
-    } catch (err: any) {
-      toast.error('清空失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('清空失败', { description: getErrorMessage(error) });
     }
   };
 

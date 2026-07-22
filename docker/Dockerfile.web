@@ -18,7 +18,7 @@ COPY packages/shared-types packages/shared-types
 RUN pnpm --filter web build
 
 FROM nginx:1.27-alpine AS runtime
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx.conf /etc/nginx/nginx.http.conf
 COPY docker/nginx.tls.conf /etc/nginx/nginx.tls.conf
 COPY --chmod=755 docker/20-enable-tls.sh /docker-entrypoint.d/20-enable-tls.sh
 COPY --from=builder /app/apps/web/out /usr/share/nginx/html

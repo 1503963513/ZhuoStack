@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterFormData } from '@/schemas/auth.schema';
@@ -13,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
-import { get } from '@/lib/api-client';
+import { useApiQuery } from '@/hooks/use-api';
 
 export function RegisterForm() {
   const {
@@ -26,27 +25,23 @@ export function RegisterForm() {
 
   const registerMutation = useRegister();
 
-  // 验证码状态
-  const [captchaId, setCaptchaId] = useState('');
-  const [captchaImage, setCaptchaImage] = useState('');
-
-  /** 获取验证码 */
-  const fetchCaptcha = useCallback(async () => {
-    try {
-      const res = await get<{ captchaId: string; captchaImage: string }>('/api/auth/captcha');
-      setCaptchaId(res.data.captchaId);
-      setCaptchaImage(res.data.captchaImage);
-    } catch {
-      toast.error('获取验证码失败');
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCaptcha();
-  }, [fetchCaptcha]);
+  const { data: captchaResponse, refetch: fetchCaptcha } = useApiQuery<{
+    captchaId: string;
+    captchaImage: string;
+  }>(['register-captcha'], '/api/auth/captcha', {
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+  const captchaId = captchaResponse?.data.captchaId ?? '';
+  const captchaImage = captchaResponse?.data.captchaImage ?? '';
 
   const onSubmit = async (data: RegisterFormData) => {
-    const { confirmPassword: _, ...payload } = data;
+    const payload = {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      captchaCode: data.captchaCode,
+    };
     try {
       const encryptedPassword = await encryptPassword(payload.password);
       registerMutation.mutate(
@@ -56,7 +51,7 @@ export function RegisterForm() {
             toast.error('注册失败', {
               description: error.message || '无法创建账号',
             });
-            fetchCaptcha();
+            void fetchCaptcha();
           },
         },
       );
@@ -115,7 +110,7 @@ export function RegisterForm() {
               />
               <div
                 className="shrink-0 cursor-pointer h-10 w-28 rounded-md border border-input bg-background overflow-hidden flex items-center justify-center [&>svg]:h-8 [&>svg]:w-full"
-                onClick={fetchCaptcha}
+                onClick={() => void fetchCaptcha()}
                 title="点击刷新验证码"
                 dangerouslySetInnerHTML={{ __html: captchaImage }}
               />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -47,20 +47,18 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
-  const [inputPage, setInputPage] = useState(String(page));
-
-  useEffect(() => {
-    setInputPage(String(page));
-  }, [page]);
+  const [inputPage, setInputPage] = useState<string | null>(null);
+  const displayedPage = inputPage ?? String(page);
 
   if (totalPages <= 1) return null;
 
   const handleJump = () => {
-    const num = parseInt(inputPage, 10);
+    const num = parseInt(displayedPage, 10);
     if (!isNaN(num) && num >= 1 && num <= totalPages) {
+      setInputPage(null);
       onPageChange(num);
     } else {
-      setInputPage(String(page));
+      setInputPage(null);
     }
   };
 
@@ -100,7 +98,7 @@ export function Pagination({
       <div className="flex items-center gap-1">
         <Input
           className="h-8 w-12 text-center"
-          value={inputPage}
+          value={displayedPage}
           onChange={(e) => setInputPage(e.target.value)}
           onBlur={handleJump}
           onKeyDown={(e) => e.key === 'Enter' && handleJump()}

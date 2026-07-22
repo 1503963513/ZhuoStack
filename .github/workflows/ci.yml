@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.32.1'
+
+jobs:
+  quality:
+    name: Typecheck, lint, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate PostgreSQL Prisma client
+        run: pnpm --filter api db:use:pg && pnpm --filter api prisma:generate
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm test:e2e
+      - run: pnpm build
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
+  migrations:
+    name: Verify PostgreSQL and MySQL migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: myapp
+          POSTGRES_PASSWORD: ci-postgres-password
+          POSTGRES_DB: myapp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U myapp -d myapp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-mysql-password
+          MYSQL_DATABASE: myapp
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -pci-mysql-password --silent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy PostgreSQL migration chain
+        working-directory: apps/api
+        env:
+          MIGRATION_TEST_DATABASE_URL: postgresql://myapp:ci-postgres-password@127.0.0.1:5432/myapp
+        run: pnpm db:verify:pg
+      - name: Deploy MySQL migration chain
+        working-directory: apps/api
+        env:
+          MIGRATION_TEST_DATABASE_URL: mysql://root:ci-mysql-password@127.0.0.1:3306/myapp
+        run: pnpm db:verify:mysql
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  images:
+    name: Build and scan container images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [quality, migrations]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build --build-arg DB_TYPE=postgres -f docker/Dockerfile.api -t myapp-api:ci .
+      - name: Build Web image
+        run: docker build -f docker/Dockerfile.web -t myapp-web:ci .
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: myapp-api:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan Web image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: myapp-web:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'

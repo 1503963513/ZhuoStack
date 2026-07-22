@@ -15,14 +15,13 @@ import {
 } from '@nestjs/swagger';
 import { MonitorService } from './monitor.service';
 import { SystemJobsService } from './system-jobs.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-系统监控')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('monitor')
 export class MonitorController {
   constructor(

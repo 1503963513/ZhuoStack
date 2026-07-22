@@ -52,6 +52,7 @@ pnpm-debug.log*
 
 # Prisma - active schema is generated from postgres/ or mysql/, not versioned
 apps/api/prisma/schema.active/
+apps/api/prisma/migrations
 
 # Turbo
 .turbo/

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, type ReactNode } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { fileUrl } from '@/lib/utils';
@@ -155,9 +156,11 @@ export function FileUpload({
             <div key={file.id} className="group relative">
               {mode === 'image' ? (
                 <div className="relative h-20 w-20 overflow-hidden rounded-md border">
-                  <img
-                    src={fileUrl(file.url)}
+                  <Image
+                    src={fileUrl(file.url) ?? file.url}
                     alt={file.originalName}
+                    fill
+                    sizes="80px"
                     className="h-full w-full object-cover"
                   />
                   {!disabled && (

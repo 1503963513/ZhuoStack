@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useApiQuery } from '@/hooks/use-api';
 import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Trash2, RefreshCw, Database, HardDrive } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 
 interface CacheInfo {
   status: string;
@@ -30,8 +31,8 @@ export default function CachePage() {
       await del(`/api/monitor/cache/${encodeURIComponent(key)}`);
       toast.success('删除成功');
       refetch();
-    } catch (err: any) {
-      toast.error('删除失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('删除失败', { description: getErrorMessage(error) });
     } finally {
       setDeleting(null);
     }
@@ -45,8 +46,8 @@ export default function CachePage() {
       await del('/api/monitor/cache');
       toast.success('缓存已清空');
       refetch();
-    } catch (err: any) {
-      toast.error('清空失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('清空失败', { description: getErrorMessage(error) });
     }
   };
 

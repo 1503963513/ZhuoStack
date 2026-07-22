@@ -17,6 +17,8 @@ Avatar.displayName = 'Avatar';
 const AvatarImage = React.forwardRef<HTMLImageElement, React.ImgHTMLAttributes<HTMLImageElement>>(
   ({ className, src, alt = '', ...props }, ref) =>
     src ? (
+      // This primitive deliberately preserves native img attributes and ref semantics.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         ref={ref}
         src={src}

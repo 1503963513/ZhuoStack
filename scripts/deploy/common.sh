@@ -55,6 +55,17 @@ ensure_strong_jwt() {
   esac
 }
 
+ensure_redis_password() {
+  local file=$1 password
+  password=$(env_value "$file" REDIS_PASSWORD '')
+  case "$password" in
+    ''|CHANGE_ME_*)
+      set_env_value "$file" REDIS_PASSWORD "$(random_secret)"
+      info "已为 $file 生成强随机 REDIS_PASSWORD"
+      ;;
+  esac
+}
+
 db_type_from_file() {
   local file=$1 value
   value=$(env_value "$file" DB_TYPE postgres)
@@ -62,6 +73,17 @@ db_type_from_file() {
     postgres|postgresql) printf 'postgres' ;;
     mysql) printf 'mysql' ;;
     *) die "DB_TYPE 只能是 postgres 或 mysql，当前为: $value" ;;
+  esac
+}
+
+ensure_database_config() {
+  local file=$1 db_type database_url
+  db_type=$(db_type_from_file "$file")
+  database_url=$(env_value "$file" DATABASE_URL '')
+  [ -n "$database_url" ] || die "$file 缺少 DATABASE_URL"
+  case "$db_type:$database_url" in
+    postgres:postgres://*|postgres:postgresql://*|mysql:mysql://*) ;;
+    *) die "$file 的 DB_TYPE=$db_type 与 DATABASE_URL 协议不匹配" ;;
   esac
 }
 
@@ -88,6 +110,8 @@ ensure_deploy_env() {
     warn "已创建 .env.deploy 并生成数据库密码和 JWT 密钥；生产部署前请检查 CORS_ORIGIN 与 TLS 证书"
   fi
   ensure_strong_jwt .env.deploy
+  ensure_redis_password .env.deploy
+  ensure_database_config .env.deploy
 }
 
 ensure_api_env() {
@@ -104,16 +128,12 @@ ensure_api_env() {
   set_env_value "$env_file" NODE_ENV production
   chmod 600 "$env_file" 2>/dev/null || true
   ensure_strong_jwt "$env_file"
+  ensure_database_config "$env_file"
 }
 
 activate_prisma_schema() {
   local db_type=$1
-  rm -rf apps/api/prisma/schema.active
-  if [ "$db_type" = mysql ]; then
-    cp -R apps/api/prisma/mysql apps/api/prisma/schema.active
-  else
-    cp -R apps/api/prisma/postgres apps/api/prisma/schema.active
-  fi
+  (cd apps/api && node prisma/select-schema.mjs "$db_type")
 }
 
 build_project() {

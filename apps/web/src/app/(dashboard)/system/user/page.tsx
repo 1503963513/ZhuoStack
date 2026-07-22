@@ -47,8 +47,6 @@ interface PaginatedResponse {
 }
 
 interface Dept { id: string; name: string; }
-interface Post { id: string; name: string; code: string; }
-interface Role { id: string; name: string; code: string; }
 
 export default function UserPage() {
   const [page, setPage] = useState(1);
@@ -76,8 +74,6 @@ export default function UserPage() {
   );
 
   const { data: depts } = useApiQuery<Dept[]>(['dept-list'], '/api/system/dept');
-  const { data: posts } = useApiQuery<{ data: Post[] }>(['post-list'], '/api/system/post?page=1&pageSize=100');
-  const { data: roles } = useApiQuery<{ data: Role[] }>(['role-list'], '/api/system/role?page=1&pageSize=100');
 
   const createMutation = useApiMutation('post', '/api/user', {
     onSuccess: () => {
@@ -163,8 +159,16 @@ export default function UserPage() {
       return;
     }
 
-    const payload: any = { ...formData };
-    if (editingUser && !payload.password) delete payload.password;
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+      deptId: formData.deptId,
+      postIds: formData.postIds,
+      roleIds: formData.roleIds,
+      avatar: formData.avatar,
+      ...(formData.password ? { password: formData.password } : {}),
+    };
 
     if (editingUser) {
       updateMutation.mutate(payload);
@@ -176,8 +180,6 @@ export default function UserPage() {
   const users = data?.data?.data || [];
   const pagination = data?.data?.pagination;
   const deptList = depts?.data || [];
-  const postList = posts?.data?.data || [];
-  const roleList = roles?.data?.data || [];
 
   const columns: Column<User>[] = [
     { label: '用户名', key: 'name', span: 2, render: (row) => <span className="font-medium">{row.name || '-'}</span> },
@@ -310,7 +312,7 @@ export default function UserPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">无</SelectItem>
-                  {deptList.map((dept: any) => (
+                  {deptList.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                   ))}
                 </SelectContent>

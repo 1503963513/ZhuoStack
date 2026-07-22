@@ -8,12 +8,12 @@
 |------|------|
 | 包管理器 | pnpm |
 | 构建编排 | Turborepo |
-| 后端框架 | NestJS 10+ |
+| 后端框架 | NestJS 11 |
 | HTTP 平台 | Fastify |
 | ORM | Prisma |
 | 数据库 | PostgreSQL / MySQL |
 | 缓存 | Redis |
-| 前端框架 | Next.js 14+ (App Router) |
+| 前端框架 | Next.js 16 (App Router) |
 | CSS 框架 | Tailwind CSS 3 |
 | UI 组件 | shadcn/ui |
 | 状态管理 | Zustand |
@@ -62,7 +62,7 @@ my-fullstack-app/
 ### 环境要求
 
 - **Node.js** 20+
-- **pnpm** 9+
+- **pnpm** 10+
 - **Docker**（可选，用于数据库）
 
 ### 1. 安装依赖
@@ -166,7 +166,10 @@ apps/api/prisma/
 │   ├── enums.prisma
 │   └── models/
 │       └── user.prisma
-└── schema.active/      # 当前生效的 Schema（自动生成，已加入 gitignore）
+├── migrations.postgres/ # PostgreSQL 独立迁移历史
+├── migrations.mysql/    # MySQL 独立迁移历史
+├── schema.active/       # 当前生效的 Schema（自动生成，已加入 gitignore）
+└── migrations -> ...    # 指向当前数据库迁移历史的自动链接
 ```
 
 ### 切换数据库
@@ -184,7 +187,7 @@ pnpm --filter api db:setup:mysql
 1. 创建 `postgres/models/your-model.prisma`（PostgreSQL Schema）
 2. 创建 `mysql/models/your-model.prisma`（含 MySQL 特定注解如 `@db.VarChar`）
 3. 在 `postgres/enums.prisma` 和 `mysql/enums.prisma` 中添加新枚举
-4. 重新运行目标数据库的初始化命令
+4. 分别运行 `pnpm db:migrate:pg` 与 `pnpm db:migrate:mysql` 生成并审核两套迁移
 
 ## 测试账号
 
@@ -197,7 +200,7 @@ pnpm --filter api db:setup:mysql
 | user2@example.com | password123 | USER（普通用户） |
 | user3@example.com | password123 | USER（普通用户） |
 
-> 💡 密码传输流程：前端 SHA-256 哈希 → 后端 bcrypt 二次哈希存储
+> 密码传输流程：TLS 负责传输安全，前端额外使用临时 RSA-OAEP 公钥加密，后端解密后使用 bcrypt 哈希存储。RSA 不能替代 TLS。
 
 ## 一键部署
 
@@ -229,8 +232,12 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 | `pnpm dev` | 启动所有服务（开发模式） |
 | `pnpm build` | 构建所有包 |
 | `pnpm build:deploy` | 不依赖 Turbo 远程能力，直接构建部署产物 |
+| `pnpm typecheck` | 对所有工作区执行严格 TypeScript 检查 |
 | `pnpm lint` | 代码检查 |
-| `pnpm test` | 运行测试 |
+| `pnpm test` | 运行 API 单元测试和 Web 测试 |
+| `pnpm test:e2e` | 运行 API E2E 测试 |
+| `pnpm test:ci` | 执行类型检查、Lint、单元测试与 E2E |
+| `pnpm audit:prod` | 阻断 high/critical 生产依赖漏洞 |
 | `pnpm docker:up` | 启动 Docker 服务 |
 | `pnpm docker:down` | 停止 Docker 服务 |
 | `pnpm ops --help` | 查看统一部署命令 |
@@ -239,6 +246,12 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 | `pnpm ops pack docker-offline postgres` | 生成 Docker 离线镜像包 |
 | `pnpm --filter api db:setup:pg` | PostgreSQL 完整初始化 |
 | `pnpm --filter api db:setup:mysql` | MySQL 完整初始化 |
+| `pnpm db:migrate:pg` | 生成/执行 PostgreSQL 开发迁移 |
+| `pnpm db:migrate:mysql` | 生成/执行 MySQL 开发迁移 |
+| `pnpm db:verify:pg` | 在本机空库验证 PostgreSQL 迁移与漂移 |
+| `pnpm db:verify:mysql` | 在本机空库验证 MySQL 迁移与漂移 |
+| `pnpm db:baseline:pg` | 旧 PostgreSQL `db push` 数据库一次性基线登记 |
+| `pnpm db:baseline:mysql` | 旧 MySQL `db push` 数据库一次性基线登记 |
 | `pnpm --filter api prisma:studio` | 打开 Prisma Studio |
 | `pnpm --filter api db:use:pg` | 切换到 PostgreSQL |
 | `pnpm --filter api db:use:mysql` | 切换到 MySQL |
@@ -250,6 +263,12 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 - Git 提交遵循**约定式提交**格式（`feat/fix/chore/docs...`）
 - 通过 **ESLint + Prettier** + lint-staged + husky 强制代码规范
 - 所有 API 响应遵循 `{ code, data, message }` 统一格式
+
+## 持续集成与安全门禁
+
+GitHub Actions 会在主分支推送和 Pull Request 上执行类型检查、零警告 Lint、API/Web 单元测试、E2E、生产构建和生产依赖审计。另有独立任务在空 PostgreSQL/MySQL 实例上执行两套迁移链，并运行 Gitleaks 密钥扫描及 Trivy API/Web 镜像扫描。
+
+生产 Compose 默认给容器配置了进程数、CPU、内存和日志轮转上限；API 与 Web 文件系统均为只读，API 仅 `/tmp` 与上传卷可写，并移除全部 Linux capabilities，Web 只保留 Nginx 启动所需的最小 capabilities 和临时目录。实际上线前仍需结合业务容量调整 `.env.deploy` 中的资源值，并在平台侧配置指标、告警与数据库备份恢复演练。
 
 ## 许可证
 

@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  UseGuards,
   Sse,
 } from '@nestjs/common';
 import {
@@ -13,7 +12,6 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { Observable } from 'rxjs';
 import { AiService, ChatMessage } from './ai.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ChatDto, StreamChatDto, PromptDto } from './dto';
 
 interface SseMessage {
@@ -22,7 +20,6 @@ interface SseMessage {
 
 @ApiTags('ai')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}

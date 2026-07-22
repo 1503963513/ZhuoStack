@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, UserMinus, Users, Globe, Clock } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 
 interface OnlineUser {
   userId: string;
@@ -27,8 +28,8 @@ export default function OnlinePage() {
       await del(`/api/monitor/online/${userId}`);
       toast.success(`用户 ${username} 已被强制下线`);
       refetch();
-    } catch (err: any) {
-      toast.error('操作失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('操作失败', { description: getErrorMessage(error) });
     }
   };
 

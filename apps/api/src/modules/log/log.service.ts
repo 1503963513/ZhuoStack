@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 // 日志清空时保留最近 N 天的记录
@@ -37,7 +38,7 @@ export class LogService {
     const { page = 1, pageSize = 10, title, status } = query;
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Prisma.SysOperLogWhereInput = {};
     if (title) where.title = { contains: title };
     if (status !== undefined) where.status = status;
 
@@ -65,14 +66,18 @@ export class LogService {
     cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
 
     let totalDeleted = 0;
-    while (true) {
+    let hasMore = true;
+    while (hasMore) {
       const records = await this.prisma.sysOperLog.findMany({
         where: { operTime: { lt: cutoffDate } },
         select: { id: true },
         take: MAX_DELETE_BATCH,
       });
 
-      if (records.length === 0) break;
+      if (records.length === 0) {
+        hasMore = false;
+        continue;
+      }
 
       const ids = records.map((r) => r.id);
       await this.prisma.sysOperLog.deleteMany({
@@ -112,7 +117,7 @@ export class LogService {
     const { page = 1, pageSize = 10, username, status } = query;
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Prisma.SysLoginLogWhereInput = {};
     if (username) where.username = { contains: username };
     if (status !== undefined) where.status = status;
 
@@ -151,14 +156,18 @@ export class LogService {
     cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
 
     let totalDeleted = 0;
-    while (true) {
+    let hasMore = true;
+    while (hasMore) {
       const records = await this.prisma.sysLoginLog.findMany({
         where: { loginTime: { lt: cutoffDate } },
         select: { id: true },
         take: MAX_DELETE_BATCH,
       });
 
-      if (records.length === 0) break;
+      if (records.length === 0) {
+        hasMore = false;
+        continue;
+      }
 
       const ids = records.map((r) => r.id);
       await this.prisma.sysLoginLog.deleteMany({

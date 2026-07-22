@@ -18,14 +18,13 @@ import {
 } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { CreateRoleDto, UpdateRoleDto, QueryRoleDto } from './dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-角色管理')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('system/role')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}

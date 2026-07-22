@@ -2,6 +2,9 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../../../database/prisma.service';
 import { RedisService } from '../../../database/redis.service';
 import { CreateMenuDto, UpdateMenuDto } from './dto';
+import type { SysMenu } from '@prisma/client';
+
+type MenuTreeNode = SysMenu & { children: MenuTreeNode[] };
 
 // 缓存键
 const MENU_TREE_CACHE_KEY = 'menu:tree';
@@ -144,7 +147,10 @@ export class MenuService {
   /**
    * 构建树形结构
    */
-  private buildTree(menus: any[], parentId: string | null = null): any[] {
+  private buildTree(
+    menus: SysMenu[],
+    parentId: string | null = null,
+  ): MenuTreeNode[] {
     return menus
       .filter((menu) => menu.parentId === parentId)
       .map((menu) => ({

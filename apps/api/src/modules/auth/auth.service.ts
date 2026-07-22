@@ -16,6 +16,7 @@ import { LoginDto, RegisterDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import * as svgCaptcha from 'svg-captcha';
+import { durationToSeconds } from './auth-security';
 
 interface JwtPayload {
   sub: string;
@@ -169,7 +170,12 @@ export class AuthService {
     const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
 
     // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
-    await this.redisService.set(`token:active:${user.id}`, jti, 90 * 24 * 3600);
+    await this.redisService.set(
+      `token:active:${user.id}`,
+      jti,
+      this.tokenTtlSeconds(),
+      true,
+    );
 
     // 记录注册成功日志
     await this.logService.createLoginLog({
@@ -201,7 +207,7 @@ export class AuthService {
 
     // 检查账号是否被锁定
     const lockKey = `login:lock:${dto.email}`;
-    const isLocked = await this.redisService.exists(lockKey);
+    const isLocked = await this.redisService.exists(lockKey, true);
     if (isLocked) {
       throw new ForbiddenException('账号已被锁定，请 15 分钟后重试');
     }
@@ -226,7 +232,7 @@ export class AuthService {
       const attempts = await this.recordLoginFailure(dto.email, ip, '密码错误', uaInfo, user.id);
 
       if (attempts >= this.MAX_LOGIN_ATTEMPTS) {
-        await this.redisService.set(lockKey, true, this.LOCKOUT_DURATION);
+        await this.redisService.set(lockKey, true, this.LOCKOUT_DURATION, true);
         throw new ForbiddenException('邮箱或密码错误');
       }
 
@@ -235,14 +241,19 @@ export class AuthService {
     }
 
     // 登录成功，清除失败计数和踢出标记
-    await this.redisService.del(`login:attempts:${dto.email}`);
-    await this.redisService.del(`kicked:user:${user.id}`);
+    await this.redisService.del(`login:attempts:${dto.email}`, true);
+    await this.redisService.del(`kicked:user:${user.id}`, true);
 
     // Generate JWT token
     const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
 
     // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
-    await this.redisService.set(`token:active:${user.id}`, jti, 90 * 24 * 3600);
+    await this.redisService.set(
+      `token:active:${user.id}`,
+      jti,
+      this.tokenTtlSeconds(),
+      true,
+    );
 
     // 记录登录成功日志
     await this.logService.createLoginLog({
@@ -374,7 +385,12 @@ export class AuthService {
 
     const captchaId = crypto.randomUUID();
     // 答案存 Redis，5 分钟过期
-    await this.redisService.set(`captcha:${captchaId}`, captcha.text.toLowerCase(), 300);
+    await this.redisService.set(
+      `captcha:${captchaId}`,
+      captcha.text.toLowerCase(),
+      300,
+      true,
+    );
 
     return { captchaId, captchaImage: captcha.data };
   }
@@ -385,7 +401,7 @@ export class AuthService {
   async verifyCaptcha(captchaId: string, captchaCode: string): Promise<boolean> {
     const key = `captcha:${captchaId}`;
     // GETDEL 原子操作：获取的同时删除，杜绝并发重复验证
-    const expected = await this.redisService.getdel<string>(key);
+    const expected = await this.redisService.getdel<string>(key, true);
     if (!expected) return false;
 
     return expected === captchaCode.toLowerCase();
@@ -406,7 +422,7 @@ export class AuthService {
     });
 
     const attemptsKey = `login:attempts:${email}`;
-    return this.redisService.incr(attemptsKey, this.LOCKOUT_DURATION);
+    return this.redisService.incr(attemptsKey, this.LOCKOUT_DURATION, true);
   }
 
   /**
@@ -432,7 +448,7 @@ export class AuthService {
     if (ttl <= 0) return;
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
-    await this.redisService.set(`token:blacklist:${tokenHash}`, true, ttl);
+    await this.redisService.set(`token:blacklist:${tokenHash}`, true, ttl, true);
   }
 
   /**
@@ -440,7 +456,7 @@ export class AuthService {
    */
   async isTokenBlacklisted(token: string): Promise<boolean> {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
-    return this.redisService.exists(`token:blacklist:${tokenHash}`);
+    return this.redisService.exists(`token:blacklist:${tokenHash}`, true);
   }
 
   /**
@@ -469,5 +485,9 @@ export class AuthService {
     );
 
     return { token, jti };
+  }
+
+  private tokenTtlSeconds(): number {
+    return durationToSeconds(this.configService.get<string>('JWT_EXPIRES_IN', '8h'));
   }
 }

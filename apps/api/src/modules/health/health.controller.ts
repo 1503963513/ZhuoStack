@@ -6,8 +6,10 @@ import {
   HealthCheckResult,
 } from '@nestjs/terminus';
 import { PrismaService } from '../../database/prisma.service';
+import { Public } from '../../common/decorators';
 
 @ApiTags('health')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

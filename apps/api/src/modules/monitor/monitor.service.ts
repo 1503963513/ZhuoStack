@@ -13,6 +13,16 @@ const PROTECTED_KEY_PREFIXES = ['token:active:', 'login:', 'kicked:', 'online:us
 const ONLINE_USER_PREFIX = 'online:user:';
 const ONLINE_USER_TTL = 30 * 60; // 30 分钟过期
 
+export interface ScheduledJobInfo {
+  id: string;
+  name: string;
+  cron: string;
+  status: 'running' | 'stopped';
+  description: string;
+  lastRun: string | null;
+  nextRun: string | null;
+}
+
 @Injectable()
 export class MonitorService {
   private readonly logger = new Logger(MonitorService.name);
@@ -241,9 +251,9 @@ export class MonitorService {
   /**
    * 获取所有注册的定时任务
    */
-  getJobs() {
+  getJobs(): ScheduledJobInfo[] {
     const jobs = this.schedulerRegistry.getCronJobs();
-    const result: any[] = [];
+    const result: ScheduledJobInfo[] = [];
 
     jobs.forEach((job, name) => {
       const nextDate = job.nextDate();
@@ -252,11 +262,11 @@ export class MonitorService {
       result.push({
         id: name,
         name,
-        cron: String((job as any).cronTime?.source || 'N/A'),
-        status: (job as any).isActive ? 'running' : 'stopped',
+        cron: String(job.cronTime.source || 'N/A'),
+        status: job.isActive ? 'running' : 'stopped',
         description: this.getJobDescription(name),
-        lastRun: lastDate ? new Date(lastDate as any).toISOString() : null,
-        nextRun: nextDate ? new Date(nextDate as any).toISOString() : null,
+        lastRun: lastDate?.toISOString() ?? null,
+        nextRun: nextDate.toISO(),
       });
     });
 

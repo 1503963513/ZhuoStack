@@ -70,6 +70,22 @@ async function bootstrap() {
   }
   const hasHttps = isProduction && sslCertPath && sslKeyPath;
 
+  const rawTrustProxy = process.env.TRUST_PROXY?.trim();
+  const unsafeTrustAll = ['true', '*', 'all'].includes(rawTrustProxy?.toLowerCase() || '');
+  if (isProduction && unsafeTrustAll) {
+    logger.error('生产环境 TRUST_PROXY 禁止信任全部来源，请配置可信代理网段');
+    process.exit(1);
+  }
+  const trustProxy = !rawTrustProxy
+    ? isProduction
+      ? 'loopback, linklocal, uniquelocal'
+      : false
+    : unsafeTrustAll
+      ? true
+      : ['false', 'none'].includes(rawTrustProxy.toLowerCase())
+        ? false
+        : rawTrustProxy;
+
   const httpsOptions = hasHttps
     ? {
         https: {
@@ -82,7 +98,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    httpsOptions ? new FastifyAdapter(httpsOptions) : new FastifyAdapter(),
+    new FastifyAdapter({ ...(httpsOptions || {}), trustProxy }),
     { bufferLogs: true },
   );
 

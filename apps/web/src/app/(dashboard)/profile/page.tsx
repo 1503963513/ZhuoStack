@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth-store';
 import { encryptPassword } from '@/lib/crypto';
 import { Lock, User as UserIcon } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { data, isLoading } = useProfile();
@@ -85,8 +86,8 @@ export default function ProfilePage() {
       });
       toast.success('密码修改成功');
       setPwdForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err: any) {
-      toast.error('密码修改失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('密码修改失败', { description: getErrorMessage(error) });
     } finally {
       setPwdLoading(false);
     }

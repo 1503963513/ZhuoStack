@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
 import { useApiQuery } from '@/hooks/use-api';
@@ -90,22 +90,11 @@ export function Sidebar() {
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
-  // 数据加载后，自动展开当前路径所在的目录
-  useEffect(() => {
-    if (!menuGroups.length) return;
-    setOpenGroups((prev) => {
-      const next = { ...prev };
-      for (const group of menuGroups) {
-        if (group.children?.some((c: MenuItem) => c.path && pathname.startsWith(c.path))) {
-          next[group.id] = true;
-        }
-      }
-      return next;
-    });
-  }, [menuGroups, pathname]);
-
-  const toggleGroup = (id: string) => {
-    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleGroup = (id: string, defaultOpen: boolean) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [id]: !(prev[id] ?? defaultOpen),
+    }));
   };
 
   const getIcon = (iconName: string | null): LucideIcon => {
@@ -143,13 +132,13 @@ export function Sidebar() {
         {/* 分组菜单（系统管理等目录） */}
         {menuGroups.map((group) => {
           const GroupIcon = getIcon(group.icon);
-          const isOpen = openGroups[group.id] ?? false;
           const hasActiveChild = group.children?.some((c) => c.path && pathname.startsWith(c.path));
+          const isOpen = openGroups[group.id] ?? Boolean(hasActiveChild);
 
           return (
             <div key={group.id} className="mt-2">
               <button
-                onClick={() => toggleGroup(group.id)}
+                onClick={() => toggleGroup(group.id, Boolean(hasActiveChild))}
                 className={cn(
                   'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   hasActiveChild

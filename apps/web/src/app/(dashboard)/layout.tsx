@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Loading } from '@/components/common/loading';
 import { ROUTES } from '@/lib/constants';
+
+const subscribeToHydration = (onStoreChange: () => void) =>
+  useAuthStore.persist.onFinishHydration(onStoreChange);
 
 export default function DashboardLayout({
   children,
@@ -15,12 +18,11 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
-  const [hydrated, setHydrated] = useState(false);
-
-  // 等待 Zustand persist 完成 hydrate
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {

@@ -17,14 +17,13 @@ import {
 } from '@nestjs/swagger';
 import { DeptService } from './dept.service';
 import { CreateDeptDto, UpdateDeptDto } from './dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-部门管理')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('system/dept')
 export class DeptController {
   constructor(private readonly deptService: DeptService) {}

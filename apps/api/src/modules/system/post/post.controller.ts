@@ -18,14 +18,13 @@ import {
 } from '@nestjs/swagger';
 import { PostService } from './post.service';
 import { CreatePostDto, UpdatePostDto, QueryPostDto } from './dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-岗位管理')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(RolesGuard)
 @Controller('system/post')
 export class PostController {
   constructor(private readonly postService: PostService) {}

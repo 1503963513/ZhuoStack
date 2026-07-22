@@ -21,7 +21,7 @@ usage() {
 
 命令索引：
   pnpm ops docker up|down|restart|logs|status|config
-  pnpm ops pm2 prepare|start|restart|update|stop|logs|status|db-sync
+  pnpm ops pm2 prepare|start|restart|update|stop|logs|status|db-migrate
   pnpm ops pack pm2-online|pm2-offline|pm2-all [postgres|mysql]
   pnpm ops pack docker-offline [postgres|mysql]
   pnpm ops pack interactive
@@ -142,13 +142,16 @@ usage() {
 7. 数据库结构变更
 
   Docker：
-    .env.deploy 中 DB_AUTO_SYNC=true 时，API 启动前自动执行 prisma db push。
+    .env.deploy 中 DB_MIGRATE_ON_START=true 时，API 启动前自动执行 prisma migrate deploy。
 
   PM2：
-    bash scripts/deploy.sh pm2 db-sync
+    DB_MIGRATE_ON_START=true 时，start/restart/update 会在重启前自动迁移。
+    关闭自动迁移后可手动执行：
+    bash scripts/deploy.sh pm2 db-migrate
     bash scripts/deploy.sh pm2 restart
 
-  删除字段、字段重命名或类型变更前必须先备份数据库，并优先使用审核过的迁移 SQL。
+  PostgreSQL 与 MySQL 分别维护 migrations.postgres/ 和 migrations.mysql/。
+  删除字段、字段重命名或类型变更前必须先备份数据库，并审核对应数据库的迁移 SQL。
   应用更新不会清空 Docker 数据卷或外部数据库中的业务数据。
 
 ────────────────────────────────────────────────────────────

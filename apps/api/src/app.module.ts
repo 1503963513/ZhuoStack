@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './database/prisma.module';
 import { RedisModule } from './database/redis.module';
+import { RedisService } from './database/redis.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { HealthModule } from './modules/health/health.module';
@@ -14,6 +15,8 @@ import { LogModule } from './modules/log/log.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RedisThrottlerStorage } from './common/throttling/redis-throttler.storage';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -29,12 +32,19 @@ const apiEnvFile = `.env.${nodeEnv}`;
     }),
 
     // Throttler
-    ThrottlerModule.forRoot([
-      {
-        ttl: parseInt(process.env.THROTTLE_TTL || '60', 10) * 1000,
-        limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisService],
+      useFactory: (redisService: RedisService) => ({
+        storage: new RedisThrottlerStorage(redisService),
+        throttlers: [
+          {
+            ttl: parseInt(process.env.THROTTLE_TTL || '60', 10) * 1000,
+            limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
+          },
+        ],
+      }),
+    }),
 
     // Event emitter
     EventEmitterModule.forRoot(),
@@ -62,6 +72,8 @@ const apiEnvFile = `.env.${nodeEnv}`;
     Logger,
     // Global rate limiting
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // 默认拒绝匿名访问，仅 @Public() 路由例外
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     // Global response transformer
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     // Global operation log

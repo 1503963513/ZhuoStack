@@ -34,5 +34,13 @@ export function buildUrl(base: string, params?: Record<string, string | number |
   if (!params) return base;
   const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '');
   if (entries.length === 0) return base;
-  return `${base}?${entries.map(([k, v]) => `${k}=${v}`).join('&')}`;
+  const search = new URLSearchParams(
+    entries.map(([key, value]) => [key, String(value)]),
+  );
+  return `${base}?${search.toString()}`;
+}
+
+/** 将未知异常安全地转换为面向用户的消息。 */
+export function getErrorMessage(error: unknown, fallback = '操作失败'): string {
+  return error instanceof Error && error.message ? error.message : fallback;
 }

@@ -7,6 +7,13 @@ import {
 import { Observable, tap } from 'rxjs';
 import { LogService } from '../../modules/log/log.service';
 
+interface RequestWithUser {
+  method: string;
+  url: string;
+  ip?: string;
+  user?: { email?: string };
+}
+
 /**
  * 操作日志拦截器
  * 自动记录 POST/PUT/DELETE 请求的操作日志
@@ -15,9 +22,9 @@ import { LogService } from '../../modules/log/log.service';
 export class OperLogInterceptor implements NestInterceptor {
   constructor(private readonly logService: LogService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
-    const { method, url, body, ip, user } = request;
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const { method, url, ip, user } = request;
 
     // 只记录写操作（POST/PUT/DELETE）
     if (!['POST', 'PUT', 'DELETE'].includes(method)) {
@@ -41,23 +48,23 @@ export class OperLogInterceptor implements NestInterceptor {
             method: url,
             requestMethod: method,
             url,
-            ip: ip || request.headers['x-forwarded-for'] || 'unknown',
+            ip: ip || 'unknown',
             operName: user?.email || 'anonymous',
             status: 1,
             jsonResult: `耗时 ${duration}ms`,
           }).catch(() => {}); // 静默失败，不影响主流程
         },
-        error: (error) => {
+        error: (error: unknown) => {
           this.logService.createOperLog({
             title: this.getTitle(method, url),
             businessType: this.getBusinessType(method),
             method: url,
             requestMethod: method,
             url,
-            ip: ip || request.headers['x-forwarded-for'] || 'unknown',
+            ip: ip || 'unknown',
             operName: user?.email || 'anonymous',
             status: 0,
-            errorMsg: error.message || '操作失败',
+            errorMsg: error instanceof Error ? error.message : '操作失败',
           }).catch(() => {});
         },
       }),

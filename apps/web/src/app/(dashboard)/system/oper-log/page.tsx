@@ -15,6 +15,7 @@ import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { useDict } from '@/hooks/use-dict';
 import { useConfirm } from '@/hooks/use-confirm';
+import { getErrorMessage } from '@/lib/utils';
 
 interface OperLog {
   id: string;
@@ -31,6 +32,11 @@ interface OperLog {
   operTime: string;
 }
 
+interface PaginatedOperLogs {
+  data: OperLog[];
+  pagination: { total: number; page: number; pageSize: number; totalPages: number };
+}
+
 export default function OperLogPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -39,7 +45,7 @@ export default function OperLogPage() {
   const { labelMap: businessTypeMap } = useDict('sys_business_type');
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { confirm, ConfirmDialog } = useConfirm();
-  const { data, isLoading, refetch } = useApiQuery<any>(
+  const { data, isLoading, refetch } = useApiQuery<PaginatedOperLogs>(
     ['oper-logs', String(page), String(pageSize), debouncedTitle],
     buildUrl('/api/log/oper', { page, pageSize, title: debouncedTitle || undefined }),
   );
@@ -52,8 +58,8 @@ export default function OperLogPage() {
       await del('/api/log/oper');
       toast.success('操作日志已清空');
       refetch();
-    } catch (err: any) {
-      toast.error('清空失败', { description: err.message });
+    } catch (error: unknown) {
+      toast.error('清空失败', { description: getErrorMessage(error) });
     }
   };
 

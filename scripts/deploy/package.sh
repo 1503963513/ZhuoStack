@@ -26,6 +26,7 @@ pack_pm2() {
   rm -rf .deploy-temp
   mkdir -p "$staging"
   build_project
+  activate_prisma_schema "$db_type"
   prepare_pm2_staging "$staging" "$mode" "$db_type"
 
   if [ "$mode" = offline ]; then
@@ -39,9 +40,8 @@ pack_pm2() {
       corepack enable
       corepack prepare pnpm@10.32.1 --activate
       pnpm install --frozen-lockfile --prod --filter 'api...' --config.node-linker=hoisted
-      rm -rf apps/api/prisma/schema.active
-      cp -R apps/api/prisma/${db_type} apps/api/prisma/schema.active
       cd apps/api
+      node prisma/select-schema.mjs ${db_type}
       pnpm prisma:generate
       cd /app
       mkdir -p runtime/bin
