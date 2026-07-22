@@ -38,7 +38,14 @@ docker_deploy() {
         "${COMPOSE[@]}" up -d --build
       fi
       "${COMPOSE[@]}" ps
-      ok "部署完成：http://localhost:$(env_value .env.deploy WEB_PORT 3000)"
+      local tls_dir
+      tls_dir=$(env_value .env.deploy TLS_CERT_DIR ./docker/certs)
+      if [ -f "$tls_dir/tls.crt" ] && [ -f "$tls_dir/tls.key" ]; then
+        ok "部署完成：https://localhost:$(env_value .env.deploy WEB_TLS_PORT 443)"
+      else
+        warn "未发现本地 TLS 证书；HTTP 入口仅应供外部 HTTPS 负载均衡器/Ingress 回源"
+        ok "内部 HTTP 入口：http://localhost:$(env_value .env.deploy WEB_PORT 80)"
+      fi
       ;;
     down) "${COMPOSE[@]}" down ;;
     restart) "${COMPOSE[@]}" restart ;;

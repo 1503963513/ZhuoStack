@@ -19,8 +19,7 @@ export function useLogin() {
   return useMutation<ApiResponse<AuthResponse>, Error, LoginFormData & { captchaId: string }>({
     mutationFn: (data) => post<AuthResponse>('/api/auth/login', data),
     onSuccess: (response) => {
-      const { access_token, user } = response.data;
-      setAuth(access_token, user);
+      setAuth(response.data.user);
       router.push(ROUTES.DASHBOARD);
     },
   });
@@ -34,8 +33,7 @@ export function useRegister() {
   return useMutation<ApiResponse<AuthResponse>, Error, Omit<RegisterFormData, 'confirmPassword'> & { captchaId: string }>({
     mutationFn: (data) => post<AuthResponse>('/api/auth/register', data),
     onSuccess: (response) => {
-      const { access_token, user } = response.data;
-      setAuth(access_token, user);
+      setAuth(response.data.user);
       router.push(ROUTES.DASHBOARD);
     },
   });
@@ -55,23 +53,15 @@ export function useProfile() {
 /** Logout hook */
 export function useLogout() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
-  const token = useAuthStore((s) => s.token);
   const router = useRouter();
   const queryClient = useQueryClient();
 
   return async () => {
-    // 先调用后端登出（Token 加入黑名单 + 清除在线记录）
-    if (token) {
-      try {
-        const axios = (await import('axios')).default;
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        await axios.post(`${apiBase}/api/auth/logout`, null, {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 3000,
-        });
-      } catch {
-        // 静默失败，不影响登出
-      }
+    // 后端负责拉黑 JWT 并清除 HttpOnly/CSRF Cookie。
+    try {
+      await post('/api/auth/logout');
+    } catch {
+      // 静默失败，不影响清理本地非敏感状态
     }
     // 再清本地状态
     clearAuth();

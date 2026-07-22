@@ -22,7 +22,9 @@ import { CreateUserDto, UpdateUserDto, QueryUserDto, ChangePasswordDto } from '.
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles, CurrentUser } from '../../common/decorators';
+import { extractAuthToken } from '../auth/auth-security';
 import { Role } from '@prisma/client';
+import type { FastifyRequest } from 'fastify';
 
 @ApiTags('user')
 @ApiBearerAuth()
@@ -86,9 +88,14 @@ export class UserController {
   changePassword(
     @CurrentUser('id') userId: string,
     @Body() dto: ChangePasswordDto,
-    @Req() req: any,
+    @Req() req: FastifyRequest,
   ) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    return this.userService.changePassword(userId, dto.oldPassword, dto.newPassword, token);
+    const token = extractAuthToken(req);
+    return this.userService.changePassword(
+      userId,
+      dto.oldPassword,
+      dto.newPassword,
+      token || undefined,
+    );
   }
 }

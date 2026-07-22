@@ -5,12 +5,22 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
+import fastifyCookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import fastifyMultipart from '@fastify/multipart';
+import type { FastifyInstance } from 'fastify';
 import { AppModule } from './app.module';
+import {
+  AUTH_COOKIE_NAME,
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
+  csrfTokensMatch,
+  durationToSeconds,
+} from './modules/auth/auth-security';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  const isProduction = process.env.NODE_ENV === 'production';
 
   // 检查必需的环境变量
   const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
@@ -39,21 +49,33 @@ async function bootstrap() {
     );
     process.exit(1);
   }
+  try {
+    durationToSeconds(process.env.JWT_EXPIRES_IN || '8h');
+  } catch (error) {
+    logger.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
 
   // 检查敏感环境变量不为空
-  if (!process.env.OPENAI_API_KEY && process.env.NODE_ENV === 'production') {
+  if (!process.env.OPENAI_API_KEY && isProduction) {
     logger.warn('OPENAI_API_KEY 未设置，AI 功能将不可用');
   }
 
   // HTTPS 配置（仅生产环境）
-  const hasHttps =
-    process.env.NODE_ENV === 'production' && process.env.SSL_CERT_PATH && process.env.SSL_KEY_PATH;
+  const sslCertPath = process.env.SSL_CERT_PATH;
+  const sslKeyPath = process.env.SSL_KEY_PATH;
+  if (Boolean(sslCertPath) !== Boolean(sslKeyPath)) {
+    logger.error('SSL_CERT_PATH 与 SSL_KEY_PATH 必须同时配置');
+    process.exit(1);
+  }
+  const hasHttps = isProduction && sslCertPath && sslKeyPath;
 
   const httpsOptions = hasHttps
     ? {
         https: {
-          cert: fs.readFileSync(process.env.SSL_CERT_PATH!),
-          key: fs.readFileSync(process.env.SSL_KEY_PATH!),
+          cert: fs.readFileSync(sslCertPath),
+          key: fs.readFileSync(sslKeyPath),
+          minVersion: 'TLSv1.2' as const,
         },
       }
     : undefined;
@@ -67,11 +89,76 @@ async function bootstrap() {
   // Use NestJS built-in logger
   app.useLogger(app.get(Logger));
 
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (allowedOrigins.includes('*')) {
+    logger.error('启用凭证 Cookie 时 CORS_ORIGIN 禁止使用通配符 *');
+    process.exit(1);
+  }
+  if (isProduction && allowedOrigins.some((origin) => !origin.startsWith('https://'))) {
+    logger.error('生产环境 CORS_ORIGIN 必须全部使用 https:// 来源');
+    process.exit(1);
+  }
+
+  // 解析认证与 CSRF Cookie。JWT Cookie 不签名：JWT 本身已经使用服务端密钥验签。
+  await app.register(fastifyCookie);
+
+  // Cookie 认证的非安全方法必须通过双提交 CSRF 校验；显式 Bearer 客户端不受影响。
+  const fastifyInstance = app.getHttpAdapter().getInstance() as FastifyInstance;
+  fastifyInstance.addHook('onRequest', async (request, reply) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return;
+
+    const pathname = request.url.split('?')[0];
+    if (pathname === '/api/auth/login' || pathname === '/api/auth/register') return;
+
+    const authCookie = request.cookies[AUTH_COOKIE_NAME];
+    const authorization = request.headers.authorization;
+    if (!authCookie || authorization?.match(/^Bearer\s+/i)) return;
+
+    const csrfCookie = request.cookies[CSRF_COOKIE_NAME];
+    const csrfHeaderValue = request.headers[CSRF_HEADER_NAME];
+    const csrfHeader = Array.isArray(csrfHeaderValue)
+      ? csrfHeaderValue[0]
+      : csrfHeaderValue;
+
+    if (!csrfTokensMatch(csrfCookie, csrfHeader)) {
+      return reply.code(403).send({
+        statusCode: 403,
+        message: 'CSRF 校验失败，请刷新页面后重试',
+        error: 'Forbidden',
+      });
+    }
+  });
+
   // 安全响应头（X-Content-Type-Options, Strict-Transport-Security 等）
+  const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';
   await app.register(helmet, {
-    contentSecurityPolicy: false,
-    frameguard: false, // 允许前端 iframe 嵌入 Swagger 文档页
-    crossOriginResourcePolicy: false, // 允许跨源访问静态文件（/files/*）
+    contentSecurityPolicy: {
+      directives: swaggerEnabled
+        ? {
+            defaultSrc: ["'self'"],
+            baseUri: ["'self'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'self'", ...allowedOrigins],
+            imgSrc: ["'self'", 'data:'],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+          }
+        : {
+            defaultSrc: ["'none'"],
+            baseUri: ["'none'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+            formAction: ["'none'"],
+          },
+    },
+    frameguard: swaggerEnabled ? false : { action: 'deny' },
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    strictTransportSecurity: isProduction
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
   });
 
   // 文件上传支持（multipart/form-data）
@@ -120,15 +207,10 @@ async function bootstrap() {
         allow: string | boolean | RegExp | Array<string | boolean | RegExp>,
       ) => void,
     ) => {
-      const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-
       // 允许无 origin 的请求（如服务端调用、Postman）
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: ${origin} 不在允许列表中`), false);
@@ -150,7 +232,7 @@ async function bootstrap() {
   );
 
   // Swagger setup（通过 SWAGGER_ENABLED=true 启用，不受 NODE_ENV 限制）
-  if (process.env.SWAGGER_ENABLED === 'true') {
+  if (swaggerEnabled) {
     const config = new DocumentBuilder()
       .setTitle('NodeJs 全栈模板 API')
       .setDescription('基于 NestJS + Fastify + Prisma 的 API 文档')
@@ -167,9 +249,10 @@ async function bootstrap() {
   const port = process.env.PORT || 3100;
   await app.listen(port, '0.0.0.0');
 
-  logger.log(`应用运行在: http://localhost:${port}`);
-  if (process.env.SWAGGER_ENABLED === 'true') {
-    logger.log(`Swagger 文档: http://localhost:${port}/api/docs`);
+  const protocol = hasHttps ? 'https' : 'http';
+  logger.log(`应用运行在: ${protocol}://localhost:${port}`);
+  if (swaggerEnabled) {
+    logger.log(`Swagger 文档: ${protocol}://localhost:${port}/api/docs`);
   }
 }
 

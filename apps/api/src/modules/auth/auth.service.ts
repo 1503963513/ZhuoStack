@@ -455,13 +455,16 @@ export class AuthService {
     const jti = crypto.randomUUID();
     const expiresIn = this.configService.get<string>(
       'JWT_EXPIRES_IN',
-      '7d',
+      '8h',
     ) as JwtSignOptions['expiresIn'];
     const token = this.jwtService.sign(
       { ...payload, jti },
       {
         secret: jwtSecret,
         expiresIn,
+        algorithm: 'HS256',
+        issuer: this.configService.get<string>('JWT_ISSUER', 'myapp-api'),
+        audience: this.configService.get<string>('JWT_AUDIENCE', 'myapp-web'),
       },
     );
 

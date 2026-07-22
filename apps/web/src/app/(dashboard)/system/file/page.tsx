@@ -7,7 +7,6 @@ import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -23,9 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { buildUrl, fileUrl } from '@/lib/utils';
+import { CSRF_HEADER_NAME, getCsrfToken } from '@/lib/csrf';
 import {
   Upload,
   Download,
@@ -39,7 +38,6 @@ import {
   Archive,
   File,
   Eye,
-  X,
   Check,
   Copy,
 } from 'lucide-react';
@@ -144,15 +142,9 @@ export default function FilePage() {
           const xhr = new XMLHttpRequest();
           const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
           xhr.open('POST', `${apiBase}/api/system/file/upload`);
-          const stored = localStorage.getItem('auth-storage');
-          if (stored) {
-            try {
-              const { state } = JSON.parse(stored);
-              if (state?.token) {
-                xhr.setRequestHeader('Authorization', `Bearer ${state.token}`);
-              }
-            } catch {}
-          }
+          xhr.withCredentials = true;
+          const csrfToken = getCsrfToken();
+          if (csrfToken) xhr.setRequestHeader(CSRF_HEADER_NAME, csrfToken);
 
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
@@ -183,8 +175,9 @@ export default function FilePage() {
       toast.success(`成功上传 ${fileList.length} 个文件`);
       setUploadOpen(false);
       refetch();
-    } catch (err: any) {
-      toast.error('上传失败', { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '上传失败';
+      toast.error('上传失败', { description: message });
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -238,8 +231,9 @@ export default function FilePage() {
         return next;
       });
       refetch();
-    } catch (err: any) {
-      toast.error('删除失败', { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '删除失败';
+      toast.error('删除失败', { description: message });
     }
   };
 
@@ -262,8 +256,9 @@ export default function FilePage() {
       toast.success(`成功删除 ${selectedIds.size} 个文件`);
       setSelectedIds(new Set());
       refetch();
-    } catch (err: any) {
-      toast.error('批量删除失败', { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '批量删除失败';
+      toast.error('批量删除失败', { description: message });
     }
   };
 

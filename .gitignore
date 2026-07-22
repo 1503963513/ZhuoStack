@@ -58,6 +58,8 @@ apps/api/prisma/schema.active/
 
 # Docker
 docker/data/
+docker/certs/*
+!docker/certs/README.md
 
 # Deploy packages
 deploy_*.tar.gz

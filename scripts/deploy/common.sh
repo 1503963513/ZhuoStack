@@ -85,7 +85,7 @@ ensure_deploy_env() {
       set_env_value .env.deploy DATABASE_URL "postgresql://myapp:${postgres_password}@db:5432/myapp"
     fi
     chmod 600 .env.deploy 2>/dev/null || true
-    warn "已创建 .env.deploy 并生成数据库密码和 JWT 密钥；生产部署前请检查 CORS_ORIGIN"
+    warn "已创建 .env.deploy 并生成数据库密码和 JWT 密钥；生产部署前请检查 CORS_ORIGIN 与 TLS 证书"
   fi
   ensure_strong_jwt .env.deploy
 }

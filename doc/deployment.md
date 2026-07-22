@@ -31,14 +31,25 @@ scripts/
 pnpm ops docker up
 ```
 
-首次运行会从 `.env.deploy.example` 创建 `.env.deploy`，并自动生成强随机数据库密码和 `JWT_SECRET`。正式环境至少要修改 `CORS_ORIGIN`、开放端口和 AI 配置。
+首次运行会从 `.env.deploy.example` 创建 `.env.deploy`，并自动生成强随机数据库密码和 `JWT_SECRET`。正式环境至少要修改 `CORS_ORIGIN`、TLS 证书、开放端口和 AI 配置。浏览器认证使用 `Secure + HttpOnly + SameSite=Strict` Cookie，因此正式环境必须通过 HTTPS 访问。
 
 默认地址：
 
-- Web：`http://服务器地址:3000`
+- Web：`https://服务器地址`（示例环境默认映射 443）
 - API：Web 同域下的 `/api/*`
 - Swagger：启用 `SWAGGER_ENABLED=true` 后访问 `/api/docs`
 - API 端口仅绑定到宿主机 `127.0.0.1:3100`
+
+### HTTPS / TLS
+
+Docker 内置 Nginx 支持 TLS 1.2/1.3。将完整证书链和私钥分别放到以下文件，然后启动服务：
+
+```text
+docker/certs/tls.crt
+docker/certs/tls.key
+```
+
+也可以在 `.env.deploy` 中通过 `TLS_CERT_DIR` 指向其他证书目录。检测到两个文件时，Nginx 会启用 443 并将 HTTP 重定向到 HTTPS；只有一个文件时会拒绝启动。若 TLS 已由云负载均衡器或 Ingress 终止，不放置本地证书即可，但外层代理必须面向用户强制 HTTPS。
 
 常用运维命令：
 
@@ -103,7 +114,7 @@ pnpm ops pm2 restart
 pnpm ops pm2 stop
 ```
 
-复制 `docker/nginx.pm2.conf` 到 Nginx 配置目录，将 `__WEB_ROOT__` 替换成 `apps/web/out` 的绝对路径，然后执行 `nginx -t && nginx -s reload`。本地上传文件由 API 的 `/files/` 提供；确保 `FILE_STORAGE_PATH` 指向持久化目录。云存储文件使用 OSS/COS 或配置的 CDN 域名。
+复制 `docker/nginx.pm2.conf` 到 Nginx 配置目录，将 `__WEB_ROOT__` 替换成 `apps/web/out` 的绝对路径，补充站点的 443 证书配置和 HTTP → HTTPS 跳转，然后执行 `nginx -t && nginx -s reload`。本地上传文件由 API 的 `/files/` 提供；确保 `FILE_STORAGE_PATH` 指向持久化目录。云存储文件使用 OSS/COS 或配置的 CDN 域名。
 
 ## PM2 在线发布包
 
@@ -179,6 +190,8 @@ bash scripts/deploy.sh docker up
 
 - 使用强数据库密码，并限制 `.env.deploy` / `apps/api/.env.production` 文件权限。
 - `CORS_ORIGIN` 填写实际 HTTPS 域名；多个域名用英文逗号分隔。
+- 禁止在 `CORS_ORIGIN` 使用 `*`；确认登录响应包含 Secure、HttpOnly、SameSite=Strict 属性。
+- 仅开放 HTTPS，验证 TLS 1.0/1.1 已禁用，并确认 HSTS、CSP、Permissions-Policy 等响应头存在。
 - 生产环境通常关闭 Swagger，或只允许内网访问。
 - 对数据库 volume、本地上传 volume / OSS / COS 和环境文件做定期备份。
 - 在更新前先运行健康检查并准备回滚包；不要依赖 `prisma db push` 完成跨版本的数据迁移。

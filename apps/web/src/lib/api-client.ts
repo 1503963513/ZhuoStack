@@ -1,6 +1,8 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import type { ApiResponse } from '@/types/api';
+import { useAuthStore } from '@/stores/auth-store';
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
 
 // 直接请求后端 API（静态站点无 Node.js 服务端，不做代理）
 // 开发环境 .env.local 设置 NEXT_PUBLIC_API_URL=http://localhost:3100
@@ -16,43 +18,28 @@ function createApiClient(): AxiosInstance {
     baseURL: BASE_URL,
     headers: { 'Content-Type': 'application/json' },
     timeout: 10000,
+    withCredentials: true,
+    withXSRFToken: true,
+    xsrfCookieName: CSRF_COOKIE_NAME,
+    xsrfHeaderName: CSRF_HEADER_NAME,
   });
-
-  // Request interceptor: attach JWT token from localStorage
-  client.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-      if (typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('auth-storage');
-          if (stored) {
-            const { state } = JSON.parse(stored) as {
-              state: { token: string | null };
-            };
-            if (state?.token) {
-              config.headers.Authorization = `Bearer ${state.token}`;
-            }
-          }
-        } catch {
-          // Ignore parsing errors
-        }
-      }
-      return config;
-    },
-    (error) => Promise.reject(error),
-  );
 
   // Response interceptor: handle 401 and extract backend error message
   client.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401 && typeof window !== 'undefined' && !isRedirecting) {
+      if (
+        error.response?.status === 401 &&
+        typeof window !== 'undefined' &&
+        useAuthStore.getState().isAuthenticated &&
+        !isRedirecting
+      ) {
         isRedirecting = true;
         // 提取后端错误信息并弹出提示
         const message = error.response?.data?.message || '登录已过期，请重新登录';
         toast.error(message);
-        // 清除 localStorage 和 Cookie
-        localStorage.removeItem('auth-storage');
-        document.cookie = 'auth-token=; path=/; max-age=0';
+        // HttpOnly Cookie 由服务端管理；这里只清除非敏感的前端用户状态。
+        useAuthStore.getState().clearAuth();
         // 延迟跳转，让 toast 显示一会儿
         setTimeout(() => {
           window.location.replace('/login');

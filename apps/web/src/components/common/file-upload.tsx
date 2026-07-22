@@ -4,6 +4,7 @@ import { useState, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { fileUrl } from '@/lib/utils';
+import { CSRF_HEADER_NAME, getCsrfToken } from '@/lib/csrf';
 import { Upload, X, Loader2 } from 'lucide-react';
 
 interface UploadedFile {
@@ -95,18 +96,12 @@ export function FileUpload({
           ? `${apiBase}/api/system/file/upload/image`
           : `${apiBase}/api/system/file/upload`;
 
-        const result = await new Promise<any>((resolve, reject) => {
+        const result = await new Promise<UploadedFile>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open('POST', endpoint);
-          const stored = localStorage.getItem('auth-storage');
-          if (stored) {
-            try {
-              const { state } = JSON.parse(stored);
-              if (state?.token) {
-                xhr.setRequestHeader('Authorization', `Bearer ${state.token}`);
-              }
-            } catch {}
-          }
+          xhr.withCredentials = true;
+          const csrfToken = getCsrfToken();
+          if (csrfToken) xhr.setRequestHeader(CSRF_HEADER_NAME, csrfToken);
 
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
@@ -138,8 +133,9 @@ export function FileUpload({
       const newFiles = maxCount === 1 ? uploaded : [...value, ...uploaded];
       onChange?.(newFiles);
       toast.success(`成功上传 ${uploaded.length} 个文件`);
-    } catch (err: any) {
-      toast.error('上传失败', { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '上传失败';
+      toast.error('上传失败', { description: message });
     } finally {
       setUploading(false);
     }

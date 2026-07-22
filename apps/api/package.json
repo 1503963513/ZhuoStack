@@ -29,6 +29,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@fastify/cookie": "11.1.2",
     "@fastify/helmet": "^13.1.0",
     "@fastify/multipart": "^10.1.0",
     "@fastify/static": "^9.3.0",

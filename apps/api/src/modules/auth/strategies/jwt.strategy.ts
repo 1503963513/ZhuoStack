@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database/prisma.service';
 import { RedisService } from '../../../database/redis.service';
 import * as crypto from 'crypto';
+import { extractAuthToken } from '../auth-security';
+import type { FastifyRequest } from 'fastify';
 
 interface JwtPayload {
   sub: string;
@@ -34,9 +36,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([extractAuthToken]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
+      algorithms: ['HS256'],
+      issuer: configService.get<string>('JWT_ISSUER', 'myapp-api'),
+      audience: configService.get<string>('JWT_AUDIENCE', 'myapp-web'),
       passReqToCallback: true,
     });
 
@@ -51,7 +56,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }, MAP_CLEANUP_INTERVAL);
   }
 
-  async validate(req: any, payload: JwtPayload) {
+  async validate(req: FastifyRequest, payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -70,7 +75,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // 检查 Token 是否在黑名单中（登出时写入）
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    const token = extractAuthToken(req);
     if (token) {
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
       const isBlacklisted = await this.redisService.exists(`token:blacklist:${tokenHash}`);
