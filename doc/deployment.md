@@ -77,7 +77,7 @@ pnpm build:deploy
 pnpm ops pm2 start
 ```
 
-首次运行会创建 `apps/api/.env` 并生成 JWT 密钥。修改数据库连接后，如需手动同步结构：
+首次运行会创建 `apps/api/.env.production` 并生成 JWT 密钥。旧版的 `apps/api/.env` 会自动迁移。修改数据库连接后，如需手动同步结构：
 
 ```bash
 pnpm ops pm2 db-sync
@@ -108,8 +108,8 @@ pnpm ops pack pm2-online postgres
 ```bash
 mkdir -p /opt/myapp && cd /opt/myapp
 tar -xzf deploy_pm2_online_*.tar.gz
-cp apps/api/.env.example apps/api/.env
-# 编辑 apps/api/.env
+cp apps/api/.env.example apps/api/.env.production
+# 编辑 apps/api/.env.production
 bash scripts/deploy.sh pm2 start
 ```
 
@@ -119,7 +119,7 @@ bash scripts/deploy.sh pm2 start
 bash scripts/deploy.sh pm2 update /path/to/new-package.tar.gz
 ```
 
-更新脚本会保留 `apps/api/.env`。
+更新脚本会保留 `apps/api/.env.production`。
 
 ## PM2 完全离线包
 
@@ -138,8 +138,8 @@ TARGET_ARCH=linux/arm64 pnpm ops pack pm2-offline postgres
 ```bash
 mkdir -p /opt/myapp && cd /opt/myapp
 tar -xzf deploy_pm2_offline_*.tar.gz
-cp apps/api/.env.example apps/api/.env
-# 编辑 apps/api/.env，DB_TYPE 必须与包名一致
+cp apps/api/.env.example apps/api/.env.production
+# 编辑 apps/api/.env.production，DB_TYPE 必须与包名一致
 bash scripts/deploy.sh pm2 start
 ```
 
@@ -167,7 +167,7 @@ bash scripts/deploy.sh docker up
 
 ## 上线检查
 
-- 使用强数据库密码，并限制 `.env.deploy` / `apps/api/.env` 文件权限。
+- 使用强数据库密码，并限制 `.env.deploy` / `apps/api/.env.production` 文件权限。
 - `CORS_ORIGIN` 填写实际 HTTPS 域名；多个域名用英文逗号分隔。
 - 生产环境通常关闭 Swagger，或只允许内网访问。
 - 对数据库 volume、上传 volume 和环境文件做定期备份。

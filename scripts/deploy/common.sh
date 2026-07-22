@@ -91,13 +91,19 @@ ensure_deploy_env() {
 }
 
 ensure_api_env() {
-  if [ ! -f apps/api/.env ]; then
-    cp apps/api/.env.example apps/api/.env
-    set_env_value apps/api/.env NODE_ENV production
-    chmod 600 apps/api/.env 2>/dev/null || true
-    warn "已创建 apps/api/.env；启动前请检查 DATABASE_URL 和 CORS_ORIGIN"
+  local env_file=apps/api/.env.production legacy_env_file=apps/api/.env
+  if [ ! -f "$env_file" ]; then
+    if [ -f "$legacy_env_file" ]; then
+      mv "$legacy_env_file" "$env_file"
+      warn "已将旧配置 apps/api/.env 迁移为 $env_file"
+    else
+      cp apps/api/.env.example "$env_file"
+      warn "已创建 $env_file；启动前请检查 DATABASE_URL 和 CORS_ORIGIN"
+    fi
   fi
-  ensure_strong_jwt apps/api/.env
+  set_env_value "$env_file" NODE_ENV production
+  chmod 600 "$env_file" 2>/dev/null || true
+  ensure_strong_jwt "$env_file"
 }
 
 activate_prisma_schema() {

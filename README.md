@@ -75,7 +75,7 @@ pnpm install
 
 ```bash
 # 后端
-cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env.development
 
 # 前端
 cp apps/web/.env.example apps/web/.env.local
@@ -86,9 +86,15 @@ cp apps/web/.env.example apps/web/.env.local
 使用 Docker（推荐）：
 
 ```bash
-# 仅启动 PostgreSQL + Redis（本地开发）
-cp .env.deploy.example .env.deploy
-docker compose --env-file .env.deploy up -d db redis
+# 启动 MySQL + Redis（仅供本地开发）
+docker compose -f docker-compose.dev.yml up -d
+
+# Intel Mac 可覆盖默认的 Apple Silicon 平台
+DEV_PLATFORM=linux/amd64 docker compose -f docker-compose.dev.yml up -d
+
+# 查看状态 / 停止服务
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml down
 ```
 
 ### 4. 初始化数据库

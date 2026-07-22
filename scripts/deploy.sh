@@ -46,11 +46,11 @@ usage() {
 2. PM2 首次部署
 
   pnpm build:deploy
-  cp apps/api/.env.example apps/api/.env
-  vim apps/api/.env
+  cp apps/api/.env.example apps/api/.env.production
+  vim apps/api/.env.production
   pnpm ops pm2 start
 
-  配置文件：apps/api/.env
+  配置文件：apps/api/.env.production
   API 由 PM2 运行；Web 静态文件 apps/web/out 交给 Nginx。
   Nginx 模板：docker/nginx.pm2.conf
 
@@ -113,8 +113,8 @@ usage() {
 
   PM2 离线包：
     tar -xzf deploy_pm2_offline_*.tar.gz
-    cp apps/api/.env.example apps/api/.env
-    vim apps/api/.env
+    cp apps/api/.env.example apps/api/.env.production
+    vim apps/api/.env.production
     bash scripts/deploy.sh pm2 start
 
   生产密钥不会从打包机写入离线包，应在目标服务器配置。
@@ -133,7 +133,7 @@ usage() {
     bash scripts/deploy.sh docker up
 
   PM2 更新：
-    # 保留 apps/api/.env，更新文件、依赖，重启并健康检查
+    # 保留 apps/api/.env.production，更新文件、依赖，重启并健康检查
     bash scripts/deploy.sh pm2 update /path/to/new-package.tar.gz
 
   回滚时使用上一个部署包重复对应更新流程。

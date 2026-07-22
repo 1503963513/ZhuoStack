@@ -16,12 +16,16 @@ import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+const apiEnvFile = `.env.${nodeEnv}`;
+
 @Module({
   imports: [
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      // 生产环境保留 .env 回退，确保旧版 PM2 部署首次更新时能够平滑迁移。
+      envFilePath: nodeEnv === 'production' ? [apiEnvFile, '.env'] : apiEnvFile,
     }),
 
     // Throttler

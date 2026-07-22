@@ -30,13 +30,13 @@ pm2_prepare() {
   select_node_runtime
   local mode db_type packaged_db
   mode=$(tr -d '[:space:]' < .deploy-mode 2>/dev/null || true)
-  db_type=$(db_type_from_file apps/api/.env)
+  db_type=$(db_type_from_file apps/api/.env.production)
   packaged_db=$(tr -d '[:space:]' < .deploy-db-type 2>/dev/null || true)
 
   if [ "$mode" = offline ]; then
     [ -d node_modules ] || die "离线包缺少 node_modules"
     if [ -n "$packaged_db" ] && [ "$packaged_db" != "$db_type" ]; then
-      die "该离线包为 $packaged_db 构建，但 apps/api/.env 配置为 $db_type；请重新打对应数据库的包"
+      die "该离线包为 $packaged_db 构建，但 apps/api/.env.production 配置为 $db_type；请重新打对应数据库的包"
     fi
     info "离线依赖和 Prisma Client 已就绪，跳过安装"
     return 0
@@ -55,7 +55,7 @@ pm2_prepare() {
 
 pm2_health_check() {
   local port
-  port=$(env_value apps/api/.env PORT 3100)
+  port=$(env_value apps/api/.env.production PORT 3100)
   info "健康检查 http://127.0.0.1:${port}/health"
   if command -v curl >/dev/null 2>&1; then
     curl -fsS --retry 10 --retry-delay 2 --retry-connrefused "http://127.0.0.1:${port}/health" >/dev/null
@@ -88,11 +88,12 @@ pm2_update() {
   local archive=${1:-} saved_env=''
   if [ -n "$archive" ]; then
     [ -f "$archive" ] || die "找不到部署包: $archive"
+    ensure_api_env
     saved_env=$(mktemp)
-    if [ -f apps/api/.env ]; then cp apps/api/.env "$saved_env"; fi
+    if [ -f apps/api/.env.production ]; then cp apps/api/.env.production "$saved_env"; fi
     info "解压更新包并保留生产环境配置"
     tar -xzf "$archive"
-    if [ -s "$saved_env" ]; then cp "$saved_env" apps/api/.env; fi
+    if [ -s "$saved_env" ]; then cp "$saved_env" apps/api/.env.production; fi
     rm -f "$saved_env"
   fi
   pm2_restart
@@ -102,7 +103,7 @@ pm2_sync_database() {
   ensure_api_env
   select_node_runtime
   local db_type
-  db_type=$(db_type_from_file apps/api/.env)
+  db_type=$(db_type_from_file apps/api/.env.production)
   activate_prisma_schema "$db_type"
   (cd apps/api && ./node_modules/.bin/prisma db push --schema=prisma/schema.active --skip-generate)
   ok "数据库结构同步完成"
