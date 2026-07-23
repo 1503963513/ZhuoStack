@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞与隐私问题
+    url: https://github.com/1503963513/ZhuoStack/security/advisories/new
+    about: 请使用私密 Security Advisory，不要创建公开 Issue。
+  - name: 使用与部署文档
+    url: https://github.com/1503963513/ZhuoStack/tree/main/docs
+    about: 提问前请先查看快速开始、Prisma 和部署指南。

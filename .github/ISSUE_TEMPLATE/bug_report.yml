@@ -1,0 +1,58 @@
+name: Bug 报告
+description: 报告可复现的错误或回归问题
+title: '[Bug]: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先搜索已有 Issue。安全漏洞不要公开提交，请阅读 [SECURITY.md](../../SECURITY.md)。
+  - type: input
+    id: version
+    attributes:
+      label: 版本或 commit
+      description: 请填写 GitHub Release、commit SHA 或部署包版本。
+      placeholder: v1.0.0 / 0cd127b
+    validations:
+      required: true
+  - type: dropdown
+    id: database
+    attributes:
+      label: 数据库
+      options:
+        - 不适用
+        - PostgreSQL
+        - MySQL
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清楚说明实际行为与预期行为。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 请先删除 Token、密码、Cookie、连接串和个人数据。
+      render: text
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 包括 Node、pnpm、操作系统、浏览器和部署方式。
+    validations:
+      required: true

@@ -18,11 +18,16 @@ prepare_pm2_staging() {
 }
 
 pack_pm2() {
-  local mode=$1 db_type=${2:-postgres} timestamp staging archive platform
+  local mode=$1 db_type=${2:-postgres} timestamp staging archive platform release_version
   case "$db_type" in postgres|mysql) ;; *) die "数据库类型只能是 postgres 或 mysql" ;; esac
   timestamp=$(date +%Y%m%d_%H%M%S)
+  release_version=${RELEASE_VERSION:-}
   staging=".deploy-temp/pm2-${mode}"
-  archive="deploy_pm2_${mode}_${db_type}_${timestamp}.tar.gz"
+  if [ -n "$release_version" ]; then
+    archive="zhuostack-${release_version}-pm2-${mode}-${db_type}.tar.gz"
+  else
+    archive="deploy_pm2_${mode}_${db_type}_${timestamp}.tar.gz"
+  fi
   rm -rf .deploy-temp
   mkdir -p "$staging"
   build_project
@@ -33,7 +38,7 @@ pack_pm2() {
     command -v docker >/dev/null 2>&1 || die "生成跨平台离线依赖需要 Docker"
     platform=${TARGET_ARCH:-linux/amd64}
     info "在 $platform 容器中安装生产依赖、PM2 和 Prisma Client"
-    docker run --rm --platform "$platform" -v "$ROOT_DIR/$staging:/app" -w /app node:20-bookworm-slim bash -lc "
+    docker run --rm --platform "$platform" -v "$ROOT_DIR/$staging:/app" -w /app node:24-bookworm-slim bash -lc "
       set -eu
       apt-get update >/dev/null
       apt-get install -y --no-install-recommends openssl ca-certificates >/dev/null

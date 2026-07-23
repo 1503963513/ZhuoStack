@@ -1,0 +1,30 @@
+name: 功能建议
+description: 提议新功能、改进或开发体验优化
+title: '[Feature]: '
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 描述当前痛点、使用场景和受影响的用户。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 描述你希望的行为、API 或界面变化。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案
+      description: 说明你考虑过的替代方案及其取舍。
+  - type: textarea
+    id: impact
+    attributes:
+      label: 兼容性与实现影响
+      description: 是否涉及数据库迁移、环境变量、权限、性能或安全边界？

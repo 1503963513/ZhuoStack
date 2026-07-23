@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 已存在的 vMAJOR.MINOR.PATCH tag
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '10.32.1'
+
+jobs:
+  release:
+    name: Validate and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG (expected vMAJOR.MINOR.PATCH)" >&2
+            exit 1
+          fi
+          git rev-parse "$RELEASE_TAG^{commit}" >/dev/null
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate PostgreSQL Prisma client
+        run: pnpm --filter api db:use:pg && pnpm --filter api prisma:generate
+        env:
+          DATABASE_URL: postgresql://prisma:prisma@127.0.0.1:5432/prisma
+
+      - name: Run release quality gates
+        run: |
+          pnpm test:ci
+          pnpm build
+          pnpm audit:prod
+
+      - name: Build versioned PM2 release packages
+        env:
+          DEPLOY_SKIP_BUILD: 'true'
+          RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          mkdir -p release
+          pnpm ops pack pm2-online postgres
+          pnpm ops pack pm2-online mysql
+          mv zhuostack-*-pm2-*.tar.gz release/
+          (cd release && sha256sum *.tar.gz > SHA256SUMS)
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release/*.tar.gz
+            release/SHA256SUMS

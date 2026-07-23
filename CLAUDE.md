@@ -47,8 +47,8 @@ pnpm docker:down
 
 | 包                      | 技术栈                                                         | 端口 |
 | ----------------------- | -------------------------------------------------------------- | ---- |
-| `apps/api`              | NestJS 10 + Fastify + Prisma                                   | 3100 |
-| `apps/web`              | Next.js 14 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
+| `apps/api`              | NestJS 11 + Fastify + Prisma                                   | 3100 |
+| `apps/web`              | Next.js 16 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
 | `packages/shared-types` | 共享 TypeScript 类型（`ApiResponse<T>`, `User`, `Role`）       | —    |
 
 路径别名：`@/*` → `./src/*`（两个应用通用），`@zhuostack/shared-types` → `packages/shared-types/src`。
@@ -89,7 +89,7 @@ Next.js App Router 路由分组：
 
 当前生效的 schema 是 `prisma/schema.active/`（自动生成，已加入 gitignore）。通过 `db:use:pg` 或 `db:use:mysql` 切换时会复制对应目录。所有 prisma 命令均使用 `--schema=prisma/schema.active`。
 
-使用 `prismaSchemaFolder` 预览特性 — schema 拆分为 `config.prisma`、`enums.prisma`、`models/*.prisma`。
+使用 Prisma 7 内置的多文件 Schema 能力 — schema 拆分为 `config.prisma`、`enums.prisma`、`models/*.prisma`。
 
 ## 环境变量
 
@@ -109,7 +109,7 @@ cp apps/web/.env.example apps/web/.env.development      # 前端 dev
 - 全局启用 TypeScript 严格模式 — **禁止使用 `any`**（ESLint 强制）
 - 注释使用中文
 - Git：使用约定式提交（`feat/fix/chore/docs...`）
-- Pre-commit 钩子运行 lint-staged（ESLint + Prettier 处理 `.ts`/`.tsx` 文件）
+- Pre-commit 钩子运行 lint-staged（ESLint + Prettier 处理暂存的 `.ts`/`.tsx` 文件）
 - `BaseRepository<T>`（位于 `database/prisma.repository.ts`）可用于新模块的通用 CRUD，当前 UserService 未使用它
 
 ## 操作技能（Skills，按需调用）
