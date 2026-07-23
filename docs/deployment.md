@@ -19,7 +19,7 @@ scripts/
 | 场景                           | 推荐命令                                | 目标机要求                                    |
 | ------------------------------ | --------------------------------------- | --------------------------------------------- |
 | 常规服务器 / 云主机            | `pnpm ops docker up`                    | Docker + Compose                              |
-| 已有 Nginx、Node 运维体系      | `pnpm ops pm2 start`                    | Node.js 20+；在线准备时需要 pnpm              |
+| 已有 Nginx、Node 运维体系      | `pnpm ops pm2 start`                    | Node.js 24 LTS；在线准备时需要 pnpm           |
 | 完全离线，允许 Docker          | `pnpm ops pack docker-offline postgres` | 目标机只有 Docker 即可                        |
 | 完全离线，不使用 Docker 跑应用 | `pnpm ops pack pm2-offline postgres`    | Linux glibc 系统；Node、PM2、依赖均已随包提供 |
 
@@ -136,7 +136,7 @@ cp apps/api/.env.example apps/api/.env.production
 bash scripts/deploy.sh pm2 start
 ```
 
-目标机需要 Node.js 20+、pnpm 10+，并能访问 npm 源。后续更新可执行：
+目标机需要 Node.js 24 LTS、pnpm 10+，并能访问 npm 源。后续更新可执行：
 
 ```bash
 bash scripts/deploy.sh pm2 update /path/to/new-package.tar.gz

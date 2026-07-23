@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=10 <11"
+  },
   "description": "Production-oriented NestJS + Next.js full-stack monorepo",
   "scripts": {
     "dev": "turbo run dev",
@@ -30,9 +34,10 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",
-    "eslint": "^10.7.0",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.6",
     "turbo": "^2.10.5",

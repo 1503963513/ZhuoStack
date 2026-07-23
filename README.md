@@ -34,7 +34,7 @@
 | 数据库    | PostgreSQL / MySQL      |
 | 缓存      | Redis                   |
 | 前端框架  | Next.js 16 (App Router) |
-| CSS 框架  | Tailwind CSS 3          |
+| CSS 框架  | Tailwind CSS 4          |
 | UI 组件   | shadcn/ui               |
 | 状态管理  | Zustand                 |
 | 数据请求  | TanStack Query v5       |
@@ -85,7 +85,7 @@ zhuostack/
 
 ### 环境要求
 
-- **Node.js** 20+
+- **Node.js** 24 LTS
 - **pnpm** 10+
 - **Docker**（可选，用于数据库）
 
@@ -176,7 +176,7 @@ FILE_STORAGE_TYPE=local
 
 ## Prisma Schema 多文件拆分
 
-本项目使用 `prismaSchemaFolder` 预览特性支持多文件 Schema 组织。
+本项目使用 Prisma 7 内置的多文件 Schema 能力，不需要启用预览特性。
 
 ### 目录结构
 

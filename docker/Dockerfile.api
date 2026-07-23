@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:26-bookworm-slim AS base
+FROM node:24-bookworm-slim AS base
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -37,7 +37,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
     && if [ "$DB_TYPE" = "mysql" ]; then pnpm --filter api db:use:mysql; else pnpm --filter api db:use:pg; fi \
     && if [ "$DB_TYPE" = "mysql" ]; then DATABASE_URL=mysql://prisma:prisma@127.0.0.1:3306/prisma pnpm --filter api prisma:generate; else DATABASE_URL=postgresql://prisma:prisma@127.0.0.1:5432/prisma pnpm --filter api prisma:generate; fi
 
-FROM node:26-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production
 ENV PORT=3100
 WORKDIR /app

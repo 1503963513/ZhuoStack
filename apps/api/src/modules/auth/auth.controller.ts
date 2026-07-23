@@ -18,6 +18,7 @@ import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import * as crypto from 'crypto';
+import UAParser from 'ua-parser-js';
 import { LoginDto, RegisterDto } from './dto';
 import { CurrentUser, Public } from '../../common/decorators';
 import {
@@ -26,7 +27,6 @@ import {
   durationToSeconds,
   extractAuthToken,
 } from './auth-security';
-import UAParser = require('ua-parser-js');
 
 @ApiTags('auth')
 @Controller('auth')
