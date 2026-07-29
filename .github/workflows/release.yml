@@ -78,7 +78,7 @@ jobs:
           (cd release && sha256sum *.tar.gz > SHA256SUMS)
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           generate_release_notes: true
