@@ -83,24 +83,24 @@
     "ua-parser-js": "^2.0.10"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.24",
-    "@nestjs/schematics": "^11.1.0",
-    "@nestjs/testing": "^11.1.28",
+    "@nestjs/cli": "^12.0.3",
+    "@nestjs/schematics": "^12.0.3",
+    "@nestjs/testing": "^12.0.3",
     "@types/ali-oss": "^6.23.3",
     "@types/bcryptjs": "^3.0.0",
     "@types/cron": "^2.4.3",
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.2",
     "@types/passport-jwt": "^4.0.0",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^7.2.1",
     "@types/ua-parser-js": "^0.7.39",
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
