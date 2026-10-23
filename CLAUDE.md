@@ -36,6 +36,10 @@ pnpm --filter api prisma:migrate  # 运行迁移
 pnpm --filter api prisma:seed     # 填充种子数据
 pnpm --filter api prisma:studio   # 打开 Prisma Studio 可视化工具
 
+# 契约与代码生成
+pnpm contract:sync                # 导出 OpenAPI 并同步生成前端强类型客户端
+pnpm gen:crud <模块名> <中文名>     # 快速生成一套前后端全栈 CRUD 模块骨架
+
 # Docker
 pnpm docker:up
 pnpm docker:down
