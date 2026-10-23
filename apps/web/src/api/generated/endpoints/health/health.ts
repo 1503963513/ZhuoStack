@@ -17,7 +17,9 @@ import type {
 
 import type {
   HealthControllerCheck200,
-  HealthControllerCheck503
+  HealthControllerCheck503,
+  HealthControllerCheckReadiness200,
+  HealthControllerCheckReadiness503
 } from '../../models';
 
 import { customInstance } from '../../../../lib/api-mutator';
@@ -28,7 +30,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary Health check endpoint
+ * @summary 深度健康检查（就绪检查）
  */
 export const healthControllerCheck = (
 
@@ -80,7 +82,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
     /**
- * @summary Health check endpoint
+ * @summary 深度健康检查（就绪检查）
  */
 export const useHealthControllerCheck = <TError = HealthControllerCheck503,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheck>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -91,4 +93,134 @@ export const useHealthControllerCheck = <TError = HealthControllerCheck503,
         TContext
       > => {
       return useMutation(getHealthControllerCheckMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary 容器存活探针 (Liveness)
+ */
+export const healthControllerCheckLiveness = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<void>(
+      {url: `/api/health/liveness`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getHealthControllerCheckLivenessMutationKey = () => ['healthControllerCheckLiveness'] as const;
+
+export const getHealthControllerCheckLivenessMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheckLiveness>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheckLiveness>>, TError,void, TContext> => {
+
+const mutationKey = getHealthControllerCheckLivenessMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof healthControllerCheckLiveness>>, void> = () => {
+
+
+          return  healthControllerCheckLiveness(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HealthControllerCheckLivenessMutationResult = NonNullable<Awaited<ReturnType<typeof healthControllerCheckLiveness>>>
+
+    export type HealthControllerCheckLivenessMutationError = unknown
+
+
+    /**
+ * @summary 容器存活探针 (Liveness)
+ */
+export const useHealthControllerCheckLiveness = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheckLiveness>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof healthControllerCheckLiveness>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getHealthControllerCheckLivenessMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary 容器就绪探针 (Readiness)
+ */
+export const healthControllerCheckReadiness = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<HealthControllerCheckReadiness200>(
+      {url: `/api/health/readiness`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getHealthControllerCheckReadinessMutationKey = () => ['healthControllerCheckReadiness'] as const;
+
+export const getHealthControllerCheckReadinessMutationOptions = <TError = HealthControllerCheckReadiness503,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheckReadiness>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheckReadiness>>, TError,void, TContext> => {
+
+const mutationKey = getHealthControllerCheckReadinessMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof healthControllerCheckReadiness>>, void> = () => {
+
+
+          return  healthControllerCheckReadiness(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HealthControllerCheckReadinessMutationResult = NonNullable<Awaited<ReturnType<typeof healthControllerCheckReadiness>>>
+
+    export type HealthControllerCheckReadinessMutationError = HealthControllerCheckReadiness503
+
+
+    /**
+ * @summary 容器就绪探针 (Readiness)
+ */
+export const useHealthControllerCheckReadiness = <TError = HealthControllerCheckReadiness503,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof healthControllerCheckReadiness>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof healthControllerCheckReadiness>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getHealthControllerCheckReadinessMutationOptions(options), queryClient);
     }

@@ -12,6 +12,8 @@ export interface ErrorResponseDto {
   code: number;
   /** 错误消息 */
   message: string;
+  /** 全链路请求关联 ID，用于定位异常日志 */
+  requestId?: string;
   /**
      * 错误数据为空
      * @nullable

@@ -11,4 +11,6 @@ export interface ApiResponseDto {
   code: number;
   /** 响应提示信息 */
   message: string;
+  /** 全链路请求关联 ID */
+  requestId?: string;
 }

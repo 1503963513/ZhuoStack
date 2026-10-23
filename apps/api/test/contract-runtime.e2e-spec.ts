@@ -193,7 +193,16 @@ describe('API Contract & Runtime E2E Tests', () => {
       .useValue(redisMock)
       .compile();
 
-    app = moduleFixture.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter({
+        requestIdHeader: 'x-request-id',
+        genReqId: (req: { headers: Record<string, unknown> }) => {
+          const incoming = req.headers['x-request-id'];
+          if (typeof incoming === 'string' && incoming.length > 0) return incoming;
+          return `req_${crypto.randomUUID().replace(/-/g, '')}`;
+        },
+      }),
+    );
 
     await app.register(fastifyCookie);
     await app.register(fastifyMultipart, {
@@ -201,6 +210,13 @@ describe('API Contract & Runtime E2E Tests', () => {
     });
 
     fastifyInstance = app.getHttpAdapter().getInstance() as FastifyInstance;
+
+    fastifyInstance.addHook('onSend', async (request, reply) => {
+      if (request.id) {
+        reply.header('x-request-id', request.id);
+      }
+    });
+
     fastifyInstance.addHook('onRequest', async (request, reply) => {
       if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return;
       const pathname = request.url.split('?')[0];
@@ -230,7 +246,9 @@ describe('API Contract & Runtime E2E Tests', () => {
         forbidNonWhitelisted: true,
       }),
     );
-    app.setGlobalPrefix('api', { exclude: ['health'] });
+    app.setGlobalPrefix('api', {
+      exclude: ['health', 'health/liveness', 'health/readiness'],
+    });
 
     await app.init();
     await fastifyInstance.ready();
@@ -277,10 +295,11 @@ describe('API Contract & Runtime E2E Tests', () => {
       expect(loginRes.statusCode).toBe(200);
       const body = JSON.parse(loginRes.payload);
 
-      // 验证外层 { code, data, message } 结构与 OpenAPI 声明的 AuthSuccessResponseDto 一致
+      // 验证外层 { code, data, message, requestId } 结构与 OpenAPI 声明的 AuthSuccessResponseDto 一致
       expect(body).toEqual({
         code: 200,
         message: 'success',
+        requestId: expect.any(String),
         data: {
           user: {
             id: mockAdminUser.id,
@@ -291,6 +310,9 @@ describe('API Contract & Runtime E2E Tests', () => {
           },
         },
       });
+
+      // 验证响应头中包含 x-request-id
+      expect(loginRes.headers['x-request-id']).toBeDefined();
 
       // 验证 Cookie 设置
       const cookies = loginRes.cookies;
@@ -528,6 +550,7 @@ describe('API Contract & Runtime E2E Tests', () => {
       expect(body).toEqual({
         code: 200,
         message: 'success',
+        requestId: expect.any(String),
         data: {
           data: expect.any(Array),
           pagination: {
@@ -589,6 +612,7 @@ describe('API Contract & Runtime E2E Tests', () => {
         code: 400,
         data: null,
         message: expect.stringMatching(/请选择要上传的文件|file/i),
+        requestId: expect.any(String),
       });
     });
 
@@ -619,6 +643,44 @@ describe('API Contract & Runtime E2E Tests', () => {
         data: null,
       });
       expect(body.message).toMatch(/不支持的文件类型|格式/);
+    });
+  });
+
+  // ========== 6. 深度健康检查与探针契约 ==========
+  describe('健康检查与探针端点', () => {
+    it('GET /health/liveness 存活探针返回 status: ok 与进程运行指标', async () => {
+      const res = await fastifyInstance.inject({
+        method: 'GET',
+        url: '/health/liveness',
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.payload);
+      expect(body).toMatchObject({
+        code: 200,
+        message: 'success',
+        requestId: expect.any(String),
+        data: {
+          status: 'ok',
+          uptime: expect.any(Number),
+          timestamp: expect.any(String),
+        },
+      });
+    });
+
+    it('GET /health 深度就绪检查返回 database 与 redis 状态及延迟', async () => {
+      const res = await fastifyInstance.inject({
+        method: 'GET',
+        url: '/health',
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.payload);
+      const healthData = body.data || body;
+      expect(healthData.status).toBe('ok');
+      expect(healthData.info).toHaveProperty('database');
+      expect(healthData.info.database.status).toBe('up');
+      expect(healthData.info).toHaveProperty('redis');
     });
   });
 });

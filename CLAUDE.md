@@ -59,15 +59,17 @@ pnpm docker:down
 
 使用 **Fastify**（非 Express）作为 HTTP 适配器。异常过滤器使用 `FastifyRequestLike`/`FastifyReplyLike` 接口。
 
-在 `AppModule` 中注册的**全局中间件**：
+在 `AppModule` 中注册的**全局中间件与可观测性**：
 
-- `TransformInterceptor`（`APP_INTERCEPTOR`）— 将所有响应包装为 `{ code, data, message }`
-- `HttpExceptionFilter`（`APP_FILTER`）— 捕获异常，返回 `{ code, <状态码>, data: null, message }`
+- `x-request-id` 全链路追踪 — 请求头自动透传或生成 `req_xxx`，响应头及错误体均附带此 ID，日志自动打标
+- `TransformInterceptor`（`APP_INTERCEPTOR`）— 将所有成功响应包装为 `{ code, data, message, requestId }`
+- `HttpExceptionFilter`（`APP_FILTER`）— 捕获异常，打印包含 `[requestId]` 的堆栈，返回 `{ code, <状态码>, data: null, message, requestId }`
 - `ValidationPipe` — `whitelist: true`、`forbidNonWhitelisted: true`、`transform: true`（含隐式类型转换）
+- 深度探针：`/health`（就绪检查，探测 DB+Redis 延迟）、`/health/liveness`（存活检查）。排障详见 `docs/troubleshooting.md`。
 
 **路由前缀**：`app.setGlobalPrefix('api', { exclude: ['health'] })` — 健康检查在 `/health`，其余均在 `/api/*`。
 
-**认证流程**：基于 JWT + HttpOnly Cookie 架构。登录/注册成功下发 HttpOnly `access_token` 和前端可读 `csrf_token`；对修改操作实施双提交 CSRF 防护（`x-csrf-token` 请求头）。每次请求由 `JwtStrategy` 结合 Redis 会话进行单设备活跃校验（Jti 验证）。密码传输前经 RSA-OAEP 加密，后端使用 `bcryptjs` 哈希存储。详见 `.claude/rules/backend-auth.md`。
+**认证流程**：基于 JWT + HttpOnly Cookie 架构。登录/注册成功下发 HttpOnly `access_token` 和前端可读 `csrf_token`；对修改操作实施双提交 CSRF 防护（`x-csrf-token` 请求头）。每次请求由 `JwtStrategy` 结合 Redis 会话进行单设备活跃校验（Jti 验证）。密码传输前经 RSA-OAEP 加密，后端使用 `bcryptjs` 哈希存储。详见 `.claude/rules/invariants.md`。
 
 **AI 模块**（`modules/ai`）：使用 OpenAI SDK，支持自定义 `OPENAI_BASE_URL`。端点：`POST /api/ai/chat`、`SSE /api/ai/chat/stream`、`POST /api/ai/prompt`。均需认证。
 

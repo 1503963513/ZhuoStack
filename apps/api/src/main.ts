@@ -8,6 +8,8 @@ import helmet from '@fastify/helmet';
 import fastifyCookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import fastifyMultipart from '@fastify/multipart';
+import type { IncomingMessage } from 'http';
+import type { Http2ServerRequest } from 'http2';
 import type { FastifyInstance } from 'fastify';
 import { AppModule } from './app.module';
 import {
@@ -98,7 +100,16 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ ...(httpsOptions || {}), trustProxy }),
+    new FastifyAdapter({
+      ...(httpsOptions || {}),
+      trustProxy,
+      requestIdHeader: 'x-request-id',
+      genReqId: (req: IncomingMessage | Http2ServerRequest) => {
+        const incoming = req.headers['x-request-id'];
+        if (typeof incoming === 'string' && incoming.length > 0) return incoming;
+        return `req_${crypto.randomUUID().replace(/-/g, '')}`;
+      },
+    }),
     { bufferLogs: true },
   );
 
@@ -121,8 +132,16 @@ async function bootstrap() {
   // 解析认证与 CSRF Cookie。JWT Cookie 不签名：JWT 本身已经使用服务端密钥验签。
   await app.register(fastifyCookie);
 
-  // Cookie 认证的非安全方法必须通过双提交 CSRF 校验；显式 Bearer 客户端不受影响。
   const fastifyInstance = app.getHttpAdapter().getInstance() as FastifyInstance;
+
+  // 响应头自动附带全链路请求关联 ID
+  fastifyInstance.addHook('onSend', async (request, reply) => {
+    if (request.id) {
+      reply.header('x-request-id', request.id);
+    }
+  });
+
+  // Cookie 认证的非安全方法必须通过双提交 CSRF 校验；显式 Bearer 客户端不受影响。
   fastifyInstance.addHook('onRequest', async (request, reply) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return;
 
@@ -135,9 +154,7 @@ async function bootstrap() {
 
     const csrfCookie = request.cookies[CSRF_COOKIE_NAME];
     const csrfHeaderValue = request.headers[CSRF_HEADER_NAME];
-    const csrfHeader = Array.isArray(csrfHeaderValue)
-      ? csrfHeaderValue[0]
-      : csrfHeaderValue;
+    const csrfHeader = Array.isArray(csrfHeaderValue) ? csrfHeaderValue[0] : csrfHeaderValue;
 
     if (!csrfTokensMatch(csrfCookie, csrfHeader)) {
       return reply.code(403).send({
@@ -209,9 +226,9 @@ async function bootstrap() {
     logger.log(`云文件存储已启用: ${fileStorageType}`);
   }
 
-  // Global prefix
+  // Global prefix（健康检查探针路由均不带 /api 前缀）
   app.setGlobalPrefix('api', {
-    exclude: ['health'],
+    exclude: ['health', 'health/liveness', 'health/readiness'],
   });
 
   // Enable CORS（支持多源配置，逗号分隔）

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PaginationMetaDto {
   @ApiProperty({ description: '总条数', example: 100 })
@@ -28,6 +28,9 @@ export class ApiResponseDto<T> {
   @ApiProperty({ description: '响应提示信息', example: 'success' })
   message: string;
 
+  @ApiPropertyOptional({ description: '全链路请求关联 ID', example: 'req_8f1a2b3c4d5e' })
+  requestId?: string;
+
   data: T;
 }
 
@@ -37,6 +40,12 @@ export class ErrorResponseDto {
 
   @ApiProperty({ description: '错误消息', example: '请求参数校验失败' })
   message: string;
+
+  @ApiPropertyOptional({
+    description: '全链路请求关联 ID，用于定位异常日志',
+    example: 'req_8f1a2b3c4d5e',
+  })
+  requestId?: string;
 
   @ApiProperty({
     description: '错误数据为空',

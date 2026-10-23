@@ -46,6 +46,12 @@ function createApiClient(): AxiosInstance {
         }, 1500);
       }
 
+      // 从响应头或后端响应体中提取全链路请求关联 ID，便于排障定位
+      const reqId = error.response?.headers?.['x-request-id'] || error.response?.data?.requestId;
+      if (reqId) {
+        error.requestId = reqId;
+      }
+
       // 从后端响应体中提取 message，替换 Axios 默认错误信息
       const backendMessage = error.response?.data?.message;
       if (backendMessage) {

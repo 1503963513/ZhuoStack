@@ -280,13 +280,14 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 | `pnpm --filter api db:use:pg`           | 切换到 PostgreSQL                           |
 | `pnpm --filter api db:use:mysql`        | 切换到 MySQL                                |
 
-## 开发规范
+## 开发规范与运维排障
 
 - 全局启用 **TypeScript 严格模式** — 禁止使用 `any`
 - 注释使用**中文**
 - Git 提交遵循**约定式提交**格式（`feat/fix/chore/docs...`）
 - 通过 **ESLint + Prettier** + lint-staged + husky 强制代码规范
-- 所有 API 响应遵循 `{ code, data, message }` 统一格式
+- 所有 API 响应遵循 `{ code, data, message }` 统一格式，全链路请求自动携带 `x-request-id`
+- 详细排障指南见 [生产运维与排障文档 (Troubleshooting Runbook)](docs/troubleshooting.md)
 
 ## 持续集成与安全门禁
 

@@ -11,9 +11,11 @@ interface ErrorResponse {
   code: number;
   data: null;
   message: string;
+  requestId?: string;
 }
 
 interface FastifyRequestLike {
+  id?: string;
   method: string;
   url: string;
 }
@@ -52,16 +54,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       // 未受控异常的原始消息只写服务端日志，避免泄露 SQL、路径和 SDK 细节。
-      this.logger.error(
-        `Unhandled exception: ${exception.message}`,
-        exception.stack,
-      );
+      this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
     }
 
+    const reqId = request.id;
     const errorResponse: ErrorResponse = {
       code: status,
       data: null,
       message,
+      ...(reqId && { requestId: reqId }),
     };
 
     // 静默处理浏览器自动请求的 favicon.ico 404
@@ -70,9 +71,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    this.logger.error(
-      `${request.method} ${request.url} - ${status} - ${message}`,
-    );
+    const logPrefix = reqId ? `[${reqId}] ` : '';
+    this.logger.error(`${logPrefix}${request.method} ${request.url} - ${status} - ${message}`);
 
     response.status(status).send(errorResponse);
   }
