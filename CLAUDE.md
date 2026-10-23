@@ -38,7 +38,6 @@ pnpm --filter api prisma:studio   # 打开 Prisma Studio 可视化工具
 
 # 契约与代码生成
 pnpm contract:sync                # 导出 OpenAPI 并同步生成前端强类型客户端
-pnpm gen:crud <模块名> <中文名>     # 快速生成一套前后端全栈 CRUD 模块骨架
 
 # Docker
 pnpm docker:up
@@ -68,18 +67,18 @@ pnpm docker:down
 
 **路由前缀**：`app.setGlobalPrefix('api', { exclude: ['health'] })` — 健康检查在 `/health`，其余均在 `/api/*`。
 
-**认证流程**：基于 JWT。`JwtStrategy.validate()` 每次请求都会查询数据库。`@CurrentUser()` 装饰器提取用户信息。`@Roles(Role.ADMIN)` + `RolesGuard` 实现角色权限控制。密码使用 `bcryptjs` 哈希。
+**认证流程**：基于 JWT + HttpOnly Cookie 架构。登录/注册成功下发 HttpOnly `access_token` 和前端可读 `csrf_token`；对修改操作实施双提交 CSRF 防护（`x-csrf-token` 请求头）。每次请求由 `JwtStrategy` 结合 Redis 会话进行单设备活跃校验（Jti 验证）。密码传输前经 RSA-OAEP 加密，后端使用 `bcryptjs` 哈希存储。详见 `.claude/rules/backend-auth.md`。
 
-**AI 模块**（`modules/ai`）：使用 OpenAI SDK，支持自定义 `OPENAI_BASE_URL`。端点：`POST /api/ai/chat`、`SSE /api/ai/chat/stream`、`POST /api/ai/prompt`。均需 JWT 认证。
+**AI 模块**（`modules/ai`）：使用 OpenAI SDK，支持自定义 `OPENAI_BASE_URL`。端点：`POST /api/ai/chat`、`SSE /api/ai/chat/stream`、`POST /api/ai/prompt`。均需认证。
 
 ### 前端 (`apps/web`)
 
 Next.js App Router 路由分组：
 
 - `(auth)/` — `/login`、`/register`（公开页面）
-- `(dashboard)/` — `/dashboard`、`/profile`（需认证，layout 检查 Zustand Store）
+- `(dashboard)/` — `/dashboard`、`/profile`、各管理页面（需认证，layout 检查 Zustand Store 状态）
 
-**数据请求**：`useApiQuery(key, url)` / `useApiMutation(method, url)`，位于 `hooks/use-api.ts`，封装 TanStack Query。API 客户端在 `lib/api-client.ts`，基于 Axios，JWT 拦截器从 Zustand persist store 读取（localStorage key `"auth-storage"`）。
+**数据请求**：全面采用由 OpenAPI 规范自动生成的强类型客户端与 TanStack Query Hooks（位于 `@/api/generated/`），通过 `lib/api-mutator.ts` 桥接现有带有 Cookie、CSRF Token 和 401 自动跳转拦截的 Axios 实例。详见 `.claude/rules/frontend-development.md`。
 
 **UI 组件**：shadcn/ui + Tailwind CSS。主题切换使用 `next-themes`（暗色/亮色）。提示消息使用 `sonner`。
 
@@ -115,12 +114,13 @@ cp apps/web/.env.example apps/web/.env.development      # 前端 dev
 - Pre-commit 钩子运行 lint-staged（ESLint + Prettier 处理暂存的 `.ts`/`.tsx` 文件）
 - `BaseRepository<T>`（位于 `database/prisma.repository.ts`）可用于新模块的通用 CRUD，当前 UserService 未使用它
 
-## 操作技能（Skills，按需调用）
+## 操作技能与规则说明
 
-操作模板/参考文档放在 `.claude/skills/` 下，**不会自动加载**，写对应功能时再调用（输入 `/<skill名>` 或让 Claude 自动触发）。常驻规则见 `.claude/rules/`（认证、数据库、API 规范、Redis、前端开发）。
+常驻核心底线见 `.claude/rules/invariants.md`（极简铁律，常驻生效）。业务模板与研发工作流放在 `.claude/skills/` 下，按需调用（输入 `/<skill名>` 触发）。
 
 | Skill                 | 触发场景                                                                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/rule-check`         | 按项目铁律全自动化检查代码质量（契约防漂移、Swagger包装、类型检查、Lint规范、E2E测试）                                                      |
 | `/crud-module`        | 新增全栈业务 CRUD 模块时的标准研发工作流（字段澄清 -> 双库模型 -> DTO/Service/Controller -> 契约生成 -> 前端页面 -> 权限 Seed -> 校验闭环） |
 | `/frontend-crud-page` | 新建前端 CRUD 管理页面（PageHeader + DataTable + Pagination 骨架，基于 Orval 强类型客户端）                                                 |
 | `/backend-module`     | 新建 NestJS 后端模块（controller/service/dto，含 @ApiResultResponse 包装规范）                                                              |
