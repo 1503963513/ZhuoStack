@@ -5,20 +5,29 @@ description: 用 PageHeader+DataTable+Pagination 组合新建前端 CRUD 管理�
 
 # 前端 CRUD 页面模板
 
-所有系统管理页面统一使用 `PageHeader` + `DataTable` + `Pagination` 组合。
+所有系统管理页面统一使用 `PageHeader` + `DataTable` + `Pagination` 组合，并直接调用由 `pnpm contract:sync` 产出的强类型客户端函数与数据模型。
 
-## 标准模板
+## 标准模板代码
 
 ```tsx
 'use client';
 
 import { useState } from 'react';
-import { useApiQuery, useApiMutation } from '@/hooks/use-api';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useConfirm } from '@/hooks/use-confirm';
-import { buildUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -26,79 +35,148 @@ import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import { PermissionButton } from '@/components/common/permission-button';
 
-interface Resource {
-  id: string;
-  name: string;
-  status: string;
-  // ...
-}
-
-interface PaginatedResponse {
-  data: Resource[];
-  pagination: { total: number; page: number; pageSize: number; totalPages: number };
-}
+// 从自动生成的契约中导入 API 函数与类型（无需手写 URL 与泛型断言）
+import {
+  postControllerFindAll,
+  postControllerCreate,
+  postControllerUpdate,
+  postControllerRemove,
+} from '@/api/generated/endpoints/系统-岗位管理/系统-岗位管理';
+import type { PostItemDto } from '@/api/generated/models';
 
 export default function ResourcePage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
-  const { confirm, ConfirmDialog } = useConfirm();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<PostItemDto | null>(null);
+  const [formData, setFormData] = useState({ name: '', code: '', sort: 0 });
 
-  const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['resources', String(page), String(pageSize), debouncedSearch],
-    buildUrl('/api/system/resource', { page, pageSize, search: debouncedSearch || undefined }),
-  );
+  // 1. 获取分页列表
+  const {
+    data: response,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['resources', page, pageSize, debouncedSearch],
+    queryFn: () =>
+      postControllerFindAll({
+        page,
+        pageSize,
+        search: debouncedSearch || undefined,
+      }),
+  });
 
-  const createMutation = useApiMutation('post', '/api/system/resource', {
-    onSuccess: () => { toast.success('创建成功'); refetch(); },
+  const list = response?.data?.data || [];
+  const pagination = response?.data?.pagination || {
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 0,
+  };
+
+  // 2. 新增与更新 Mutation
+  const createMutation = useMutation({
+    mutationFn: (data: typeof formData) => postControllerCreate(data),
+    onSuccess: () => {
+      toast.success('创建成功');
+      setDialogOpen(false);
+      resetForm();
+      refetch();
+    },
     onError: (err) => toast.error('创建失败', { description: err.message }),
   });
 
-  const list = data?.data?.data || [];
-  const pagination = data?.data?.pagination;
+  const updateMutation = useMutation({
+    mutationFn: (data: typeof formData) => {
+      if (!editingItem) throw new Error('未选择编辑项');
+      return postControllerUpdate(editingItem.id, data);
+    },
+    onSuccess: () => {
+      toast.success('更新成功');
+      setDialogOpen(false);
+      resetForm();
+      refetch();
+    },
+    onError: (err) => toast.error('更新失败', { description: err.message }),
+  });
+
+  const resetForm = () => {
+    setFormData({ name: '', code: '', sort: 0 });
+    setEditingItem(null);
+  };
+
+  const handleEdit = (item: PostItemDto) => {
+    setEditingItem(item);
+    setFormData({ name: item.name, code: item.code, sort: item.sort });
+    setDialogOpen(true);
+  };
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
     if (!ok) return;
     try {
-      const { del } = await import('@/lib/api-client');
-      await del(`/api/system/resource/${id}`);
+      await postControllerRemove(id);
       toast.success('删除成功');
       refetch();
-    } catch (err: any) {
-      toast.error('删除失败', { description: err.message });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '删除失败';
+      toast.error('删除失败', { description: msg });
     }
   };
 
-  const columns: Column<Resource>[] = [
-    { label: '名称', key: 'name', span: 3 },
-    { label: '状态', span: 2, render: (row) => <Badge>{row.status}</Badge> },
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingItem) updateMutation.mutate(formData);
+    else createMutation.mutate(formData);
+  };
+
+  // 列定义（label, span, render/key）
+  const columns: Column<PostItemDto>[] = [
+    { label: '名称', span: 3, key: 'name' },
+    { label: '编码', span: 3, key: 'code' },
+    { label: '排序', span: 2, key: 'sort' },
+    {
+      label: '创建时间',
+      span: 4,
+      render: (row) => new Date(row.createdAt).toLocaleDateString('zh-CN'),
+    },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="资源管理"
-        description="管理系统资源"
+        description="管理系统资源列表"
         actions={
-          <>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
+              <RefreshCw className="h-4 w-4" />
             </Button>
-            <PermissionButton perm="system:resource:add" onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" /> 新增
+            <PermissionButton
+              perm="system:resource:add"
+              onClick={() => {
+                resetForm();
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              新增资源
             </PermissionButton>
-          </>
+          </div>
         }
       />
 
-      <Input
-        placeholder="搜索"
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        className="max-w-sm"
-      />
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="搜索关键词..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
 
       <DataTable
         columns={columns}
@@ -106,28 +184,83 @@ export default function ResourcePage() {
         isLoading={isLoading}
         emptyText="暂无数据"
         actions={(row) => (
-          <>
-            <PermissionButton perm="system:resource:edit" variant="ghost" size="sm" onClick={() => handleEdit(row)}>
-              <Pencil className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            <PermissionButton
+              perm="system:resource:edit"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(row)}
+            >
+              <Pencil className="mr-1 h-3.5 w-3.5" />
+              编辑
             </PermissionButton>
-            <PermissionButton perm="system:resource:delete" variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
+            <PermissionButton
+              perm="system:resource:delete"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(row.id)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              删除
             </PermissionButton>
-          </>
+          </div>
         )}
-        actionsSpan={2}
       />
 
-      {pagination && (
-        <Pagination
-          page={page}
-          totalPages={pagination.totalPages}
-          total={pagination.total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-        />
-      )}
+      <Pagination
+        page={pagination.page}
+        pageSize={pagination.pageSize}
+        total={pagination.total}
+        totalPages={pagination.totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+      />
+
+      {/* 增改弹窗 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>{editingItem ? '编辑资源' : '新增资源'}</DialogTitle>
+              <DialogDescription>填写信息并保存。</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">名称 *</Label>
+                <Input
+                  id="name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="code">编码 *</Label>
+                <Input
+                  id="code"
+                  required
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {createMutation.isPending || updateMutation.isPending ? '保存中...' : '保存'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog />
     </div>
@@ -135,84 +268,17 @@ export default function ResourcePage() {
 }
 ```
 
-## 组件说明
+## 组件 API 要点
 
-### PageHeader
-
-页面顶部标题 + 操作按钮区域。
-
-```tsx
-<PageHeader
-  title="页面标题"
-  description="页面描述（可选）"
-  actions={<Button>操作按钮</Button>}
-/>
-```
-
-### DataTable
-
-通用数据表格，列配置驱动。
-
-```tsx
-<DataTable
-  columns={[
-    { label: '列名', key: 'field', span: 3 },          // 直接取字段值
-    { label: '状态', span: 2, render: (row) => ... },   // 自定义渲染
-  ]}
-  data={list}
-  isLoading={isLoading}
-  emptyText="暂无数据"
-  actions={(row) => <Button>编辑</Button>}              // 操作列
-  actionsSpan={2}                                        // 操作列宽度
-  onRowClick={(row) => ...}                              // 行点击
-/>
-```
-
-**Column 配置**：
-- `label`：列标题
-- `key`：数据字段名（和 `render` 二选一）
-- `span`：grid 占用列数（默认 1）
-- `render`：自定义渲染函数
-
-### Pagination
-
-居中分页组件，支持 pageSize 切换和手动输入页码。不足一页自动隐藏。
-
-```tsx
-{pagination && (
-  <Pagination
-    page={page}
-    totalPages={pagination.totalPages}
-    total={pagination.total}         // 可选：显示总数
-    pageSize={pageSize}              // 可选：当前每页条数
-    onPageChange={setPage}
-    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}  // 可选：切换每页条数
-  />
-)}
-```
-
-## URL 构建
-
-使用 `buildUrl` 替代手动拼接查询字符串：
-
-```tsx
-import { buildUrl } from '@/lib/utils';
-
-// 自动过滤 undefined/null/空字符串
-buildUrl('/api/system/resource', { page, pageSize, search: debouncedSearch || undefined })
-```
-
-## 确认对话框
-
-使用 `useConfirm` 替代原生 `confirm()`：
-
-```tsx
-const { confirm, ConfirmDialog } = useConfirm();
-
-// 在组件 JSX 末尾渲染
-<ConfirmDialog />
-
-// 调用
-const ok = await confirm({ description: '确定要删除吗？', variant: 'destructive' });
-if (!ok) return;
-```
+- **`DataTable`**：
+  - `columns: Column<T>[]`：每个列对象使用 `label`（标题）、`span`（占据网格数）、`key` 或 `render: (row: T) => ReactNode`。
+  - `isLoading?: boolean`：加载中状态。
+  - `actions?: (row: T) => ReactNode`：固定在右侧的操作按钮插槽。
+- **`PermissionButton`**：
+  - `perm: string`：传入权限字符，如 `system:user:add`。无权时默认隐藏。
+- **`PageHeader`**：
+  - `actions?: ReactNode`：右侧按钮组插槽。
+- **`useConfirm`**：
+  - `const { confirm, ConfirmDialog } = useConfirm()`
+  - `const ok = await confirm({ description: '确定删除吗？', variant: 'destructive' })`
+  - 必须在组件末尾渲染 `<ConfirmDialog />`。

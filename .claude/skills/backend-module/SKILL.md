@@ -5,7 +5,7 @@ description: 新建 NestJS 后端 CRUD 模块（controller/service/dto/entities�
 
 # 后端 CRUD 模块开发
 
-本项目使用 NestJS 10 + Fastify 适配器 + Prisma ORM。所有后端模块遵循统一的开发模式。
+本项目使用 NestJS 11 + Fastify 适配器 + Prisma ORM。所有后端模块遵循统一的开发模式，并通过 OpenAPI 为前端提供强类型契约。
 
 ## 模块目录结构
 
@@ -14,15 +14,14 @@ description: 新建 NestJS 后端 CRUD 模块（controller/service/dto/entities�
 ```
 modules/<name>/
 ├── <name>.module.ts        # NestJS 模块定义
-├── <name>.controller.ts    # 路由处理器 + Swagger 装饰器
+├── <name>.controller.ts    # 路由处理器 + Swagger 包装装饰器
 ├── <name>.service.ts       # 业务逻辑
-├── dto/
-│   ├── create-<name>.dto.ts   # 创建 DTO（数据验证）
-│   ├── update-<name>.dto.ts   # 更新 DTO（PartialType）
-│   ├── query-<name>.dto.ts    # 分页/搜索查询 DTO
-│   └── index.ts               # 桶导出
-└── entities/
-    └── <name>.entity.ts       # Swagger 实体类（用于 API 文档）
+└── dto/
+    ├── create-<name>.dto.ts   # 创建 DTO（数据验证）
+    ├── update-<name>.dto.ts   # 更新 DTO（PartialType）
+    ├── query-<name>.dto.ts    # 分页/搜索查询 DTO
+    ├── <name>-response.dto.ts # Swagger 响应实体 DTO
+    └── index.ts               # 统一桶导出
 ```
 
 ## Service 开发模式
@@ -30,26 +29,19 @@ modules/<name>/
 所有 Service 通过依赖注入使用 `PrismaService`，遵循以下规范：
 
 ```typescript
-// 1. @Injectable() 装饰器
-// 2. 构造函数注入 PrismaService，声明为 readonly
-// 3. 每个公开方法都有 JSDoc 注释
-// 4. 使用 select 排除 password 等敏感字段
-// 5. 抛出 NestJS 内置异常（NotFoundException、ConflictException 等）
-// 6. 返回普通对象（TransformInterceptor 会自动包装）
-
 @Injectable()
 export class ExampleService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateExampleDto) {
-    // 创建前检查唯一性约束
-    // 返回时使用 select 控制字段暴露
+    // 创建前检查唯一性约束，冲突抛出 ConflictException
+    return this.prisma.example.create({ data: dto });
   }
 
   async findAll(query: QueryExampleDto) {
     // 分页参数：page（默认 1）、pageSize（默认 10）
     // 使用 Promise.all 并行执行 count + findMany
-    // 返回格式：{ data, pagination: { total, page, pageSize, totalPages } }
+    // 返回格式严格为：{ data, pagination: { total, page, pageSize, totalPages } }
   }
 
   async findOne(id: string) {
@@ -58,7 +50,6 @@ export class ExampleService {
 
   async update(id: string, dto: UpdateExampleDto) {
     // 先调用 findOne 确认资源存在
-    // 若修改唯一字段，需检查唯一性约束
   }
 
   async remove(id: string) {
@@ -68,35 +59,88 @@ export class ExampleService {
 }
 ```
 
-## Controller 开发模式
+## Controller 开发模式与响应包装
+
+为了确保 OpenAPI 能生成准确反映全局拦截器包装（`{ code, data, message }`）的客户端代码，必须使用通用响应包装装饰器：
 
 ```typescript
-// 1. @ApiTags('<标签>') 用于 Swagger 分组
-// 2. @ApiBearerAuth() 标记需要认证的路由
-// 3. @UseGuards(JwtAuthGuard, RolesGuard) 保护路由
-// 4. @Roles(Role.ADMIN) 限制仅管理员访问
-// 5. 每个端点都加 @ApiOperation + @ApiResponse
-// 6. Controller 直接返回 Service 结果（Interceptor 负责包装）
-```
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators';
+import {
+  ApiResultResponse,
+  ApiPaginatedResultResponse,
+  ApiErrorResponse,
+} from '../../common/decorators/api-result.decorator';
+import { SimpleMessageResponseDto } from '../user/dto/user-response.dto';
+import { Role } from '@prisma/client';
 
-## 模块注册
+@ApiTags('示例管理')
+@ApiBearerAuth()
+@UseGuards(RolesGuard)
+@Controller('example')
+export class ExampleController {
+  constructor(private readonly exampleService: ExampleService) {}
 
-创建模块后，在 `apps/api/src/app.module.ts` 中注册：
+  @Post()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '创建示例' })
+  @ApiResultResponse(ExampleItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
+  @ApiErrorResponse(HttpStatus.CONFLICT, '已存在冲突记录')
+  create(@Body() dto: CreateExampleDto) {
+    return this.exampleService.create(dto);
+  }
 
-```typescript
-imports: [
-  // ... 已有模块
-  NewModule,
-],
+  @Get()
+  @ApiOperation({ summary: '获取分页列表' })
+  @ApiPaginatedResultResponse(ExampleItemDto, { description: '获取成功' })
+  findAll(@Query() query: QueryExampleDto) {
+    return this.exampleService.findAll(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '获取详情' })
+  @ApiParam({ name: 'id', description: 'ID' })
+  @ApiResultResponse(ExampleItemDto, { description: '获取成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '记录不存在')
+  findOne(@Param('id') id: string) {
+    return this.exampleService.findOne(id);
+  }
+
+  @Put(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '更新示例' })
+  @ApiParam({ name: 'id', description: 'ID' })
+  @ApiResultResponse(ExampleItemDto, { description: '更新成功' })
+  update(@Param('id') id: string, @Body() dto: UpdateExampleDto) {
+    return this.exampleService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '删除示例' })
+  @ApiParam({ name: 'id', description: 'ID' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
+  remove(@Param('id') id: string) {
+    return this.exampleService.remove(id);
+  }
+}
 ```
 
 ## 核心规则
 
-- **永远不要返回 `password` 字段** — 始终使用 Prisma `select` 排除
-- **禁止使用 `any`** — ESLint 强制 TypeScript 严格模式
-- **注释使用中文** — 所有 JSDoc 和行内注释
-- **使用 `readonly`** — 构造函数注入的依赖必须声明为只读
-- **DTO 桶导出** — 始终创建 `dto/index.ts` 统一导出所有 DTO
-- **Entity 类** — 创建带 `@ApiProperty` 装饰器的 Swagger 实体类
-- 分页统一使用 `{ page, pageSize, totalPages, total }` 格式
-- 可使用 `database/prisma.repository.ts` 中的 `BaseRepository<T>` 作为通用 CRUD 基类
+- **响应包装**：必须使用 `@ApiResultResponse` 与 `@ApiPaginatedResultResponse`，严禁只写没有 `type` 的 `@ApiResponse({ status: 200 })`。
+- **可空字段 Swagger 注解**：对带有 `| null` 的字段，在 `@ApiPropertyOptional({ type: String, nullable: true })` 中显式指定基本类型。
+- **契约同步**：编写或修改后端 Controller/DTO 后，立即执行 `pnpm contract:sync` 刷新前端。

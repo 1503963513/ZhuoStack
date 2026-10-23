@@ -119,9 +119,10 @@ cp apps/web/.env.example apps/web/.env.development      # 前端 dev
 
 操作模板/参考文档放在 `.claude/skills/` 下，**不会自动加载**，写对应功能时再调用（输入 `/<skill名>` 或让 Claude 自动触发）。常驻规则见 `.claude/rules/`（认证、数据库、API 规范、Redis、前端开发）。
 
-| Skill                 | 触发场景                                                                        |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `/frontend-crud-page` | 新建前端 CRUD 管理页面（PageHeader + DataTable + Pagination 骨架）              |
-| `/backend-module`     | 新建 NestJS 后端模块（controller/service/dto/entities）                         |
-| `/file-upload`        | 集成文件/图片上传功能（@fastify/multipart + FileUpload 组件）                   |
-| `/frontend-hooks`     | 查阅前端 Hooks 用法（useApiQuery、useDict、usePermissions、encryptPassword 等） |
+| Skill                 | 触发场景                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/crud-module`        | 新增全栈业务 CRUD 模块时的标准研发工作流（字段澄清 -> 双库模型 -> DTO/Service/Controller -> 契约生成 -> 前端页面 -> 权限 Seed -> 校验闭环） |
+| `/frontend-crud-page` | 新建前端 CRUD 管理页面（PageHeader + DataTable + Pagination 骨架，基于 Orval 强类型客户端）                                                 |
+| `/backend-module`     | 新建 NestJS 后端模块（controller/service/dto，含 @ApiResultResponse 包装规范）                                                              |
+| `/file-upload`        | 集成文件/图片上传功能（@fastify/multipart + FileUpload 组件，含真实字节进度监听）                                                           |
+| `/frontend-hooks`     | 查阅前端 Hooks 用法（useDict、usePermissions、encryptPassword 等）                                                                          |

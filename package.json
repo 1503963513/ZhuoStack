@@ -18,7 +18,6 @@
     "test:e2e": "pnpm --filter api test:e2e",
     "test:ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e",
     "audit:prod": "pnpm audit --prod --audit-level high",
-    "gen:crud": "node scripts/gen-crud.mjs",
     "openapi:export": "pnpm --filter api openapi:export",
     "codegen": "pnpm --filter web codegen",
     "contract:sync": "pnpm openapi:export && pnpm codegen",
