@@ -11,6 +11,7 @@
     "start:debug": "pnpm prisma:prepare:dev && nest start --debug --watch",
     "start:prod": "NODE_ENV=production node dist/src/main",
     "typecheck": "tsc --noEmit",
+    "openapi:export": "pnpm build && node --env-file-if-exists=.env.development scripts/export-openapi.mjs",
     "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --watchman=false",

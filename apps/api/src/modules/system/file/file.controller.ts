@@ -12,23 +12,31 @@ import {
   Req,
   BadRequestException,
   PayloadTooLargeException,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
   ApiParam,
   ApiConsumes,
   ApiBody,
+  ApiProduces,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import {
+  ApiResultResponse,
+  ApiPaginatedResultResponse,
+  ApiErrorResponse,
+} from '../../../common/decorators/api-result.decorator';
+import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
 import { FileService } from './file.service';
-import { QueryFileDto, UpdateFileDto } from './dto';
+import { QueryFileDto, UpdateFileDto, BatchDeleteDto } from './dto';
 import { FileEntity, UploadResultEntity } from './entities/file.entity';
 
 @ApiTags('系统-文件管理')
@@ -40,7 +48,7 @@ export class FileController {
 
   @Get()
   @ApiOperation({ summary: '获取文件列表' })
-  @ApiResponse({ status: 200, description: '获取成功', type: [FileEntity] })
+  @ApiPaginatedResultResponse(FileEntity, { description: '获取成功' })
   findAll(@Query() query: QueryFileDto) {
     return this.fileService.findAll(query);
   }
@@ -48,8 +56,8 @@ export class FileController {
   @Get(':id')
   @ApiOperation({ summary: '获取文件详情' })
   @ApiParam({ name: 'id', description: '文件 ID' })
-  @ApiResponse({ status: 200, description: '获取成功', type: FileEntity })
-  @ApiResponse({ status: 404, description: '文件不存在' })
+  @ApiResultResponse(FileEntity, { description: '获取成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '文件不存在')
   findOne(@Param('id') id: string) {
     return this.fileService.findOne(id);
   }
@@ -58,7 +66,8 @@ export class FileController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '更新文件信息' })
   @ApiParam({ name: 'id', description: '文件 ID' })
-  @ApiResponse({ status: 200, description: '更新成功', type: FileEntity })
+  @ApiResultResponse(FileEntity, { description: '更新成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '文件不存在')
   update(@Param('id') id: string, @Body() dto: UpdateFileDto) {
     return this.fileService.update(id, dto);
   }
@@ -66,20 +75,20 @@ export class FileController {
   @Delete('batch')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '批量删除文件' })
-  @ApiResponse({ status: 200, description: '删除成功' })
-  removeBatch(@Body('ids') ids: string[]) {
-    if (!ids || ids.length === 0) {
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
+  removeBatch(@Body() dto: BatchDeleteDto) {
+    if (!dto.ids || dto.ids.length === 0) {
       throw new BadRequestException('请选择要删除的文件');
     }
-    return this.fileService.removeBatch(ids);
+    return this.fileService.removeBatch(dto.ids);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '删除文件' })
   @ApiParam({ name: 'id', description: '文件 ID' })
-  @ApiResponse({ status: 200, description: '删除成功' })
-  @ApiResponse({ status: 404, description: '文件不存在' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '文件不存在')
   remove(@Param('id') id: string) {
     return this.fileService.remove(id);
   }
@@ -95,7 +104,7 @@ export class FileController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: '上传成功', type: FileEntity })
+  @ApiResultResponse(FileEntity, { status: HttpStatus.CREATED, description: '上传成功' })
   async upload(@Req() req: FastifyRequest, @CurrentUser('id') userId: string) {
     const data = await req.file();
     if (!data) {
@@ -122,7 +131,7 @@ export class FileController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: '上传成功', type: UploadResultEntity })
+  @ApiResultResponse(UploadResultEntity, { status: HttpStatus.CREATED, description: '上传成功' })
   async uploadImage(@Req() req: FastifyRequest, @CurrentUser('id') userId: string) {
     const data = await req.file();
     if (!data) {
@@ -141,7 +150,8 @@ export class FileController {
   @Get('download/:id')
   @ApiOperation({ summary: '下载文件' })
   @ApiParam({ name: 'id', description: '文件 ID' })
-  @ApiResponse({ status: 200, description: '下载成功' })
+  @ApiProduces('application/octet-stream')
+  @ApiResponse({ status: 200, description: '文件二进制流' })
   async download(@Param('id') id: string, @Res() res: FastifyReply) {
     const { buffer, originalName, mimeType } = await this.fileService.getDownloadInfo(id);
 

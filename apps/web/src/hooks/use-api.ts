@@ -12,14 +12,12 @@ import type { ApiResponse } from '@/types/api';
 
 /**
  * 通用 GET 请求 Hook
+ * @deprecated 优先使用由 OpenAPI 生成的强类型客户端 (@/api/generated/endpoints/...)
  */
 export function useApiQuery<T>(
   key: string[],
   url: string,
-  options?: Omit<
-    UseQueryOptions<ApiResponse<T>, Error>,
-    'queryKey' | 'queryFn'
-  >,
+  options?: Omit<UseQueryOptions<ApiResponse<T>, Error>, 'queryKey' | 'queryFn'>,
 ) {
   return useQuery<ApiResponse<T>, Error>({
     queryKey: key,
@@ -30,15 +28,15 @@ export function useApiQuery<T>(
 
 /**
  * 通用变更请求 Hook（POST/PUT/DELETE）
+ * @deprecated 优先使用由 OpenAPI 生成的强类型客户端 (@/api/generated/endpoints/...)
  * invalidateKeys 支持部分匹配：如 ['dicts'] 会匹配所有以 'dicts' 开头的查询键
  */
 export function useApiMutation<T>(
   method: 'post' | 'put' | 'delete',
   url: string,
-  options?: Omit<
-    UseMutationOptions<ApiResponse<T>, Error, unknown>,
-    'mutationFn'
-  > & { invalidateKeys?: string[][] },
+  options?: Omit<UseMutationOptions<ApiResponse<T>, Error, unknown>, 'mutationFn'> & {
+    invalidateKeys?: string[][];
+  },
 ) {
   const queryClient = useQueryClient();
 

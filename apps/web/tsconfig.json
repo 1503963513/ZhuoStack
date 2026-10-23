@@ -15,8 +15,7 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./src/*"],
-      "@zhuostack/shared-types": ["../../packages/shared-types/src"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [

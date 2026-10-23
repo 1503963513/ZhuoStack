@@ -8,11 +8,19 @@ import { encryptPassword } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
+import { authControllerGetCaptcha } from '@/api/generated/endpoints/auth/auth';
 
 export function RegisterForm() {
   const {
@@ -25,15 +33,14 @@ export function RegisterForm() {
 
   const registerMutation = useRegister();
 
-  const { data: captchaResponse, refetch: fetchCaptcha } = useApiQuery<{
-    captchaId: string;
-    captchaImage: string;
-  }>(['register-captcha'], '/api/auth/captcha', {
+  const { data: captchaResponse, refetch: fetchCaptcha } = useQuery({
+    queryKey: ['register-captcha'],
+    queryFn: () => authControllerGetCaptcha(),
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
-  const captchaId = captchaResponse?.data.captchaId ?? '';
-  const captchaImage = captchaResponse?.data.captchaImage ?? '';
+  const captchaId = captchaResponse?.data?.captchaId ?? '';
+  const captchaImage = captchaResponse?.data?.captchaImage ?? '';
 
   const onSubmit = async (data: RegisterFormData) => {
     const payload = {
@@ -64,25 +71,19 @@ export function RegisterForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">创建账号</CardTitle>
-        <CardDescription className="text-center">
-          请输入您的信息开始使用
-        </CardDescription>
+        <CardDescription className="text-center">请输入您的信息开始使用</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">用户名</Label>
             <Input id="name" type="text" placeholder="请输入用户名" {...register('name')} />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">邮箱</Label>
             <Input id="email" type="email" placeholder="user@example.com" {...register('email')} />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">密码</Label>
@@ -93,7 +94,12 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">确认密码</Label>
-            <Input id="confirmPassword" type="password" placeholder="••••••" {...register('confirmPassword')} />
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="••••••"
+              {...register('confirmPassword')}
+            />
             {errors.confirmPassword && (
               <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
             )}

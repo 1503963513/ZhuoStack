@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import NextImage from 'next/image';
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { buildUrl, fileUrl } from '@/lib/utils';
+import { fileUrl } from '@/lib/utils';
 import { CSRF_HEADER_NAME, getCsrfToken } from '@/lib/csrf';
 import {
   Upload,
@@ -44,29 +44,12 @@ import {
 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { Pagination } from '@/components/common/pagination';
-
-interface FileItem {
-  id: string;
-  fileName: string;
-  originalName: string;
-  filePath: string;
-  url: string;
-  fileSize: number;
-  mimeType: string;
-  ext: string;
-  storageType: string;
-  md5: string | null;
-  status: string;
-  remark: string | null;
-  createBy: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PaginatedResponse {
-  data: FileItem[];
-  pagination: { total: number; page: number; pageSize: number; totalPages: number };
-}
+import {
+  fileControllerFindAll,
+  fileControllerRemove,
+  fileControllerRemoveBatch,
+} from '@/api/generated/endpoints/系统-文件管理/系统-文件管理';
+import type { FileEntity } from '@/api/generated/models';
 
 /** 格式化文件大小 */
 function formatFileSize(bytes: number): string {
@@ -74,7 +57,7 @@ function formatFileSize(bytes: number): string {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
 /** 获取文件类型图标 */
@@ -82,8 +65,16 @@ function getFileIcon(mimeType: string) {
   if (mimeType.startsWith('image/')) return Image;
   if (mimeType.startsWith('video/')) return Film;
   if (mimeType.startsWith('audio/')) return Music;
-  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('7z')) return Archive;
-  if (mimeType.includes('pdf') || mimeType.includes('word') || mimeType.includes('excel') || mimeType.includes('powerpoint') || mimeType.includes('text')) return FileText;
+  if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('7z'))
+    return Archive;
+  if (
+    mimeType.includes('pdf') ||
+    mimeType.includes('word') ||
+    mimeType.includes('excel') ||
+    mimeType.includes('powerpoint') ||
+    mimeType.includes('text')
+  )
+    return FileText;
   return File;
 }
 
@@ -98,20 +89,35 @@ export default function FilePage() {
   const [mimeType, setMimeType] = useState('all');
   const debouncedSearch = useDebounce(search, 300);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileEntity | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const { data, isLoading, refetch } = useApiQuery<PaginatedResponse>(
-    ['files', String(page), debouncedSearch, mimeType],
-    buildUrl('/api/system/file', { page, pageSize: 12, search: debouncedSearch || undefined, mimeType: mimeType !== 'all' ? mimeType : undefined }),
-  );
+  const {
+    data: response,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['files', page, debouncedSearch, mimeType],
+    queryFn: () =>
+      fileControllerFindAll({
+        page,
+        pageSize: 12,
+        search: debouncedSearch || undefined,
+        mimeType: mimeType !== 'all' ? mimeType : undefined,
+      }),
+  });
 
-  const files = data?.data?.data || [];
-  const pagination = data?.data?.pagination;
+  const files = response?.data?.data || [];
+  const pagination = response?.data?.pagination || {
+    total: 0,
+    page: 1,
+    pageSize: 12,
+    totalPages: 0,
+  };
 
   /** 文件大小限制：50MB */
   const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -120,7 +126,6 @@ export default function FilePage() {
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
-    // 前端预检文件大小，避免上传到一半才报错
     const oversized = Array.from(fileList).find((f) => f.size > MAX_FILE_SIZE);
     if (oversized) {
       toast.error(`文件「${oversized.name}」超过 50MB 大小限制`);
@@ -136,34 +141,50 @@ export default function FilePage() {
         const formData = new FormData();
         formData.append('file', file);
 
-        setUploadProgress(Math.round(((i + 1) / fileList.length) * 100));
+        const endpoint = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/system/file/upload`;
 
-        // 使用 XMLHttpRequest 实现进度
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-          xhr.open('POST', `${apiBase}/api/system/file/upload`);
+          xhr.open('POST', endpoint);
           xhr.withCredentials = true;
-          const csrfToken = getCsrfToken();
-          if (csrfToken) xhr.setRequestHeader(CSRF_HEADER_NAME, csrfToken);
 
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const fileProgress = Math.round((e.loaded / e.total) * 100);
-              setUploadProgress(Math.round(((i + fileProgress / 100) / fileList.length) * 100));
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percent);
             }
           };
 
+          const csrfToken = getCsrfToken();
+          if (csrfToken) xhr.setRequestHeader(CSRF_HEADER_NAME, csrfToken);
+
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-            } else {
-              // 尝试从后端响应中提取错误信息
               try {
                 const json = JSON.parse(xhr.responseText);
-                reject(new Error(json.message || `上传失败 (${xhr.status})`));
+                if (
+                  json &&
+                  typeof json === 'object' &&
+                  'code' in json &&
+                  (json as { code: number }).code >= 400
+                ) {
+                  reject(
+                    new Error(
+                      (json as { message?: string }).message || `文件「${file.name}」上传失败`,
+                    ),
+                  );
+                  return;
+                }
+                resolve();
               } catch {
-                reject(new Error(`上传失败: ${xhr.statusText || '服务器错误'} (${xhr.status})`));
+                reject(new Error(`文件「${file.name}」上传响应格式无效`));
+              }
+            } else {
+              try {
+                const json = JSON.parse(xhr.responseText);
+                reject(new Error(json.message || `文件「${file.name}」上传失败`));
+              } catch {
+                reject(new Error(`文件「${file.name}」上传失败 (${xhr.status})`));
               }
             }
           };
@@ -198,13 +219,13 @@ export default function FilePage() {
   };
 
   /** 下载文件 */
-  const handleDownload = async (file: FileItem) => {
+  const handleDownload = async (file: FileEntity) => {
     try {
       const { default: apiClient } = await import('@/lib/api-client');
-      const response = await apiClient.get(`/api/system/file/download/${file.id}`, {
+      const res = await apiClient.get(`/api/system/file/download/${file.id}`, {
         responseType: 'blob',
       });
-      const blob = new Blob([response.data], { type: file.mimeType });
+      const blob = new Blob([res.data], { type: file.mimeType });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -217,14 +238,16 @@ export default function FilePage() {
     }
   };
 
-  /** 删除文件 */
+  /** 单个删除 */
   const handleDelete = async (id: string) => {
-    const ok = await confirm({ description: '确定要删除该文件吗？删除后不可恢复！', variant: 'destructive' });
+    const ok = await confirm({
+      description: '确定要删除该文件吗？此操作不可恢复。',
+      variant: 'destructive',
+    });
     if (!ok) return;
 
     try {
-      const { del } = await import('@/lib/api-client');
-      await del(`/api/system/file/${id}`);
+      await fileControllerRemove(id);
       toast.success('删除成功');
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -240,20 +263,15 @@ export default function FilePage() {
 
   /** 批量删除 */
   const handleBatchDelete = async () => {
-    if (selectedIds.size === 0) {
-      toast.error('请先选择要删除的文件');
-      return;
-    }
-
+    if (selectedIds.size === 0) return;
     const ok = await confirm({
-      description: `确定要删除选中的 ${selectedIds.size} 个文件吗？删除后不可恢复！`,
+      description: `确定要删除选中的 ${selectedIds.size} 个文件吗？此操作不可恢复。`,
       variant: 'destructive',
     });
     if (!ok) return;
 
     try {
-      const apiClient = (await import('@/lib/api-client')).default;
-      await apiClient.delete('/api/system/file/batch', { data: { ids: Array.from(selectedIds) } });
+      await fileControllerRemoveBatch({ ids: Array.from(selectedIds) });
       toast.success(`成功删除 ${selectedIds.size} 个文件`);
       setSelectedIds(new Set());
       refetch();
@@ -263,21 +281,16 @@ export default function FilePage() {
     }
   };
 
-  /** 切换选中 */
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
-  /** 全选/取消全选 */
-  const toggleSelectAll = () => {
+  const selectAll = () => {
     if (selectedIds.size === files.length) {
       setSelectedIds(new Set());
     } else {
@@ -285,23 +298,34 @@ export default function FilePage() {
     }
   };
 
+  const copyUrl = (url: string) => {
+    const full = fileUrl(url || '') || '';
+    navigator.clipboard.writeText(full);
+    toast.success('已复制链接到剪贴板');
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* 顶部标题与操作栏 */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">文件管理</h1>
-          <p className="text-muted-foreground">管理系统上传的文件</p>
+          <h1 className="text-3xl font-bold tracking-tight">文件管理</h1>
+          <p className="text-muted-foreground">管理系统上传的文件与图片资源</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
-            <Button variant="destructive" onClick={handleBatchDelete}>
+            <PermissionButton
+              perm="file:delete"
+              variant="destructive"
+              size="sm"
+              onClick={handleBatchDelete}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               删除选中 ({selectedIds.size})
-            </Button>
+            </PermissionButton>
           )}
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            刷新
+          <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
+            <RefreshCw className="h-4 w-4" />
           </Button>
           <PermissionButton perm="file:upload" onClick={() => setUploadOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
@@ -310,247 +334,249 @@ export default function FilePage() {
         </div>
       </div>
 
-      {/* 搜索和筛选 */}
-      <div className="flex gap-4">
+      {/* 搜索与筛选 */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="搜索文件名"
+            placeholder="搜索文件名称..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Select value={mimeType} onValueChange={(v) => { setMimeType(v); setPage(1); }}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
+        <Select
+          value={mimeType}
+          onValueChange={(val) => {
+            setMimeType(val);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="全部类型" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">全部类型</SelectItem>
-            <SelectItem value="image">图片</SelectItem>
-            <SelectItem value="video">视频</SelectItem>
-            <SelectItem value="audio">音频</SelectItem>
-            <SelectItem value="document">文档</SelectItem>
+            <SelectItem value="image/">图片</SelectItem>
+            <SelectItem value="video/">视频</SelectItem>
+            <SelectItem value="audio/">音频</SelectItem>
+            <SelectItem value="application/pdf">PDF</SelectItem>
+            <SelectItem value="application/zip">压缩包</SelectItem>
           </SelectContent>
         </Select>
+        {files.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={selectAll}>
+            <Check className="mr-1 h-4 w-4" />
+            {selectedIds.size === files.length ? '取消全选' : '全选'}
+          </Button>
+        )}
       </div>
 
-      {/* 文件列表 */}
+      {/* 文件网格 */}
       {isLoading ? (
-        <div className="p-8 text-center text-muted-foreground">加载中...</div>
+        <div className="flex items-center justify-center py-16">
+          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       ) : files.length === 0 ? (
-        <div className="p-8 text-center text-muted-foreground">暂无文件</div>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <Upload className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <p className="text-lg font-medium text-muted-foreground">暂无文件</p>
+            <p className="text-sm text-muted-foreground/75 mt-1">点击右上角「上传文件」按钮添加</p>
+          </CardContent>
+        </Card>
       ) : (
-        <>
-          {/* 全选 */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              {selectedIds.size === files.length && files.length > 0 ? (
-                <Check className="h-4 w-4 text-primary" />
-              ) : (
-                <div className="h-4 w-4 rounded border" />
-              )}
-              全选
-            </button>
-            {selectedIds.size > 0 && (
-              <span className="text-sm text-muted-foreground">已选 {selectedIds.size} 个</span>
-            )}
-          </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {files.map((file) => {
+            const isSelected = selectedIds.has(file.id);
+            const isImg = isImage(file.mimeType);
+            const FileIconComponent = getFileIcon(file.mimeType);
 
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-            {files.map((file) => {
-              const Icon = getFileIcon(file.mimeType);
-              const selected = selectedIds.has(file.id);
-              return (
-                <Card
-                  key={file.id}
-                  className={`group relative cursor-pointer transition-all ${selected ? 'ring-2 ring-primary' : 'hover:border-primary/50 hover:shadow-sm'}`}
-                  onClick={() => toggleSelect(file.id)}
-                >
-                  <CardContent className="p-3">
-                    {/* 选中指示 */}
-                    <div className="absolute top-1.5 left-1.5">
-                      {selected ? (
-                        <Check className="h-3.5 w-3.5 text-primary" />
-                      ) : (
-                        <div className="h-3.5 w-3.5 rounded border" />
-                      )}
-                    </div>
+            return (
+              <Card
+                key={file.id}
+                className={`group relative overflow-hidden transition-all hover:shadow-md cursor-pointer ${
+                  isSelected ? 'ring-2 ring-primary border-primary' : ''
+                }`}
+                onClick={() => toggleSelect(file.id)}
+              >
+                <div className="relative aspect-square w-full overflow-hidden bg-muted flex items-center justify-center">
+                  {isImg ? (
+                    <NextImage
+                      src={fileUrl(file.url || '') || ''}
+                      alt={file.originalName}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 16vw"
+                      className="object-cover transition-transform group-hover:scale-105"
+                      unoptimized
+                    />
+                  ) : (
+                    <FileIconComponent className="h-12 w-12 text-muted-foreground/50" />
+                  )}
 
-                    {/* 预览区域 */}
-                    <div
-                      className="relative mb-2 flex h-16 items-center justify-center overflow-hidden rounded-md bg-muted/30"
-                      onClick={(e) => { e.stopPropagation(); if (isImage(file.mimeType)) setPreviewFile(file); }}
-                    >
-                      {isImage(file.mimeType) ? (
-                        <NextImage
-                          src={fileUrl(file.url) ?? file.url}
-                          alt={file.originalName}
-                          fill
-                          sizes="(min-width: 1536px) 16vw, (min-width: 1024px) 20vw, 50vw"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <Icon className="h-8 w-8 text-muted-foreground" />
-                      )}
-                    </div>
+                  <div
+                    className={`absolute top-2 left-2 h-5 w-5 rounded border bg-background flex items-center justify-center transition-opacity ${
+                      isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
+                    {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </div>
 
-                    {/* 文件信息 */}
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-medium truncate" title={file.originalName}>
-                        {file.originalName}
-                      </p>
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span>{formatFileSize(file.fileSize)}</span>
-                        <span>{file.ext.toUpperCase()}</span>
-                      </div>
-                    </div>
-
-                    {/* 操作按钮 */}
-                    <div className="mt-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {isImage(file.mimeType) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); setPreviewFile(file); }}
-                          title="预览"
-                        >
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                      )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 p-2">
+                    {isImg && (
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8 rounded-full"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-                          const url = `${apiBase}${file.url}`;
-                          // 降级方案：HTTP 环境下 navigator.clipboard 不可用
-                          if (navigator.clipboard) {
-                            navigator.clipboard.writeText(url);
-                          } else {
-                            const textarea = document.createElement('textarea');
-                            textarea.value = url;
-                            textarea.style.position = 'fixed';
-                            textarea.style.opacity = '0';
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textarea);
-                          }
-                          toast.success('链接已复制');
+                          setPreviewFile(file);
                         }}
-                        title="复制链接"
+                        title="预览"
                       >
-                        <Copy className="h-3 w-3" />
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <PermissionButton
-                        perm="file:download"
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleDownload(file); }}
-                        title="下载"
-                      >
-                        <Download className="h-3 w-3" />
-                      </PermissionButton>
-                      <PermissionButton
-                        perm="file:delete"
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => { e.stopPropagation(); handleDelete(file.id); }}
-                        title="删除"
-                      >
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </PermissionButton>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </>
+                    )}
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8 rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyUrl(file.url);
+                      }}
+                      title="复制链接"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="h-8 w-8 rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file);
+                      }}
+                      title="下载"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <PermissionButton
+                      perm="file:delete"
+                      size="icon"
+                      variant="destructive"
+                      className="h-8 w-8 rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(file.id);
+                      }}
+                      title="删除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </PermissionButton>
+                  </div>
+                </div>
+
+                <div className="p-2 space-y-0.5">
+                  <p className="text-xs font-medium truncate" title={file.originalName}>
+                    {file.originalName}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatFileSize(file.fileSize)}
+                  </p>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {/* 分页 */}
-      {pagination && pagination.totalPages > 1 && (
-        <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+      {pagination && (
+        <Pagination
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          totalPages={pagination.totalPages}
+          onPageChange={setPage}
+        />
       )}
 
-      {/* 上传对话框 */}
+      {/* 上传弹窗 */}
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>上传文件</DialogTitle>
-            <DialogDescription>支持图片、文档、视频、音频、压缩包，单文件最大 50MB</DialogDescription>
+            <DialogDescription>支持单文件或多文件上传，单个文件不超过 50MB。</DialogDescription>
           </DialogHeader>
+
           <div
-            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors hover:border-primary"
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              uploading ? 'bg-muted/50 cursor-not-allowed' : 'hover:bg-muted/30 cursor-pointer'
+            }`}
+            onClick={() => !uploading && fileInputRef.current?.click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
           >
-            {uploading ? (
-              <div className="w-full space-y-2">
-                <div className="h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                <p className="text-center text-sm text-muted-foreground">
-                  上传中... {uploadProgress}%
-                </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => handleUpload(e.target.files)}
+              disabled={uploading}
+            />
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <Upload
+                className={`h-8 w-8 ${uploading ? 'animate-bounce text-primary' : 'text-muted-foreground'}`}
+              />
+              <div className="text-sm font-medium">
+                {uploading ? `正在上传 (${uploadProgress}%)...` : '点击选择文件，或拖拽文件到此处'}
               </div>
-            ) : (
-              <>
-                <Upload className="mb-4 h-10 w-10 text-muted-foreground" />
-                <p className="mb-2 text-sm text-muted-foreground">拖拽文件到此处，或点击选择文件</p>
-                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  选择文件
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleUpload(e.target.files)}
-                />
-              </>
-            )}
+              <p className="text-xs text-muted-foreground">
+                支持常见文档、图片、视频、音频和压缩包
+              </p>
+            </div>
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>
+              取消
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 图片预览对话框 */}
+      {/* 图片预览弹窗 */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{previewFile?.originalName}</DialogTitle>
             <DialogDescription>
-              {previewFile && `${formatFileSize(previewFile.fileSize)} · ${previewFile.mimeType}`}
+              大小: {previewFile && formatFileSize(previewFile.fileSize)} | 类型:{' '}
+              {previewFile?.mimeType}
             </DialogDescription>
           </DialogHeader>
-          {previewFile && (
-            <div className="flex justify-center">
+          <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted flex items-center justify-center">
+            {previewFile && isImage(previewFile.mimeType) && (
               <NextImage
-                src={fileUrl(previewFile.url) ?? previewFile.url}
+                src={fileUrl(previewFile.url || '') || ''}
                 alt={previewFile.originalName}
-                width={1200}
-                height={800}
-                className="max-h-[60vh] rounded-md object-contain"
+                fill
+                className="object-contain"
+                unoptimized
               />
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewFile(null)}>关闭</Button>
-            {previewFile && (
-              <Button onClick={() => handleDownload(previewFile)}>
-                <Download className="mr-2 h-4 w-4" />
-                下载
-              </Button>
             )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => previewFile && copyUrl(previewFile.url)}>
+              <Copy className="mr-2 h-4 w-4" />
+              复制链接
+            </Button>
+            <Button variant="default" onClick={() => previewFile && handleDownload(previewFile)}>
+              <Download className="mr-2 h-4 w-4" />
+              下载
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { buildUrl } from '@/lib/utils';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { PermissionButton } from '@/components/common/permission-button';
 import { PageHeader } from '@/components/common/page-header';
@@ -16,26 +15,11 @@ import { Pagination } from '@/components/common/pagination';
 import { useDict } from '@/hooks/use-dict';
 import { useConfirm } from '@/hooks/use-confirm';
 import { getErrorMessage } from '@/lib/utils';
-
-interface OperLog {
-  id: string;
-  title: string;
-  businessType: number;
-  method: string;
-  requestMethod: string;
-  url: string;
-  ip: string;
-  operName: string | null;
-  status: number;
-  jsonResult: string | null;
-  errorMsg: string | null;
-  operTime: string;
-}
-
-interface PaginatedOperLogs {
-  data: OperLog[];
-  pagination: { total: number; page: number; pageSize: number; totalPages: number };
-}
+import {
+  logControllerGetOperLogs,
+  logControllerClearOperLogs,
+} from '@/api/generated/endpoints/系统-日志管理/系统-日志管理';
+import type { OperLogItemDto } from '@/api/generated/models';
 
 export default function OperLogPage() {
   const [page, setPage] = useState(1);
@@ -45,17 +29,26 @@ export default function OperLogPage() {
   const { labelMap: businessTypeMap } = useDict('sys_business_type');
   const { labelMap: operStatusMap } = useDict('sys_oper_status');
   const { confirm, ConfirmDialog } = useConfirm();
-  const { data, isLoading, refetch } = useApiQuery<PaginatedOperLogs>(
-    ['oper-logs', String(page), String(pageSize), debouncedTitle],
-    buildUrl('/api/log/oper', { page, pageSize, title: debouncedTitle || undefined }),
-  );
+
+  const {
+    data: response,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['oper-logs', page, pageSize, debouncedTitle],
+    queryFn: () =>
+      logControllerGetOperLogs({
+        page,
+        pageSize,
+        title: debouncedTitle || undefined,
+      }),
+  });
 
   const handleClear = async () => {
     const ok = await confirm({ description: '确定要清空所有操作日志吗？', variant: 'destructive' });
     if (!ok) return;
     try {
-      const { del } = await import('@/lib/api-client');
-      await del('/api/log/oper');
+      await logControllerClearOperLogs();
       toast.success('操作日志已清空');
       refetch();
     } catch (error: unknown) {
@@ -63,22 +56,48 @@ export default function OperLogPage() {
     }
   };
 
-  const logs = data?.data?.data || [];
-  const pagination = data?.data?.pagination;
+  const logs = response?.data?.data || [];
+  const pagination = response?.data?.pagination || {
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 0,
+  };
 
-  const columns: Column<OperLog>[] = [
+  const columns: Column<OperLogItemDto>[] = [
     { label: '操作标题', key: 'title', span: 2 },
     {
-      label: '业务类型', span: 2,
-      render: (row) => <Badge variant="outline">{businessTypeMap[String(row.businessType)] || '其他'}</Badge>,
+      label: '业务类型',
+      span: 2,
+      render: (row) => (
+        <Badge variant="outline">{businessTypeMap[String(row.businessType)] || '其他'}</Badge>
+      ),
     },
     {
-      label: '请求方式', span: 2,
+      label: '请求方式',
+      span: 1,
       render: (row) => <Badge variant="secondary">{row.requestMethod}</Badge>,
     },
-    { label: '操作人', span: 2, render: (row) => <span>{row.operName || '-'}</span> },
     {
-      label: '状态', span: 1,
+      label: '请求地址',
+      span: 2,
+      render: (row) => (
+        <span
+          className="font-mono text-xs text-muted-foreground truncate block"
+          title={row.operUrl}
+        >
+          {row.operUrl}
+        </span>
+      ),
+    },
+    {
+      label: '操作人 IP',
+      span: 2,
+      render: (row) => <span className="font-mono text-sm">{row.operIp}</span>,
+    },
+    {
+      label: '状态',
+      span: 1,
       render: (row) => (
         <Badge variant={row.status === 1 ? 'default' : 'destructive'}>
           {operStatusMap[String(row.status)] || (row.status === 1 ? '成功' : '失败')}
@@ -86,8 +105,9 @@ export default function OperLogPage() {
       ),
     },
     {
-      label: '操作时间', span: 3,
-      render: (row) => <span className="text-muted-foreground">{new Date(row.operTime).toLocaleString('zh-CN')}</span>,
+      label: '操作时间',
+      span: 2,
+      render: (row) => new Date(row.operTime).toLocaleString('zh-CN'),
     },
   ];
 
@@ -95,43 +115,43 @@ export default function OperLogPage() {
     <div className="space-y-6">
       <PageHeader
         title="操作日志"
-        description="记录系统操作行为"
+        description="记录系统所有关键操作行为及审计追踪"
         actions={
-          <>
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
+              <RefreshCw className="h-4 w-4" />
             </Button>
             <PermissionButton perm="log:oper:delete" variant="destructive" onClick={handleClear}>
-              <Trash2 className="mr-2 h-4 w-4" /> 清空
+              <Trash2 className="mr-2 h-4 w-4" />
+              清空日志
             </PermissionButton>
-          </>
+          </div>
         }
       />
 
-      <Input
-        placeholder="搜索操作标题"
-        value={title}
-        onChange={(e) => { setTitle(e.target.value); setPage(1); }}
-        className="max-w-sm"
-      />
-
-      <DataTable
-        columns={columns}
-        data={logs}
-        isLoading={isLoading}
-        emptyText="暂无操作日志"
-      />
-
-      {pagination && (
-        <Pagination
-          page={page}
-          totalPages={pagination.totalPages}
-          total={pagination.total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="搜索操作标题..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="max-w-sm"
         />
-      )}
+      </div>
+
+      <DataTable columns={columns} data={logs} isLoading={isLoading} emptyText="暂无操作日志" />
+
+      <Pagination
+        page={pagination.page}
+        pageSize={pagination.pageSize}
+        total={pagination.total}
+        totalPages={pagination.totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+      />
+
       <ConfirmDialog />
     </div>
   );

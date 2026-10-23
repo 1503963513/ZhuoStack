@@ -43,15 +43,14 @@ pnpm docker:down
 
 ## 项目架构
 
-基于 **pnpm monorepo** + Turborepo 的全栈项目，包含三个工作区包：
+基于 **pnpm monorepo** + Turborepo 的全栈项目，包含两个核心工作区：
 
-| 包                      | 技术栈                                                         | 端口 |
-| ----------------------- | -------------------------------------------------------------- | ---- |
-| `apps/api`              | NestJS 11 + Fastify + Prisma                                   | 3100 |
-| `apps/web`              | Next.js 16 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
-| `packages/shared-types` | 共享 TypeScript 类型（`ApiResponse<T>`, `User`, `Role`）       | —    |
+| 包         | 技术栈                                                         | 端口 |
+| ---------- | -------------------------------------------------------------- | ---- |
+| `apps/api` | NestJS 11 + Fastify + Prisma                                   | 3100 |
+| `apps/web` | Next.js 16 (App Router) + shadcn/ui + TanStack Query + Zustand | 3000 |
 
-路径别名：`@/*` → `./src/*`（两个应用通用），`@zhuostack/shared-types` → `packages/shared-types/src`。
+路径别名：`@/*` → `./src/*`。前后端契约由 OpenAPI 与 Orval 自动生成（`pnpm contract:sync`），类型安全且防漂移。
 
 ### 后端 API 层 (`apps/api`)
 

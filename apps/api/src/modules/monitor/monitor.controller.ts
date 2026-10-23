@@ -1,22 +1,17 @@
-import {
-  Controller,
-  Get,
-  Delete,
-  Post,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { Controller, Get, Delete, Post, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { MonitorService } from './monitor.service';
 import { SystemJobsService } from './system-jobs.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators';
+import { ApiResultResponse } from '../../common/decorators/api-result.decorator';
+import { SimpleMessageResponseDto } from '../user/dto/user-response.dto';
+import {
+  CacheInfoDto,
+  OnlineUserItemDto,
+  JobItemDto,
+  ServerInfoDto,
+} from './dto/monitor-response.dto';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-系统监控')
@@ -34,7 +29,7 @@ export class MonitorController {
   @Get('cache')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '获取缓存信息' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(CacheInfoDto, { description: '获取成功' })
   getCacheInfo() {
     return this.monitorService.getCacheInfo();
   }
@@ -43,7 +38,7 @@ export class MonitorController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '删除指定缓存键' })
   @ApiParam({ name: 'key', description: '缓存键' })
-  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
   deleteCacheKey(@Param('key') key: string) {
     return this.monitorService.deleteCacheKey(key);
   }
@@ -51,7 +46,7 @@ export class MonitorController {
   @Delete('cache')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '清空所有缓存' })
-  @ApiResponse({ status: 200, description: '清空成功' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '清空成功' })
   clearAllCache() {
     return this.monitorService.clearAllCache();
   }
@@ -61,7 +56,7 @@ export class MonitorController {
   @Get('online')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '获取在线用户列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(OnlineUserItemDto, { isArray: true, description: '获取成功' })
   getOnlineUsers() {
     return this.monitorService.getOnlineUsers();
   }
@@ -70,7 +65,7 @@ export class MonitorController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '强制用户下线' })
   @ApiParam({ name: 'userId', description: '用户ID' })
-  @ApiResponse({ status: 200, description: '操作成功' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '操作成功' })
   kickUser(@Param('userId') userId: string) {
     return this.monitorService.kickUser(userId);
   }
@@ -80,7 +75,7 @@ export class MonitorController {
   @Get('jobs')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '获取定时任务列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(JobItemDto, { isArray: true, description: '获取成功' })
   getJobs() {
     return this.monitorService.getJobs();
   }
@@ -89,7 +84,7 @@ export class MonitorController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '启动定时任务' })
   @ApiParam({ name: 'name', description: '任务名称' })
-  @ApiResponse({ status: 200, description: '操作成功' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '操作成功' })
   startJob(@Param('name') name: string) {
     return this.monitorService.startJob(name);
   }
@@ -98,7 +93,7 @@ export class MonitorController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '停止定时任务' })
   @ApiParam({ name: 'name', description: '任务名称' })
-  @ApiResponse({ status: 200, description: '操作成功' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '操作成功' })
   stopJob(@Param('name') name: string) {
     return this.monitorService.stopJob(name);
   }
@@ -107,26 +102,26 @@ export class MonitorController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '立即执行一次定时任务' })
   @ApiParam({ name: 'name', description: '任务名称' })
-  @ApiResponse({ status: 200, description: '操作成功' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '操作成功' })
   runJob(@Param('name') name: string) {
     return this.monitorService.runJob(name);
   }
 
   // ========== 服务器信息 ==========
 
+  @Get('server')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '获取服务器运行信息' })
+  @ApiResultResponse(ServerInfoDto, { description: '获取成功' })
+  getServerInfo() {
+    return this.monitorService.getServerInfo();
+  }
+
   @Get('health')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '获取最近一次健康检查结果' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(undefined, { description: '获取成功' })
   getHealthCheck() {
     return this.systemJobsService.getLastHealthCheck();
-  }
-
-  @Get('server')
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: '获取服务器信息' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  getServerInfo() {
-    return this.monitorService.getServerInfo();
   }
 }

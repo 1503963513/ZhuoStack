@@ -9,12 +9,10 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
-COPY packages/shared-types/package.json packages/shared-types/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --filter "web..."
 
 COPY tsconfig.base.json turbo.json ./
 COPY apps/web apps/web
-COPY packages/shared-types packages/shared-types
 RUN pnpm --filter web build
 
 FROM nginx:1.31-alpine AS runtime

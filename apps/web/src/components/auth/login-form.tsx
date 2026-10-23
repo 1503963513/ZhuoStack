@@ -19,7 +19,8 @@ import {
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
+import { authControllerGetCaptcha } from '@/api/generated/endpoints/auth/auth';
 
 export function LoginForm() {
   const {
@@ -32,21 +33,25 @@ export function LoginForm() {
 
   const loginMutation = useLogin();
 
-  const { data: captchaResponse, refetch: fetchCaptcha } = useApiQuery<{
-    captchaId: string;
-    captchaImage: string;
-  }>(['login-captcha'], '/api/auth/captcha', {
+  const { data: captchaResponse, refetch: fetchCaptcha } = useQuery({
+    queryKey: ['login-captcha'],
+    queryFn: () => authControllerGetCaptcha(),
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
-  const captchaId = captchaResponse?.data.captchaId ?? '';
-  const captchaImage = captchaResponse?.data.captchaImage ?? '';
+  const captchaId = captchaResponse?.data?.captchaId ?? '';
+  const captchaImage = captchaResponse?.data?.captchaImage ?? '';
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       const encryptedPassword = await encryptPassword(data.password);
       loginMutation.mutate(
-        { email: data.email, password: encryptedPassword, captchaId, captchaCode: data.captchaCode },
+        {
+          email: data.email,
+          password: encryptedPassword,
+          captchaId,
+          captchaCode: data.captchaCode,
+        },
         {
           onError: (error) => {
             toast.error('登录失败', {

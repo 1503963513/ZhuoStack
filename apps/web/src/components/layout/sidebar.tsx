@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
-import { useApiQuery } from '@/hooks/use-api';
+import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
+import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 import {
   LayoutDashboard,
   User,
@@ -40,19 +42,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MousePointer,
 };
 
-interface MenuItem {
-  id: string;
-  name: string;
-  parentId: string | null;
-  type: string;
-  path: string | null;
-  icon: string | null;
-  sort: number;
-  status: string;
-  hidden: boolean;
-  children?: MenuItem[];
-}
-
 export function Sidebar() {
   const pathname = usePathname();
   const logout = useLogout();
@@ -64,29 +53,32 @@ export function Sidebar() {
   };
 
   // 从 API 获取当前用户的菜单（按角色过滤）
-  const { data } = useApiQuery<MenuItem[]>(['user-menus'], '/api/auth/menus');
+  const { data: response } = useQuery({
+    queryKey: ['user-menus'],
+    queryFn: () => authControllerGetUserMenus(),
+  });
+
+  const menuList = useMemo(() => response?.data || [], [response]);
 
   // 一级菜单（没有父级的 MENU 类型，如仪表盘、个人中心）
   const topMenus = useMemo(() => {
-    if (!data?.data) return [];
-    return data.data
-      .filter((m) => m.status === 'ACTIVE' && !m.hidden && m.type === 'MENU' && !m.parentId)
+    return menuList
+      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && m.type === 'MENU' && !m.parentId)
       .sort((a, b) => a.sort - b.sort);
-  }, [data]);
+  }, [menuList]);
 
   // 分组菜单（DIRECTORY 类型，如系统管理）
   const menuGroups = useMemo(() => {
-    if (!data?.data) return [];
-    return data.data
-      .filter((m) => m.status === 'ACTIVE' && !m.hidden && m.type === 'DIRECTORY')
+    return menuList
+      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && m.type === 'DIRECTORY')
       .sort((a, b) => a.sort - b.sort)
       .map((dir) => ({
         ...dir,
         children: (dir.children || [])
-          .filter((c) => c.status === 'ACTIVE' && !c.hidden && c.type === 'MENU')
+          .filter((c: UserMenuTreeNodeDto) => c.status === 'ACTIVE' && c.type === 'MENU')
           .sort((a, b) => a.sort - b.sort),
       }));
-  }, [data]);
+  }, [menuList]);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -97,7 +89,7 @@ export function Sidebar() {
     }));
   };
 
-  const getIcon = (iconName: string | null): LucideIcon => {
+  const getIcon = (iconName: string | null | undefined): LucideIcon => {
     if (!iconName || !ICON_MAP[iconName]) return FileText;
     return ICON_MAP[iconName];
   };
@@ -129,45 +121,54 @@ export function Sidebar() {
           );
         })}
 
-        {/* 分组菜单（系统管理等目录） */}
+        {/* 分组菜单（带可折叠子菜单） */}
         {menuGroups.map((group) => {
           const GroupIcon = getIcon(group.icon);
-          const hasActiveChild = group.children?.some((c) => c.path && pathname.startsWith(c.path));
-          const isOpen = openGroups[group.id] ?? Boolean(hasActiveChild);
+          const hasActiveChild = group.children.some((c) => pathname === c.path);
+          const isOpen = openGroups[group.id] ?? hasActiveChild;
 
           return (
-            <div key={group.id} className="mt-2">
+            <div key={group.id} className="pt-2">
               <button
-                onClick={() => toggleGroup(group.id, Boolean(hasActiveChild))}
+                type="button"
+                onClick={() => toggleGroup(group.id, hasActiveChild)}
                 className={cn(
                   'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   hasActiveChild
-                    ? 'text-primary'
+                    ? 'text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
               >
                 <div className="flex items-center gap-3">
                   <GroupIcon className="h-4 w-4" />
-                  {group.name}
+                  <span>{group.name}</span>
                 </div>
-                <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 transition-transform duration-200',
+                    isOpen && 'rotate-180',
+                  )}
+                />
               </button>
-              {isOpen && group.children && group.children.length > 0 && (
-                <div className="ml-4 mt-1 flex flex-col gap-1">
+
+              {isOpen && (
+                <div className="ml-4 mt-1 flex flex-col gap-1 border-l pl-2">
                   {group.children.map((child) => {
                     const ChildIcon = getIcon(child.icon);
+                    const isActive = pathname === child.path;
+
                     return (
                       <Link
                         key={child.id}
                         href={child.path || '#'}
                         className={cn(
-                          'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                          pathname === child.path
+                          'flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                          isActive
                             ? 'bg-primary text-primary-foreground'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                         )}
                       >
-                        <ChildIcon className="h-4 w-4" />
+                        <ChildIcon className="h-3.5 w-3.5" />
                         {child.name}
                       </Link>
                     );
@@ -179,15 +180,17 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t bg-card p-4">
+      <div className="border-t p-4">
         <button
+          type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
         >
           <LogOut className="h-4 w-4" />
           退出登录
         </button>
       </div>
+
       <ConfirmDialog />
     </aside>
   );

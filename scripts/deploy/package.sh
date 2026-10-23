@@ -3,12 +3,11 @@
 
 prepare_pm2_staging() {
   local staging=$1 mode=$2 db_type=$3
-  mkdir -p "$staging/apps/api" "$staging/apps/web" "$staging/packages/shared-types" "$staging/scripts" "$staging/docker"
+  mkdir -p "$staging/apps/api" "$staging/apps/web" "$staging/scripts" "$staging/docker"
   cp -R apps/api/dist apps/api/prisma "$staging/apps/api/"
   cp apps/api/package.json apps/api/.env.example "$staging/apps/api/"
   cp -R apps/web/out "$staging/apps/web/"
   cp apps/web/package.json "$staging/apps/web/"
-  cp packages/shared-types/package.json "$staging/packages/shared-types/"
   cp package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ecosystem.config.js "$staging/"
   cp scripts/deploy.sh "$staging/scripts/"
   cp -R scripts/deploy "$staging/scripts/"

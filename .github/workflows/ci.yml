@@ -38,6 +38,10 @@ jobs:
           # `prisma generate` does not connect, but Prisma 7 loads the
           # datasource from prisma.config.ts before it generates the client.
           DATABASE_URL: postgresql://prisma:prisma@127.0.0.1:5432/prisma
+      - name: Verify API Contract Drift
+        run: |
+          pnpm contract:sync
+          git diff --exit-code apps/web/openapi.json apps/web/src/api/generated/
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test

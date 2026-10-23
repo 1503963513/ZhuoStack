@@ -11,10 +11,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
-    "paths": {
-      "@zhuostack/shared-types": ["./packages/shared-types/src"]
-    }
+    "outDir": "./dist"
   },
   "exclude": ["node_modules", "dist"]
 }

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -27,9 +27,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
   private readonly cleanupTimer: ReturnType<typeof setInterval>;
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
-    private readonly redisService: RedisService,
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redisService: RedisService,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
@@ -85,10 +85,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
     const token = extractAuthToken(req);
     if (token) {
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
-      const isBlacklisted = await this.redisService.exists(
-        `token:blacklist:${tokenHash}`,
-        true,
-      );
+      const isBlacklisted = await this.redisService.exists(`token:blacklist:${tokenHash}`, true);
       if (isBlacklisted) {
         throw new UnauthorizedException('Token 已失效，请重新登录');
       }
@@ -98,10 +95,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
     if (!payload.jti) {
       throw new UnauthorizedException('Token 缺少会话标识，请重新登录');
     }
-    const activeJti = await this.redisService.get<string>(
-      `token:active:${user.id}`,
-      true,
-    );
+    const activeJti = await this.redisService.get<string>(`token:active:${user.id}`, true);
     if (!activeJti || activeJti !== payload.jti) {
       throw new UnauthorizedException('会话已失效，请重新登录');
     }

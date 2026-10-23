@@ -14,8 +14,7 @@
     "strictPropertyInitialization": false,
     "types": ["node"],
     "paths": {
-      "@/*": ["./src/*"],
-      "@zhuostack/shared-types": ["../../packages/shared-types/src"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],

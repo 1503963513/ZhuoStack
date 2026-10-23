@@ -1,15 +1,6 @@
+import type { AuthUserDto } from '@/api/generated/models';
+
 export type Role = 'USER' | 'ADMIN';
 
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  role: Role;
-  avatar: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuthResponse {
-  user: User;
-}
+/** 用户领域模型直接对齐后端 OpenAPI 契约 */
+export type User = AuthUserDto;

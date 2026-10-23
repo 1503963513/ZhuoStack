@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
 import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,26 +9,33 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Trash2, RefreshCw, Database, HardDrive } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
-
-interface CacheInfo {
-  status: string;
-  totalKeys: number;
-  usedMemory: string;
-  keys: { key: string; ttl: number; type: string }[];
-}
+import {
+  monitorControllerGetCacheInfo,
+  monitorControllerDeleteCacheKey,
+  monitorControllerClearAllCache,
+} from '@/api/generated/endpoints/系统-系统监控/系统-系统监控';
 
 export default function CachePage() {
-  const { data, isLoading, refetch } = useApiQuery<CacheInfo>(['cache-info'], '/api/monitor/cache');
+  const {
+    data: response,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['cache-info'],
+    queryFn: () => monitorControllerGetCacheInfo(),
+  });
   const [deleting, setDeleting] = useState<string | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
 
   const handleDeleteKey = async (key: string) => {
-    const ok = await confirm({ description: `确定要删除缓存键 "${key}" 吗？`, variant: 'destructive' });
+    const ok = await confirm({
+      description: `确定要删除缓存键 "${key}" 吗？`,
+      variant: 'destructive',
+    });
     if (!ok) return;
     setDeleting(key);
     try {
-      const { del } = await import('@/lib/api-client');
-      await del(`/api/monitor/cache/${encodeURIComponent(key)}`);
+      await monitorControllerDeleteCacheKey(key);
       toast.success('删除成功');
       refetch();
     } catch (error: unknown) {
@@ -39,11 +46,13 @@ export default function CachePage() {
   };
 
   const handleClearAll = async () => {
-    const ok = await confirm({ description: '确定要清空所有缓存吗？此操作不可恢复！', variant: 'destructive' });
+    const ok = await confirm({
+      description: '确定要清空所有缓存吗？此操作不可恢复！',
+      variant: 'destructive',
+    });
     if (!ok) return;
     try {
-      const { del } = await import('@/lib/api-client');
-      await del('/api/monitor/cache');
+      await monitorControllerClearAllCache();
       toast.success('缓存已清空');
       refetch();
     } catch (error: unknown) {
@@ -51,14 +60,14 @@ export default function CachePage() {
     }
   };
 
-  const cacheInfo = data?.data;
+  const cacheInfo = response?.data;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">缓存列表</h1>
-          <p className="text-muted-foreground">查看和管理 Redis 缓存数据</p>
+          <p className="text-muted-foreground">Redis 缓存状态监控与管理</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refetch()}>
@@ -67,90 +76,92 @@ export default function CachePage() {
           </Button>
           <Button variant="destructive" onClick={handleClearAll}>
             <Trash2 className="mr-2 h-4 w-4" />
-            清空缓存
+            清空所有缓存
           </Button>
         </div>
       </div>
 
-      {/* 缓存概览 */}
+      {/* 概览卡片 */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">连接状态</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <Badge variant={cacheInfo?.status === 'connected' ? 'default' : 'destructive'}>
-              {cacheInfo?.status === 'connected' ? '已连接' : '未连接'}
-            </Badge>
+            <div className="text-2xl font-bold">
+              {cacheInfo?.status === 'connected' ? (
+                <Badge variant="default">正常运行</Badge>
+              ) : (
+                <Badge variant="destructive">未连接</Badge>
+              )}
+            </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">缓存键总数</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">总键数量</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{cacheInfo?.totalKeys ?? 0}</p>
+            <div className="text-2xl font-bold">{cacheInfo?.totalKeys ?? 0}</div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">内存使用</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">已用内存</CardTitle>
             <HardDrive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{cacheInfo?.usedMemory ?? 'N/A'}</p>
+            <div className="text-2xl font-bold">{cacheInfo?.usedMemory ?? 'N/A'}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 缓存键列表 */}
+      {/* 键列表 */}
       <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-5">缓存键</div>
-              <div className="col-span-2">类型</div>
-              <div className="col-span-2">TTL</div>
-              <div className="col-span-3">操作</div>
-            </div>
-          </div>
+        <CardHeader>
+          <CardTitle>缓存键列表</CardTitle>
+        </CardHeader>
+        <CardContent>
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
+            <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
           ) : !cacheInfo?.keys || cacheInfo.keys.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无缓存数据</div>
+            <div className="flex justify-center py-8 text-muted-foreground">暂无缓存键</div>
           ) : (
-            cacheInfo.keys.map((item) => (
-              <div key={item.key} className="border-b px-4 py-3 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-5 font-mono text-sm truncate">{item.key}</div>
-                  <div className="col-span-2">
-                    <Badge variant="outline">{item.type}</Badge>
+            <div className="divide-y">
+              {cacheInfo.keys.map((item) => (
+                <div key={item.key} className="flex items-center justify-between py-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-medium">{item.key}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {item.type}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      TTL: {item.ttl === -1 ? '永久' : `${item.ttl}s`} | 大小: {item.size}
+                    </p>
                   </div>
-                  <div className="col-span-2">
-                    {item.ttl === -1 ? (
-                      <Badge variant="secondary">永久</Badge>
-                    ) : (
-                      <span className="text-sm">{item.ttl}s</span>
-                    )}
-                  </div>
-                  <div className="col-span-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteKey(item.key)}
-                      disabled={deleting === item.key}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteKey(item.key)}
+                    disabled={deleting === item.key}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    删除
+                  </Button>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
+
       <ConfirmDialog />
     </div>
   );

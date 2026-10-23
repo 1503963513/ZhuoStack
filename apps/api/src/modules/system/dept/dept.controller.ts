@@ -7,18 +7,14 @@ import {
   Body,
   Param,
   UseGuards,
+  HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { DeptService } from './dept.service';
-import { CreateDeptDto, UpdateDeptDto } from './dto';
+import { CreateDeptDto, UpdateDeptDto, DeptItemDto, DeptTreeNodeDto } from './dto';
 import { RolesGuard } from '../../../common/guards/roles.guard';
-import { Roles } from '../../../common/decorators';
+import { Roles, ApiResultResponse, ApiErrorResponse } from '../../../common/decorators';
+import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-部门管理')
@@ -31,22 +27,22 @@ export class DeptController {
   @Post()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '创建部门' })
-  @ApiResponse({ status: 201, description: '创建成功' })
-  @ApiResponse({ status: 409, description: '同级下已存在同名部门' })
+  @ApiResultResponse(DeptItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
+  @ApiErrorResponse(HttpStatus.CONFLICT, '同级下已存在同名部门')
   create(@Body() dto: CreateDeptDto) {
     return this.deptService.create(dto);
   }
 
   @Get('tree')
   @ApiOperation({ summary: '获取部门树形列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(DeptTreeNodeDto, { isArray: true, description: '获取成功' })
   findTree() {
     return this.deptService.findTree();
   }
 
   @Get()
   @ApiOperation({ summary: '获取部门列表（平铺）' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(DeptItemDto, { isArray: true, description: '获取成功' })
   findAll() {
     return this.deptService.findAll();
   }
@@ -54,8 +50,8 @@ export class DeptController {
   @Get(':id')
   @ApiOperation({ summary: '获取部门详情' })
   @ApiParam({ name: 'id', description: '部门ID' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 404, description: '部门不存在' })
+  @ApiResultResponse(DeptItemDto, { description: '获取成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '部门不存在')
   findOne(@Param('id') id: string) {
     return this.deptService.findOne(id);
   }
@@ -64,8 +60,8 @@ export class DeptController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '更新部门' })
   @ApiParam({ name: 'id', description: '部门ID' })
-  @ApiResponse({ status: 200, description: '更新成功' })
-  @ApiResponse({ status: 404, description: '部门不存在' })
+  @ApiResultResponse(DeptItemDto, { description: '更新成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '部门不存在')
   update(@Param('id') id: string, @Body() dto: UpdateDeptDto) {
     return this.deptService.update(id, dto);
   }
@@ -74,9 +70,9 @@ export class DeptController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '删除部门' })
   @ApiParam({ name: 'id', description: '部门ID' })
-  @ApiResponse({ status: 200, description: '删除成功' })
-  @ApiResponse({ status: 404, description: '部门不存在' })
-  @ApiResponse({ status: 409, description: '存在子部门或用户，无法删除' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '部门不存在')
+  @ApiErrorResponse(HttpStatus.CONFLICT, '存在子部门或用户，无法删除')
   remove(@Param('id') id: string) {
     return this.deptService.remove(id);
   }

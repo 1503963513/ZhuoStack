@@ -1,32 +1,38 @@
 'use client';
 
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Play, Pause, Timer, Zap } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
-
-interface Job {
-  id: string;
-  name: string;
-  cron: string;
-  status: string;
-  description: string;
-  lastRun: string | null;
-  nextRun: string | null;
-}
+import {
+  monitorControllerGetJobs,
+  monitorControllerStartJob,
+  monitorControllerStopJob,
+  monitorControllerRunJob,
+} from '@/api/generated/endpoints/系统-系统监控/系统-系统监控';
+import type { JobItemDto } from '@/api/generated/models';
 
 export default function JobsPage() {
-  const { data, isLoading, refetch } = useApiQuery<Job[]>(['jobs'], '/api/monitor/jobs');
+  const {
+    data: response,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: () => monitorControllerGetJobs(),
+  });
 
-  const jobs = data?.data || [];
+  const jobs = response?.data || [];
 
   const handleJobAction = async (name: string, action: 'start' | 'stop' | 'run') => {
     try {
-      const { post } = await import('@/lib/api-client');
-      await post(`/api/monitor/jobs/${name}/${action}`);
+      if (action === 'start') await monitorControllerStartJob(name);
+      else if (action === 'stop') await monitorControllerStopJob(name);
+      else if (action === 'run') await monitorControllerRunJob(name);
+
       const actionMap = { start: '启动', stop: '停止', run: '执行' };
       toast.success(`任务 ${name} 已${actionMap[action]}`);
       refetch();
@@ -59,81 +65,64 @@ export default function JobsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <Play className="h-8 w-8 text-green-500" />
-            <div>
-              <p className="text-2xl font-bold">{jobs.filter((j) => j.status === 'running').length}</p>
-              <p className="text-sm text-muted-foreground">运行中</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <Pause className="h-8 w-8 text-yellow-500" />
-            <div>
-              <p className="text-2xl font-bold">{jobs.filter((j) => j.status !== 'running').length}</p>
-              <p className="text-sm text-muted-foreground">已暂停</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* 任务列表 */}
       <Card>
-        <CardContent className="p-0">
-          <div className="border-b px-4 py-3 font-medium">
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">任务名称</div>
-              <div className="col-span-2">Cron 表达式</div>
-              <div className="col-span-1">状态</div>
-              <div className="col-span-2">描述</div>
-              <div className="col-span-2">上次执行</div>
-              <div className="col-span-1">下次执行</div>
-              <div className="col-span-2">操作</div>
-            </div>
-          </div>
+        <CardContent className="p-6">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">加载中...</div>
+            <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
           ) : jobs.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">暂无定时任务</div>
+            <div className="flex justify-center py-8 text-muted-foreground">暂无定时任务</div>
           ) : (
-            jobs.map((job) => (
-              <div key={job.id} className="border-b px-4 py-4 hover:bg-muted/50">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-2 font-medium">{job.name}</div>
-                  <div className="col-span-2">
-                    <code className="rounded bg-muted px-2 py-1 text-xs">{job.cron}</code>
+            <div className="divide-y">
+              {jobs.map((job: JobItemDto) => (
+                <div key={job.name} className="flex items-center justify-between py-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{job.name}</span>
+                      <Badge variant={job.running ? 'default' : 'secondary'}>
+                        {job.running ? '运行中' : '已暂停'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {job.nextDate && <span>下次执行: {job.nextDate}</span>}
+                      {job.lastDate && <span>上次执行: {job.lastDate}</span>}
+                    </div>
                   </div>
-                  <div className="col-span-1">
-                    <Badge variant={job.status === 'running' ? 'default' : 'secondary'}>
-                      {job.status === 'running' ? '运行中' : '已暂停'}
-                    </Badge>
-                  </div>
-                  <div className="col-span-2 text-sm text-muted-foreground">{job.description}</div>
-                  <div className="col-span-2 text-sm text-muted-foreground">
-                    {job.lastRun ? new Date(job.lastRun).toLocaleString('zh-CN') : '-'}
-                  </div>
-                  <div className="col-span-1 text-sm text-muted-foreground">
-                    {job.nextRun ? new Date(job.nextRun).toLocaleString('zh-CN') : '-'}
-                  </div>
-                  <div className="col-span-2 flex gap-1">
-                    {job.status === 'running' ? (
-                      <Button variant="ghost" size="sm" onClick={() => handleJobAction(job.name, 'stop')} title="停止">
-                        <Pause className="h-4 w-4 text-yellow-500" />
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleJobAction(job.name, 'run')}
+                    >
+                      <Zap className="mr-1 h-3.5 w-3.5" />
+                      立即执行
+                    </Button>
+                    {job.running ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleJobAction(job.name, 'stop')}
+                      >
+                        <Pause className="mr-1 h-3.5 w-3.5" />
+                        暂停
                       </Button>
                     ) : (
-                      <Button variant="ghost" size="sm" onClick={() => handleJobAction(job.name, 'start')} title="启动">
-                        <Play className="h-4 w-4 text-green-500" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleJobAction(job.name, 'start')}
+                      >
+                        <Play className="mr-1 h-3.5 w-3.5" />
+                        启动
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => handleJobAction(job.name, 'run')} title="立即执行">
-                      <Zap className="h-4 w-4 text-blue-500" />
-                    </Button>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

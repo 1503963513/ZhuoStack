@@ -72,8 +72,6 @@ zhuostack/
 │           ├── schemas/      # Zod 验证 Schema
 │           ├── stores/       # Zustand 状态管理
 │           └── types/        # TypeScript 类型定义
-├── packages/
-│   └── shared-types/         # 共享 TypeScript 类型
 ├── docker/                   # Docker 配置
 ├── scripts/                  # 部署脚本
 ├── pnpm-workspace.yaml

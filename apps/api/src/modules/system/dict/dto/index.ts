@@ -3,3 +3,4 @@ export { UpdateDictDto } from './update-dict.dto';
 export { QueryDictDto } from './query-dict.dto';
 export { CreateDictDataDto } from './create-dict-data.dto';
 export { UpdateDictDataDto } from './update-dict-data.dto';
+export * from './dict-response.dto';

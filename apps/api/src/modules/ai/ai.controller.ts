@@ -1,18 +1,10 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Sse,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, Sse } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Observable } from 'rxjs';
 import { AiService, ChatMessage } from './ai.service';
-import { ChatDto, StreamChatDto, PromptDto } from './dto';
+import { ChatDto, StreamChatDto, PromptDto, ChatResponseDto, PromptResponseDto } from './dto';
+import { ApiResultResponse } from '../../common/decorators/api-result.decorator';
 
 interface SseMessage {
   data: string;
@@ -27,6 +19,7 @@ export class AiController {
   @Post('chat')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '发送聊天完成请求' })
+  @ApiResultResponse(ChatResponseDto, { description: '请求成功' })
   async chat(@Body() dto: ChatDto) {
     const messages: ChatMessage[] = dto.messages.map((m) => ({
       role: m.role as ChatMessage['role'],
@@ -46,6 +39,7 @@ export class AiController {
   @Sse('chat/stream')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '流式聊天完成 (SSE)' })
+  @ApiProduces('text/event-stream')
   streamChat(@Body() dto: StreamChatDto): Observable<SseMessage> {
     const messages: ChatMessage[] = dto.messages.map((m) => ({
       role: m.role as ChatMessage['role'],
@@ -97,11 +91,9 @@ export class AiController {
   @Post('prompt')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: '简单提示 - 发送消息获取回复' })
+  @ApiResultResponse(PromptResponseDto, { description: '请求成功' })
   async prompt(@Body() dto: PromptDto) {
-    const result = await this.aiService.prompt(
-      dto.content,
-      dto.systemPrompt,
-    );
+    const result = await this.aiService.prompt(dto.content, dto.systemPrompt);
     return { content: result, model: dto.model || 'default' };
   }
 }

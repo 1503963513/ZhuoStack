@@ -1,16 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useApiQuery } from '@/hooks/use-api';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
-
-interface MenuItem {
-  id: string;
-  name: string;
-  type: string;
-  perms: string | null;
-  children?: MenuItem[];
-}
+import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
+import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 
 /**
  * 获取当前用户的权限标识列表
@@ -19,20 +13,20 @@ interface MenuItem {
 export function usePermissions() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const { data, isLoading } = useApiQuery<MenuItem[]>(
-    ['user-menus'],
-    '/api/auth/menus',
-    { enabled: isAuthenticated },
-  );
+  const { data: response, isLoading } = useQuery({
+    queryKey: ['user-menus'],
+    queryFn: () => authControllerGetUserMenus(),
+    enabled: isAuthenticated,
+  });
 
   const permissions = useMemo(() => {
     const perms = new Set<string>();
-    const menus = data?.data || [];
+    const menus = response?.data || [];
 
-    const collect = (items: MenuItem[]) => {
+    const collect = (items: UserMenuTreeNodeDto[]) => {
       for (const item of items) {
-        if (item.type === 'BUTTON' && item.perms) {
-          perms.add(item.perms);
+        if (item.type === 'BUTTON' && (item as unknown as { perms?: string }).perms) {
+          perms.add((item as unknown as { perms: string }).perms);
         }
         if (item.children?.length) {
           collect(item.children);
@@ -42,7 +36,7 @@ export function usePermissions() {
 
     collect(menus);
     return perms;
-  }, [data]);
+  }, [response]);
 
   /**
    * 检查是否拥有指定权限

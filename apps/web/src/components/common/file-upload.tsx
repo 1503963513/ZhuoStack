@@ -37,14 +37,7 @@ interface FileUploadProps {
 }
 
 /**
- * 可复用的文件上传组件
- *
- * @example
- * // 图片上传（单张）
- * <FileUpload mode="image" value={avatar} onChange={setAvatar} />
- *
- * // 文件上传（多张）
- * <FileUpload mode="file" maxCount={5} value={files} onChange={setFiles} />
+ * 可复用的文件上传组件（支持真实字节级上传进度）
  */
 export function FileUpload({
   mode = 'file',
@@ -58,9 +51,11 @@ export function FileUpload({
   disabled = false,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const acceptTypes = accept || (mode === 'image' ? 'image/jpeg,image/png,image/gif,image/webp' : undefined);
+  const acceptTypes =
+    accept || (mode === 'image' ? 'image/jpeg,image/png,image/gif,image/webp' : undefined);
 
   /** 文件大小限制（字节）：普通文件 50MB，图片 5MB */
   const maxSizeBytes = mode === 'image' ? 5 * 1024 * 1024 : 50 * 1024 * 1024;
@@ -83,6 +78,7 @@ export function FileUpload({
     }
 
     setUploading(true);
+    setUploadProgress(0);
 
     try {
       const uploaded: UploadedFile[] = [];
@@ -93,23 +89,41 @@ export function FileUpload({
         formData.append('file', file);
 
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const endpoint = mode === 'image'
-          ? `${apiBase}/api/system/file/upload/image`
-          : `${apiBase}/api/system/file/upload`;
+        const endpoint =
+          mode === 'image'
+            ? `${apiBase}/api/system/file/upload/image`
+            : `${apiBase}/api/system/file/upload`;
 
         const result = await new Promise<UploadedFile>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open('POST', endpoint);
           xhr.withCredentials = true;
+
+          // 监听真实网络字节传输进度
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percent);
+            }
+          };
+
           const csrfToken = getCsrfToken();
           if (csrfToken) xhr.setRequestHeader(CSRF_HEADER_NAME, csrfToken);
 
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              const json = JSON.parse(xhr.responseText);
-              resolve(json.data || json);
+              try {
+                const json = JSON.parse(xhr.responseText);
+                const data = json.data || json;
+                if (!data || !data.url) {
+                  reject(new Error('上传响应数据不完整'));
+                  return;
+                }
+                resolve(data);
+              } catch {
+                reject(new Error('解析上传响应失败'));
+              }
             } else {
-              // 尝试从后端响应中提取错误信息
               try {
                 const json = JSON.parse(xhr.responseText);
                 reject(new Error(json.message || `上传失败 (${xhr.status})`));
@@ -139,6 +153,7 @@ export function FileUpload({
       toast.error('上传失败', { description: message });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -191,7 +206,7 @@ export function FileUpload({
       )}
 
       {/* 上传按钮 */}
-      {((maxCount === 0) || (maxCount > 0 && value.length < maxCount)) && !disabled && (
+      {(maxCount === 0 || (maxCount > 0 && value.length < maxCount)) && !disabled && (
         <>
           {children ? (
             <div onClick={() => fileInputRef.current?.click()} className="cursor-pointer">
@@ -210,7 +225,11 @@ export function FileUpload({
               ) : (
                 <Upload className="mr-2 h-4 w-4" />
               )}
-              {uploading ? '上传中...' : (mode === 'image' ? '上传图片' : '上传文件')}
+              {uploading
+                ? `上传中 (${uploadProgress}%)...`
+                : mode === 'image'
+                  ? '上传图片'
+                  : '上传文件'}
             </Button>
           )}
           <input

@@ -9,18 +9,27 @@ import {
   Query,
   UseGuards,
   Req,
+  HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { CreateUserDto, UpdateUserDto, QueryUserDto, ChangePasswordDto } from './dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  QueryUserDto,
+  ChangePasswordDto,
+  UserItemDto,
+  UserDetailDto,
+  SimpleMessageResponseDto,
+} from './dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles, CurrentUser } from '../../common/decorators';
+import {
+  Roles,
+  CurrentUser,
+  ApiResultResponse,
+  ApiPaginatedResultResponse,
+  ApiErrorResponse,
+} from '../../common/decorators';
 import { extractAuthToken } from '../auth/auth-security';
 import { Role } from '@prisma/client';
 import type { FastifyRequest } from 'fastify';
@@ -34,9 +43,9 @@ export class UserController {
 
   @Post()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Create a new user (Admin only)' })
-  @ApiResponse({ status: 201, description: 'User created successfully' })
-  @ApiResponse({ status: 409, description: 'Email already registered' })
+  @ApiOperation({ summary: '创建新用户（管理员）' })
+  @ApiResultResponse(UserItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
+  @ApiErrorResponse(HttpStatus.CONFLICT, '邮箱已存在')
   create(@Body() dto: CreateUserDto) {
     return this.userService.create(dto);
   }
@@ -44,7 +53,7 @@ export class UserController {
   @Get()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '获取用户列表（管理员）' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiPaginatedResultResponse(UserItemDto, { description: '获取成功' })
   findAll(@Query() query: QueryUserDto) {
     return this.userService.findAll(query);
   }
@@ -53,8 +62,8 @@ export class UserController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '获取用户详情（管理员）' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResultResponse(UserDetailDto, { description: '获取成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
@@ -63,27 +72,27 @@ export class UserController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '更新用户（管理员）' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: '更新成功' })
-  @ApiResponse({ status: 404, description: '用户不存在' })
+  @ApiResultResponse(UserItemDto, { description: '更新成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.userService.update(id, dto);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Delete user by ID (Admin only)' })
+  @ApiOperation({ summary: '删除用户（管理员）' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiResponse({ status: 200, description: 'User deleted successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
   }
 
   @Post('change-password')
   @ApiOperation({ summary: '修改密码' })
-  @ApiResponse({ status: 200, description: '密码修改成功' })
-  @ApiResponse({ status: 404, description: '用户不存在' })
-  @ApiResponse({ status: 409, description: '旧密码错误' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '密码修改成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
+  @ApiErrorResponse(HttpStatus.CONFLICT, '旧密码错误')
   changePassword(
     @CurrentUser('id') userId: string,
     @Body() dto: ChangePasswordDto,

@@ -60,9 +60,13 @@ function createApiClient(): AxiosInstance {
 }
 
 const apiClient = createApiClient();
+export { apiClient };
 
 /** Typed GET request */
-export async function get<T>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+export async function get<T>(
+  url: string,
+  params?: Record<string, unknown>,
+): Promise<ApiResponse<T>> {
   const response = await apiClient.get<ApiResponse<T>>(url, { params });
   return response.data;
 }

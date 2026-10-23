@@ -1,8 +1,30 @@
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role, Status, MenuType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import Redis from 'ioredis';
 
-const prisma = new PrismaClient();
+function createPrismaAdapter(): PrismaMariaDb | PrismaPg {
+  const databaseUrl = process.env.DATABASE_URL;
+  const configuredType = process.env.DB_TYPE ?? 'postgres';
+  const dbType = configuredType === 'postgresql' ? 'postgres' : configuredType;
+
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL is required to initialize Prisma');
+  }
+
+  if (dbType === 'mysql') {
+    return new PrismaMariaDb(databaseUrl);
+  }
+
+  if (dbType === 'postgres') {
+    return new PrismaPg({ connectionString: databaseUrl });
+  }
+
+  throw new Error(`DB_TYPE must be postgres or mysql, received: ${configuredType}`);
+}
+
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 async function main() {
   console.log('Seeding database...');
@@ -187,79 +209,254 @@ async function main() {
   // 三级菜单：按钮权限（部门管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '部门新增', parentId: menuDept.id, type: MenuType.BUTTON, perms: 'system:dept:add', sort: 1, status: Status.ACTIVE },
-      { name: '部门编辑', parentId: menuDept.id, type: MenuType.BUTTON, perms: 'system:dept:edit', sort: 2, status: Status.ACTIVE },
-      { name: '部门删除', parentId: menuDept.id, type: MenuType.BUTTON, perms: 'system:dept:delete', sort: 3, status: Status.ACTIVE },
+      {
+        name: '部门新增',
+        parentId: menuDept.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dept:add',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '部门编辑',
+        parentId: menuDept.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dept:edit',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '部门删除',
+        parentId: menuDept.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dept:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（角色管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '角色新增', parentId: menuRole.id, type: MenuType.BUTTON, perms: 'system:role:add', sort: 1, status: Status.ACTIVE },
-      { name: '角色编辑', parentId: menuRole.id, type: MenuType.BUTTON, perms: 'system:role:edit', sort: 2, status: Status.ACTIVE },
-      { name: '角色删除', parentId: menuRole.id, type: MenuType.BUTTON, perms: 'system:role:delete', sort: 3, status: Status.ACTIVE },
+      {
+        name: '角色新增',
+        parentId: menuRole.id,
+        type: MenuType.BUTTON,
+        perms: 'system:role:add',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '角色编辑',
+        parentId: menuRole.id,
+        type: MenuType.BUTTON,
+        perms: 'system:role:edit',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '角色删除',
+        parentId: menuRole.id,
+        type: MenuType.BUTTON,
+        perms: 'system:role:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（岗位管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '岗位新增', parentId: menuPost.id, type: MenuType.BUTTON, perms: 'system:post:add', sort: 1, status: Status.ACTIVE },
-      { name: '岗位编辑', parentId: menuPost.id, type: MenuType.BUTTON, perms: 'system:post:edit', sort: 2, status: Status.ACTIVE },
-      { name: '岗位删除', parentId: menuPost.id, type: MenuType.BUTTON, perms: 'system:post:delete', sort: 3, status: Status.ACTIVE },
+      {
+        name: '岗位新增',
+        parentId: menuPost.id,
+        type: MenuType.BUTTON,
+        perms: 'system:post:add',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '岗位编辑',
+        parentId: menuPost.id,
+        type: MenuType.BUTTON,
+        perms: 'system:post:edit',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '岗位删除',
+        parentId: menuPost.id,
+        type: MenuType.BUTTON,
+        perms: 'system:post:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（菜单管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '菜单新增', parentId: menuMenu.id, type: MenuType.BUTTON, perms: 'system:menu:add', sort: 1, status: Status.ACTIVE },
-      { name: '菜单编辑', parentId: menuMenu.id, type: MenuType.BUTTON, perms: 'system:menu:edit', sort: 2, status: Status.ACTIVE },
-      { name: '菜单删除', parentId: menuMenu.id, type: MenuType.BUTTON, perms: 'system:menu:delete', sort: 3, status: Status.ACTIVE },
+      {
+        name: '菜单新增',
+        parentId: menuMenu.id,
+        type: MenuType.BUTTON,
+        perms: 'system:menu:add',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '菜单编辑',
+        parentId: menuMenu.id,
+        type: MenuType.BUTTON,
+        perms: 'system:menu:edit',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '菜单删除',
+        parentId: menuMenu.id,
+        type: MenuType.BUTTON,
+        perms: 'system:menu:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（字典管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '字典新增', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:add', sort: 1, status: Status.ACTIVE },
-      { name: '字典编辑', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:edit', sort: 2, status: Status.ACTIVE },
-      { name: '字典删除', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:delete', sort: 3, status: Status.ACTIVE },
-      { name: '字典数据', parentId: menuDict.id, type: MenuType.BUTTON, perms: 'system:dict:data', sort: 4, status: Status.ACTIVE },
+      {
+        name: '字典新增',
+        parentId: menuDict.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dict:add',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '字典编辑',
+        parentId: menuDict.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dict:edit',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '字典删除',
+        parentId: menuDict.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dict:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '字典数据',
+        parentId: menuDict.id,
+        type: MenuType.BUTTON,
+        perms: 'system:dict:data',
+        sort: 4,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（用户管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '用户新增', parentId: menuUser.id, type: MenuType.BUTTON, perms: 'system:user:add', sort: 1, status: Status.ACTIVE },
-      { name: '用户编辑', parentId: menuUser.id, type: MenuType.BUTTON, perms: 'system:user:edit', sort: 2, status: Status.ACTIVE },
-      { name: '用户删除', parentId: menuUser.id, type: MenuType.BUTTON, perms: 'system:user:delete', sort: 3, status: Status.ACTIVE },
+      {
+        name: '用户新增',
+        parentId: menuUser.id,
+        type: MenuType.BUTTON,
+        perms: 'system:user:add',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '用户编辑',
+        parentId: menuUser.id,
+        type: MenuType.BUTTON,
+        perms: 'system:user:edit',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '用户删除',
+        parentId: menuUser.id,
+        type: MenuType.BUTTON,
+        perms: 'system:user:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（操作日志下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '操作日志删除', parentId: menuOperLog.id, type: MenuType.BUTTON, perms: 'log:oper:delete', sort: 1, status: Status.ACTIVE },
+      {
+        name: '操作日志删除',
+        parentId: menuOperLog.id,
+        type: MenuType.BUTTON,
+        perms: 'log:oper:delete',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（登录日志下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '登录日志删除', parentId: menuLoginLog.id, type: MenuType.BUTTON, perms: 'log:login:delete', sort: 1, status: Status.ACTIVE },
+      {
+        name: '登录日志删除',
+        parentId: menuLoginLog.id,
+        type: MenuType.BUTTON,
+        perms: 'log:login:delete',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
   // 三级菜单：按钮权限（文件管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
-      { name: '文件上传', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:upload', sort: 1, status: Status.ACTIVE },
-      { name: '文件下载', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:download', sort: 2, status: Status.ACTIVE },
-      { name: '文件删除', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:delete', sort: 3, status: Status.ACTIVE },
-      { name: '文件编辑', parentId: menuFile.id, type: MenuType.BUTTON, perms: 'file:edit', sort: 4, status: Status.ACTIVE },
+      {
+        name: '文件上传',
+        parentId: menuFile.id,
+        type: MenuType.BUTTON,
+        perms: 'file:upload',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '文件下载',
+        parentId: menuFile.id,
+        type: MenuType.BUTTON,
+        perms: 'file:download',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '文件删除',
+        parentId: menuFile.id,
+        type: MenuType.BUTTON,
+        perms: 'file:delete',
+        sort: 3,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '文件编辑',
+        parentId: menuFile.id,
+        type: MenuType.BUTTON,
+        perms: 'file:edit',
+        sort: 4,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
@@ -478,7 +675,13 @@ async function main() {
   });
   await prisma.sysDictData.createMany({
     data: [
-      { dictId: dictMenuType.id, label: '目录', value: 'DIRECTORY', sort: 1, status: Status.ACTIVE },
+      {
+        dictId: dictMenuType.id,
+        label: '目录',
+        value: 'DIRECTORY',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
       { dictId: dictMenuType.id, label: '菜单', value: 'MENU', sort: 2, status: Status.ACTIVE },
       { dictId: dictMenuType.id, label: '按钮', value: 'BUTTON', sort: 3, status: Status.ACTIVE },
     ],
@@ -541,7 +744,12 @@ async function main() {
 
   // Create test users
   const testUsers = [
-    { email: 'user1@example.com', name: 'Test User 1', deptId: deptFrontend.id, postId: postDev.id },
+    {
+      email: 'user1@example.com',
+      name: 'Test User 1',
+      deptId: deptFrontend.id,
+      postId: postDev.id,
+    },
     { email: 'user2@example.com', name: 'Test User 2', deptId: deptBackend.id, postId: postDev.id },
     { email: 'user3@example.com', name: 'Test User 3', deptId: deptProduct.id, postId: postPm.id },
   ];
@@ -566,7 +774,11 @@ async function main() {
 
   // 清除 Redis 缓存
   const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-  const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1, connectTimeout: 2000, lazyConnect: true });
+  const redis = new Redis(redisUrl, {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 2000,
+    lazyConnect: true,
+  });
   try {
     await redis.connect();
     await redis.flushdb();

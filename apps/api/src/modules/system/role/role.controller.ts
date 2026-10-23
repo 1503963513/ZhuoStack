@@ -8,18 +8,26 @@ import {
   Param,
   Query,
   UseGuards,
+  HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { RoleService } from './role.service';
-import { CreateRoleDto, UpdateRoleDto, QueryRoleDto } from './dto';
+import {
+  CreateRoleDto,
+  UpdateRoleDto,
+  QueryRoleDto,
+  RoleItemDto,
+  RoleSimpleDto,
+  RoleDetailDto,
+} from './dto';
 import { RolesGuard } from '../../../common/guards/roles.guard';
-import { Roles } from '../../../common/decorators';
+import {
+  Roles,
+  ApiResultResponse,
+  ApiPaginatedResultResponse,
+  ApiErrorResponse,
+} from '../../../common/decorators';
+import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-角色管理')
@@ -32,22 +40,22 @@ export class RoleController {
   @Post()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '创建角色' })
-  @ApiResponse({ status: 201, description: '创建成功' })
-  @ApiResponse({ status: 409, description: '角色标识已存在' })
+  @ApiResultResponse(RoleItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
+  @ApiErrorResponse(HttpStatus.CONFLICT, '角色标识已存在')
   create(@Body() dto: CreateRoleDto) {
     return this.roleService.create(dto);
   }
 
   @Get('simple')
   @ApiOperation({ summary: '获取所有角色（下拉选择用）' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResultResponse(RoleSimpleDto, { isArray: true, description: '获取成功' })
   findAllSimple() {
     return this.roleService.findAllSimple();
   }
 
   @Get()
   @ApiOperation({ summary: '获取角色列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiPaginatedResultResponse(RoleItemDto, { description: '获取成功' })
   findAll(@Query() query: QueryRoleDto) {
     return this.roleService.findAll(query);
   }
@@ -55,8 +63,8 @@ export class RoleController {
   @Get(':id')
   @ApiOperation({ summary: '获取角色详情' })
   @ApiParam({ name: 'id', description: '角色ID' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResultResponse(RoleDetailDto, { description: '获取成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '角色不存在')
   findOne(@Param('id') id: string) {
     return this.roleService.findOne(id);
   }
@@ -65,8 +73,8 @@ export class RoleController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '更新角色' })
   @ApiParam({ name: 'id', description: '角色ID' })
-  @ApiResponse({ status: 200, description: '更新成功' })
-  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResultResponse(RoleItemDto, { description: '更新成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '角色不存在')
   update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.roleService.update(id, dto);
   }
@@ -75,8 +83,8 @@ export class RoleController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '删除角色' })
   @ApiParam({ name: 'id', description: '角色ID' })
-  @ApiResponse({ status: 200, description: '删除成功' })
-  @ApiResponse({ status: 404, description: '角色不存在' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, '角色不存在')
   remove(@Param('id') id: string) {
     return this.roleService.remove(id);
   }
