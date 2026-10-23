@@ -68,5 +68,8 @@
       "prisma",
       "unrs-resolver"
     ]
+  },
+  "volta": {
+    "node": "24.18.0"
   }
 }
