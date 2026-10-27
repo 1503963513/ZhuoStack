@@ -19,14 +19,14 @@ Docker 镜像默认在目标环境根据 `DB_TYPE` 构建；这保证 Prisma Cli
 - `MINOR`：向后兼容的新功能、模块或部署能力。
 - `PATCH`：向后兼容的错误修复、安全修复、文档或依赖修复。
 - 预发布版本使用 `vX.Y.Z-rc.1` 等后缀，不能直接作为稳定生产版本。
-- 每个版本必须在 [CHANGELOG.md](../CHANGELOG.md) 中有条目；安全修复还要同步 Security Advisory。
+- 每个版本的 GitHub Release notes 是唯一版本变更记录；安全修复还要同步 GitHub Security Advisory。
 
 ## 发布前检查
 
 发布负责人确认：
 
 - 变更已经合并到 `main`，工作区干净；
-- `CHANGELOG.md` 的 `Unreleased` 已整理到目标版本；
+- 自动生成的 Release notes 已审核，并补齐数据库迁移、配置变更、破坏性变更和升级步骤；
 - API/Web/共享包版本和文档没有遗留旧版本信息；
 - 数据库变更已分别审核 PostgreSQL/MySQL 迁移 SQL，并写明扩展、迁移、回滚顺序；
 - 没有密钥、真实数据、`.env.production` 或未跟踪构建产物；
@@ -56,7 +56,7 @@ git push github v1.1.0
 
 推送 `v*.*.*` tag 后，`.github/workflows/release.yml` 会运行发布门禁并创建 GitHub Release。发布完成后：
 
-1. 在 GitHub Release 页面确认变更说明和两个数据库部署包；
+1. 在 GitHub Release 页面审核自动生成的变更说明，补充迁移/升级注意事项，并确认两个数据库部署包；
 2. 下载包并用 `sha256sum -c SHA256SUMS` 校验；
 3. 在一次性或预生产环境安装，执行 `/health`、登录、迁移和关键业务检查；
 4. 再按 [部署指南](deployment.md) 更新生产环境；
@@ -79,8 +79,8 @@ git push github v1.1.0
 
 - 应用问题优先回滚到上一个部署包，数据库只做前向修复；
 - 只有在备份副本验证过的情况下才执行人工回退 SQL；
-- 安全漏洞按照 [SECURITY.md](../SECURITY.md) 私下协调，修复完成后再发布公告；
-- 撤回或标记有问题的 Release，并在 Changelog 中记录影响范围和替代版本；
+- 安全漏洞按照 [SECURITY.md](../.github/SECURITY.md) 私下协调，修复完成后再发布公告；
+- 撤回或标记有问题的 Release，并在对应 GitHub Release notes 中记录影响范围和替代版本；
 - 发布凭据、生产环境文件和数据库备份不得进入 Release 附件。
 
 ## 权限与审计

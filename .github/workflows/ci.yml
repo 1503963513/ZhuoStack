@@ -14,7 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '24'
   PNPM_VERSION: '10.32.1'
 
 jobs:
@@ -29,7 +28,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Generate PostgreSQL Prisma client
@@ -87,7 +86,7 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Deploy PostgreSQL migration chain

@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你关注 ZhuoStack。欢迎提交问题、文档改进、测试补充和代码变更；提交前请先阅读本文件、[安全策略](SECURITY.md) 和 [Apache License 2.0](LICENSE)。
+感谢你关注 ZhuoStack。欢迎提交问题、文档改进、测试补充和代码变更；提交前请先阅读本文件、[安全策略](SECURITY.md) 和 [Apache License 2.0](../LICENSE)。
 
 ## 开发环境
 
@@ -74,7 +74,7 @@ PostgreSQL 和 MySQL 的 Schema、迁移目录必须同步维护：
 - 已发布的迁移文件不得修改；需要修正时创建新的前向迁移。
 - 破坏性变更必须说明备份、回滚和多版本兼容方案。
 
-详细规则见 [Prisma 双数据库与迁移规范](apps/api/prisma/README.md)。
+详细规则见 [Prisma 双数据库与迁移规范](../apps/api/prisma/README.md)。
 
 ## Pull Request 要求
 
@@ -91,6 +91,6 @@ Pull Request 描述应包含：
 
 ## 许可与贡献者权益
 
-提交到本仓库并明确用于合并的贡献，按照 [LICENSE](LICENSE) 中 Apache License 2.0 第 5 节处理。若你的贡献包含第三方代码，请在 PR 中说明来源和许可证，并确认其许可证允许与本项目一起分发。
+提交到本仓库并明确用于合并的贡献，按照 [LICENSE](../LICENSE) 中 Apache License 2.0 第 5 节处理。若你的贡献包含第三方代码，请在 PR 中说明来源和许可证，并确认其许可证允许与本项目一起分发。
 
 安全漏洞不要通过公开 Issue 或 Pull Request 披露，请按照 [SECURITY.md](SECURITY.md) 的流程报告。

@@ -19,7 +19,6 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: '24'
   PNPM_VERSION: '10.32.1'
 
 jobs:
@@ -49,7 +48,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install locked dependencies

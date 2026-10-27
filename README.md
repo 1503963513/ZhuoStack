@@ -301,8 +301,8 @@ GitHub Actions 会在主分支推送和 Pull Request 上执行类型检查、零
 
 ## 开源协作与发布
 
-- 贡献代码、文档或问题反馈前，请阅读 [贡献指南](CONTRIBUTING.md) 和 [行为准则](CODE_OF_CONDUCT.md)。
-- 安全漏洞、凭据泄露和隐私问题请按照 [安全策略](SECURITY.md) 使用私密渠道报告，不要创建公开 Issue。
+- 贡献代码、文档或问题反馈前，请阅读 [贡献指南](.github/CONTRIBUTING.md) 和 [行为准则](.github/CODE_OF_CONDUCT.md)。
+- 安全漏洞、凭据泄露和隐私问题请按照 [安全策略](.github/SECURITY.md) 使用私密渠道报告，不要创建公开 Issue。
 - Issue、Pull Request、代码所有者和发布权限由 `.github/` 下的模板与规则统一管理。
 - 稳定版本使用 `vMAJOR.MINOR.PATCH` Git tag 发布，发布物、校验和及升级步骤见 [发布流程](docs/release.md)。
-- 重要变更记录在 [CHANGELOG.md](CHANGELOG.md)；生产部署和数据库迁移仍以 [部署指南](docs/deployment.md) 与 [Prisma 迁移规范](apps/api/prisma/README.md) 为准。
+- 版本变更记录与升级说明见 [GitHub Releases](https://github.com/1503963513/ZhuoStack/releases)；生产部署和数据库迁移仍以 [部署指南](docs/deployment.md) 与 [Prisma 迁移规范](apps/api/prisma/README.md) 为准。

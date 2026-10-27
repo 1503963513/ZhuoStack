@@ -37,7 +37,7 @@
 1. 创建私密修复分支并限制知情范围；
 2. 评估影响版本、严重性和是否需要撤回发布物；
 3. 在修复、测试和迁移验证完成后发布新版本；
-4. 在 GitHub Security Advisory 和 `CHANGELOG.md` 中记录影响、修复版本和缓解措施。
+4. 在 GitHub Security Advisory 和对应 GitHub Release notes 中记录影响、修复版本和缓解措施。
 
 ## 使用建议
 
