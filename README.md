@@ -2,6 +2,60 @@
 
 面向生产环境的 NestJS + Next.js 全栈中后台开发脚手架，采用 pnpm Monorepo + Turborepo 组织，内置双数据库迁移、RBAC、Redis、多云文件存储和 Docker/PM2 部署能力。
 
+## 快速开始
+
+### 环境要求
+
+- Node.js 24 LTS（版本见 `.nvmrc`）
+- pnpm 10+
+- Docker Compose v2（用于启动本地 PostgreSQL 和 Redis；也可改用已有服务）
+
+### 启动本地环境
+
+在仓库根目录执行：
+
+```bash
+corepack enable
+pnpm install
+cp apps/api/.env.example apps/api/.env.development
+cp apps/web/.env.example apps/web/.env.local
+docker compose -f docker-compose.dev.yml up -d --wait
+pnpm --filter api db:setup:pg
+pnpm dev
+```
+
+默认配置使用 PostgreSQL，环境变量样例无需修改。初始化命令会生成 Prisma Client、运行迁移并填充演示数据。
+
+启动后访问：
+
+- Web：http://localhost:3000
+- API 健康检查：http://localhost:3100/health/liveness
+- Swagger：http://localhost:3100/api/docs
+
+管理员登录：`admin@example.com` / `admin123`。这些是本地演示账号，不要用于生产环境。
+普通用户账号为 `user1@example.com`、`user2@example.com`、`user3@example.com`，密码均为 `password123`。
+
+生产环境必须使用 TLS；前端还会使用临时 RSA-OAEP 公钥加密密码。RSA 不能替代 TLS。
+
+停止本地数据库和 Redis：
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+默认保留数据库数据；需要清空本地数据时再使用 `down -v`。
+MySQL 模式停止服务时，请在命令中加上 `--profile mysql`。
+
+### 改用 MySQL
+
+编辑 `apps/api/.env.development`，将 `DB_TYPE` 改为 `mysql`，并将 `DATABASE_URL` 改为 `mysql://root:root@localhost:3307/zhuostack`。然后运行：
+
+```bash
+docker compose -f docker-compose.dev.yml --profile mysql up -d --wait mysql redis
+pnpm --filter api db:setup:mysql
+pnpm dev
+```
+
 ## 界面预览
 
 <p align="center">
@@ -79,80 +133,6 @@ zhuostack/
 └── tsconfig.base.json
 ```
 
-## 快速开始
-
-### 环境要求
-
-- **Node.js** 24 LTS
-- **pnpm** 10+
-- **Docker**（可选，用于数据库）
-
-### 1. 安装依赖
-
-```bash
-pnpm install
-```
-
-### 2. 配置环境变量
-
-```bash
-# 后端
-cp apps/api/.env.example apps/api/.env.development
-
-# 前端
-cp apps/web/.env.example apps/web/.env.local
-```
-
-### 3. 启动数据库服务
-
-使用 Docker（推荐）：
-
-```bash
-# 启动 MySQL + Redis（仅供本地开发）
-docker compose -f docker-compose.dev.yml up -d
-
-# Intel Mac 可覆盖默认的 Apple Silicon 平台
-DEV_PLATFORM=linux/amd64 docker compose -f docker-compose.dev.yml up -d
-
-# 查看状态 / 停止服务
-docker compose -f docker-compose.dev.yml ps
-docker compose -f docker-compose.dev.yml down
-```
-
-### 4. 初始化数据库
-
-选择数据库并运行初始化命令：
-
-```bash
-# PostgreSQL
-pnpm --filter api db:setup:pg
-
-# MySQL
-pnpm --filter api db:setup:mysql
-```
-
-该命令会自动完成：
-
-- 复制对应的 Schema 文件到 `schema.active/`
-- 生成 Prisma Client
-- 运行数据库迁移
-- 填充测试数据
-
-### 5. 启动开发服务器
-
-```bash
-pnpm dev
-```
-
-这会同时启动：
-
-- **API 服务**: http://localhost:3100
-- **Web 服务**: http://localhost:3000
-
-### 6. 访问 API 文档
-
-Swagger UI 地址：http://localhost:3100/api/docs
-
 ## 文件存储
 
 上传模块支持本地磁盘、阿里云 OSS 和腾讯云 COS，由 API 环境变量切换：
@@ -212,19 +192,6 @@ pnpm --filter api db:setup:mysql
 2. 创建 `mysql/models/your-model.prisma`（含 MySQL 特定注解如 `@db.VarChar`）
 3. 在 `postgres/enums.prisma` 和 `mysql/enums.prisma` 中添加新枚举
 4. 分别运行 `pnpm db:migrate:pg` 与 `pnpm db:migrate:mysql` 生成并审核两套迁移
-
-## 测试账号
-
-数据库填充后，可使用以下测试账号：
-
-| 邮箱              | 密码        | 角色             |
-| ----------------- | ----------- | ---------------- |
-| admin@example.com | admin123    | ADMIN（管理员）  |
-| user1@example.com | password123 | USER（普通用户） |
-| user2@example.com | password123 | USER（普通用户） |
-| user3@example.com | password123 | USER（普通用户） |
-
-> 密码传输流程：TLS 负责传输安全，前端额外使用临时 RSA-OAEP 公钥加密，后端解密后使用 bcrypt 哈希存储。RSA 不能替代 TLS。
 
 ## 一键部署
 

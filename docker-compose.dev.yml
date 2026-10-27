@@ -1,9 +1,28 @@
 name: zhuostack-dev
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-zhuostack}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - '127.0.0.1:${POSTGRES_DEV_PORT:-5432}:5432'
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
   mysql:
     image: mysql:8.0
-    platform: ${DEV_PLATFORM:-linux/arm64}
+    profiles: ['mysql']
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
@@ -26,7 +45,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    platform: ${DEV_PLATFORM:-linux/arm64}
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     ports:
@@ -40,5 +58,6 @@ services:
       retries: 10
 
 volumes:
+  postgres_dev_data:
   mysql_dev_data:
   redis_dev_data:
