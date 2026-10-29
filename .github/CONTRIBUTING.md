@@ -69,7 +69,7 @@ CI 还会验证 PostgreSQL/MySQL 两套迁移链、Gitleaks 密钥扫描和 Dock
 PostgreSQL 和 MySQL 的 Schema、迁移目录必须同步维护：
 
 - 同一业务变更必须分别修改 `apps/api/prisma/postgres/` 和 `apps/api/prisma/mysql/`。
-- 分别运行 `pnpm db:migrate:pg` 与 `pnpm db:migrate:mysql`，审核生成的两份 SQL。
+- 分别运行 `pnpm db:migrate --pg` 与 `pnpm db:migrate --mysql`，审核生成的两份 SQL。
 - 不要提交 `apps/api/prisma/schema.active/` 或 `apps/api/prisma/migrations` 临时链接。
 - 已发布的迁移文件不得修改；需要修正时创建新的前向迁移。
 - 破坏性变更必须说明备份、回滚和多版本兼容方案。

@@ -20,7 +20,7 @@ pnpm install
 cp apps/api/.env.example apps/api/.env.development
 cp apps/web/.env.example apps/web/.env.local
 docker compose -f docker-compose.dev.yml up -d --wait
-pnpm --filter api db:setup:pg
+pnpm db:setup
 pnpm dev
 ```
 
@@ -52,7 +52,7 @@ MySQL 模式停止服务时，请在命令中加上 `--profile mysql`。
 
 ```bash
 docker compose -f docker-compose.dev.yml --profile mysql up -d --wait mysql redis
-pnpm --filter api db:setup:mysql
+pnpm db:setup
 pnpm dev
 ```
 
@@ -179,11 +179,12 @@ apps/api/prisma/
 ### 切换数据库
 
 ```bash
-# 切换到 PostgreSQL（完整初始化）
-pnpm --filter api db:setup:pg
+# 自动按 .env 中的 DB_TYPE 执行完整初始化
+pnpm db:setup
 
-# 切换到 MySQL（完整初始化）
-pnpm --filter api db:setup:mysql
+# 强制针对特定数据库初始化
+pnpm db:setup --pg      # PostgreSQL
+pnpm db:setup --mysql   # MySQL
 ```
 
 ### 添加新模型
@@ -191,7 +192,7 @@ pnpm --filter api db:setup:mysql
 1. 创建 `postgres/models/your-model.prisma`（PostgreSQL Schema）
 2. 创建 `mysql/models/your-model.prisma`（含 MySQL 特定注解如 `@db.VarChar`）
 3. 在 `postgres/enums.prisma` 和 `mysql/enums.prisma` 中添加新枚举
-4. 分别运行 `pnpm db:migrate:pg` 与 `pnpm db:migrate:mysql` 生成并审核两套迁移
+4. 运行 `pnpm db:migrate` 执行迁移（或追加 `--pg` / `--mysql` 显式指定）
 
 ## 一键部署
 
@@ -218,34 +219,31 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 
 ## 可用脚本
 
-| 命令                                    | 描述                                        |
-| --------------------------------------- | ------------------------------------------- |
-| `pnpm dev`                              | 启动所有服务（开发模式）                    |
-| `pnpm build`                            | 构建所有包                                  |
-| `pnpm build:deploy`                     | 不依赖 Turbo 远程能力，直接构建部署产物     |
-| `pnpm typecheck`                        | 对所有工作区执行严格 TypeScript 检查        |
-| `pnpm lint`                             | 代码检查                                    |
-| `pnpm test`                             | 运行 API 单元测试和 Web 测试                |
-| `pnpm test:e2e`                         | 运行 API E2E 测试                           |
-| `pnpm test:ci`                          | 执行类型检查、Lint、单元测试与 E2E          |
-| `pnpm audit:prod`                       | 阻断 high/critical 生产依赖漏洞             |
-| `pnpm docker:up`                        | 启动 Docker 服务                            |
-| `pnpm docker:down`                      | 停止 Docker 服务                            |
-| `pnpm ops --help`                       | 查看统一部署命令                            |
-| `pnpm ops pm2 start`                    | 使用项目内置 PM2 启动 API                   |
-| `pnpm ops pack pm2-offline postgres`    | 生成 PM2 离线包                             |
-| `pnpm ops pack docker-offline postgres` | 生成 Docker 离线镜像包                      |
-| `pnpm --filter api db:setup:pg`         | PostgreSQL 完整初始化                       |
-| `pnpm --filter api db:setup:mysql`      | MySQL 完整初始化                            |
-| `pnpm db:migrate:pg`                    | 生成/执行 PostgreSQL 开发迁移               |
-| `pnpm db:migrate:mysql`                 | 生成/执行 MySQL 开发迁移                    |
-| `pnpm db:verify:pg`                     | 在本机空库验证 PostgreSQL 迁移与漂移        |
-| `pnpm db:verify:mysql`                  | 在本机空库验证 MySQL 迁移与漂移             |
-| `pnpm db:baseline:pg`                   | 旧 PostgreSQL`db push` 数据库一次性基线登记 |
-| `pnpm db:baseline:mysql`                | 旧 MySQL`db push` 数据库一次性基线登记      |
-| `pnpm --filter api prisma:studio`       | 打开 Prisma Studio                          |
-| `pnpm --filter api db:use:pg`           | 切换到 PostgreSQL                           |
-| `pnpm --filter api db:use:mysql`        | 切换到 MySQL                                |
+| 命令                                    | 描述                                                  |
+| --------------------------------------- | ----------------------------------------------------- |
+| `pnpm dev`                              | 启动所有服务（开发模式）                              |
+| `pnpm build`                            | 构建所有包                                            |
+| `pnpm build:deploy`                     | 不依赖 Turbo 远程能力，直接构建部署产物               |
+| `pnpm typecheck`                        | 对所有工作区执行严格 TypeScript 检查                  |
+| `pnpm lint`                             | 代码检查                                              |
+| `pnpm test`                             | 运行 API 单元测试和 Web 测试                          |
+| `pnpm test:e2e`                         | 运行 API E2E 测试                                     |
+| `pnpm test:ci`                          | 执行类型检查、Lint、单元测试与 E2E                    |
+| `pnpm audit:prod`                       | 阻断 high/critical 生产依赖漏洞                       |
+| `pnpm docker:up`                        | 启动 Docker 服务                                      |
+| `pnpm docker:down`                      | 停止 Docker 服务                                      |
+| `pnpm ops --help`                       | 查看统一部署命令                                      |
+| `pnpm ops pm2 start`                    | 使用项目内置 PM2 启动 API                             |
+| `pnpm ops pack pm2-offline postgres`    | 生成 PM2 离线包                                       |
+| `pnpm ops pack docker-offline postgres` | 生成 Docker 离线镜像包                                |
+| `pnpm db:setup`                         | 数据库完整初始化（自适应切换+生成+迁移+填充）         |
+| `pnpm db:migrate`                       | 执行开发迁移（自适应当前 DB_TYPE，支持 --pg/--mysql） |
+| `pnpm db:generate`                      | 生成 Prisma Client（自适应当前 DB_TYPE）              |
+| `pnpm db:seed`                          | 填充种子数据（内置多数据库适配器）                    |
+| `pnpm db:studio`                        | 打开 Prisma Studio 可视化数据面板                     |
+| `pnpm db:deploy`                        | 生产环境部署迁移 (`migrate deploy`)                   |
+| `pnpm db:verify`                        | 空库验证迁移与漂移（CI 专用，支持 --pg/--mysql）      |
+| `pnpm db:baseline`                      | 旧 `db push` 数据库一次性基线登记                     |
 
 ## 开发规范与运维排障
 

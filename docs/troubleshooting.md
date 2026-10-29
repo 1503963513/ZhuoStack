@@ -154,7 +154,7 @@ pnpm contract:sync
 git diff --exit-code apps/web/openapi.json apps/web/src/api/generated/
 
 # 2. 检查数据库就绪状态
-pnpm --filter api db:verify:pg  # 或 db:verify:mysql
+pnpm db:verify  # 或 pnpm db:verify --pg / --mysql
 
 # 3. 检查就绪探针响应
 curl -i http://localhost:3100/health/readiness
