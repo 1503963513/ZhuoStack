@@ -410,7 +410,7 @@ export default function DictPage() {
             <DialogDescription>管理「{selectedDict?.code}」下的所有字典选项。</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+          <div className="space-y-4 flex-1 overflow-y-auto px-1.5">
             {/* 新增数据项行 */}
             <div className="p-3 bg-muted/40 rounded-lg space-y-3">
               <div className="text-sm font-medium">新增字典数据项</div>

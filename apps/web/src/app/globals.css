@@ -63,6 +63,11 @@
   scrollbar-color: hsl(var(--border)) transparent;
 }
 
+/* 带有垂直滚动的容器保持滚动槽稳定，防止出现滚动条时内容左右颠簸或偏移 */
+.overflow-y-auto {
+  scrollbar-gutter: stable;
+}
+
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -288,7 +288,7 @@ export default function MenuPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1.5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="type">菜单类型</Label>
