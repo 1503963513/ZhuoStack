@@ -188,7 +188,7 @@ async function bootstrap() {
           },
     },
     frameguard: swaggerEnabled ? false : { action: 'deny' },
-    crossOriginResourcePolicy: { policy: 'same-site' },
+    crossOriginResourcePolicy: { policy: isProduction ? 'same-site' : 'cross-origin' },
     strictTransportSecurity: isProduction
       ? { maxAge: 31536000, includeSubDomains: true, preload: true }
       : false,
@@ -240,16 +240,35 @@ async function bootstrap() {
         allow: string | boolean | RegExp | Array<string | boolean | RegExp>,
       ) => void,
     ) => {
-      // 允许无 origin 的请求（如服务端调用、Postman）
+      // 允许无 origin 的请求（如服务端调用、移动端、Postman）
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // 开发环境同时允许 localhost 与 127.0.0.1 常见前端端口
+      const isAllowed = isProduction
+        ? allowedOrigins.includes(origin)
+        : allowedOrigins.includes(origin) ||
+          /^http:\/\/(localhost|127\.0\.0\.1):(3000|3001|3002)$/.test(origin);
+
+      if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS: ${origin} 不在允许列表中`), false);
+        // 未授权来源不返回允许头，绝不能抛出 500 Error
+        callback(null, false);
       }
     },
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'x-csrf-token',
+      'x-request-id',
+      'Accept',
+      'Origin',
+    ],
+    exposedHeaders: ['x-request-id'],
     credentials: true,
+    maxAge: 86400,
   });
 
   // Global validation pipe
