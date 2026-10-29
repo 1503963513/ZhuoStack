@@ -27,17 +27,16 @@ pnpm test
 pnpm --filter api test       # Jest 单元测试
 pnpm --filter api test:e2e   # E2E 端到端测试
 
-# 数据库初始化（首次使用时执行）
-pnpm --filter api db:setup:pg     # PostgreSQL：切换 schema + 生成 + 迁移 + 填充数据
-pnpm --filter api db:setup:mysql  # MySQL：切换 schema + 生成 + 迁移 + 填充数据
-
-# 数据库操作
-pnpm --filter api prisma:migrate  # 运行迁移
-pnpm --filter api prisma:seed     # 填充种子数据
-pnpm --filter api prisma:studio   # 打开 Prisma Studio 可视化工具
+# 数据库操作（自动按 .env 中的 DB_TYPE 识别 PostgreSQL 或 MySQL）
+pnpm db:setup       # 首次初始化：切换 schema + 生成 client + 迁移 + 填充种子数据
+pnpm db:migrate     # 运行迁移 (migrate dev)
+pnpm db:generate    # 重新生成 Prisma Client
+pnpm db:seed        # 填充种子数据
+pnpm db:studio      # 打开 Prisma Studio 可视化工具
+# 如需强制指定，末尾加 --pg 或 --mysql，如：pnpm db:migrate --mysql
 
 # 契约与代码生成
-pnpm contract:sync                # 导出 OpenAPI 并同步生成前端强类型客户端
+pnpm contract:sync  # 导出 OpenAPI 并同步生成前端强类型客户端
 
 # Docker
 pnpm docker:up
@@ -84,16 +83,14 @@ Next.js App Router 路由分组：
 
 **UI 组件**：shadcn/ui + Tailwind CSS。主题切换使用 `next-themes`（暗色/亮色）。提示消息使用 `sonner`。
 
-### 数据库 — 双 PostgreSQL/MySQL 支持
+### 数据库 — 双 PostgreSQL/MySQL 自动调度
 
 `apps/api/prisma/` 下有两套并行的 Prisma Schema 目录：
 
 - `postgres/` — PostgreSQL 模型（无数据库特定注解）
 - `mysql/` — MySQL 模型（含 `@db.VarChar(length)`、`@unique(length)` 注解）
 
-当前生效的 schema 是 `prisma/schema.active/`（自动生成，已加入 gitignore）。通过 `db:use:pg` 或 `db:use:mysql` 切换时会复制对应目录。所有 prisma 命令均使用 `--schema=prisma/schema.active`。
-
-使用 Prisma 7 内置的多文件 Schema 能力 — schema 拆分为 `config.prisma`、`enums.prisma`、`models/*.prisma`。
+**自动识别调度**：所有 `pnpm db:*` 命令由 `db-cli.mjs` 统一接管，自动读取当前 `.env` 中的 `DB_TYPE`（默认 `postgres`），自动完成 `schema.active/` 切换、生成与执行，无需人工记忆底层差异。也可以在命令后附带 `--pg` 或 `--mysql` 参数强制指定。
 
 ## 环境变量
 

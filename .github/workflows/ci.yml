@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Generate PostgreSQL Prisma client
-        run: pnpm --filter api db:use:pg && pnpm --filter api prisma:generate
+        run: pnpm db:generate --pg
         env:
           # `prisma generate` does not connect, but Prisma 7 loads the
           # datasource from prisma.config.ts before it generates the client.
@@ -93,12 +93,12 @@ jobs:
         working-directory: apps/api
         env:
           MIGRATION_TEST_DATABASE_URL: postgresql://zhuostack:ci-postgres-password@127.0.0.1:5432/zhuostack
-        run: pnpm db:verify:pg
+        run: pnpm db:verify --pg
       - name: Deploy MySQL migration chain
         working-directory: apps/api
         env:
           MIGRATION_TEST_DATABASE_URL: mysql://root:ci-mysql-password@127.0.0.1:3306/zhuostack
-        run: pnpm db:verify:mysql
+        run: pnpm db:verify --mysql
 
   secrets:
     name: Secret scan

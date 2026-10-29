@@ -27,8 +27,9 @@
 
 ## 3. 数据库与 Prisma 规范
 
-- **必须同时维护双库**：新增或修改模型时，必须同时维护 `apps/api/prisma/postgres/models/` 与 `apps/api/prisma/mysql/models/` 两套 Schema（MySQL 需带 `@db.VarChar(length)` 或 `@db.Text`）。
-- **严禁直接编辑 `schema.active/`**：该目录为生成目录，由 `db:use:pg` 或 `db:use:mysql` 自动生成。
+- **统一使用通用命令**：日常开发统一执行 `pnpm db:migrate`、`pnpm db:generate`、`pnpm db:seed`、`pnpm db:setup`，系统自动按环境 `DB_TYPE` 识别并调度，无需手动切换或记忆底层命令。
+- **必须同时维护双库 Schema**：新增或修改模型时，必须同时维护 `apps/api/prisma/postgres/models/` 与 `apps/api/prisma/mysql/models/` 两套 Schema（MySQL 需带 `@db.VarChar(length)` 或 `@db.Text`）。
+- **严禁直接编辑 `schema.active/`**：该目录为生成目录，由调度脚本自动维护。
 - **模型设计**：统一使用 `String @id @default(cuid())`；表名始终使用 `@@map("复数_下划线")`；时间戳包含 `createdAt` 和 `updatedAt`。
 
 ---
