@@ -17,45 +17,42 @@ export class OperLogItemDto {
   requestMethod: string;
 
   @ApiProperty({ description: '请求 URL' })
-  operUrl: string;
+  url: string;
 
-  @ApiProperty({ description: '主机地址' })
-  operIp: string;
+  @ApiProperty({ description: '操作人 IP 地址' })
+  ip: string;
 
-  @ApiPropertyOptional({ type: String, description: '操作地点', nullable: true })
-  operLocation: string | null;
-
-  @ApiPropertyOptional({ type: String, description: '请求参数', nullable: true })
-  operParam: string | null;
-
-  @ApiPropertyOptional({ type: String, description: '返回参数', nullable: true })
-  jsonResult: string | null;
+  @ApiPropertyOptional({ type: String, description: '操作人员名称', nullable: true })
+  operName: string | null;
 
   @ApiProperty({ description: '操作状态（0异常 1正常）' })
   status: number;
+
+  @ApiPropertyOptional({ type: String, description: '返回参数结果', nullable: true })
+  jsonResult: string | null;
 
   @ApiPropertyOptional({ type: String, description: '错误消息', nullable: true })
   errorMsg: string | null;
 
   @ApiProperty({ description: '操作时间' })
   operTime: Date;
-
-  @ApiProperty({ description: '消耗时间（毫秒）' })
-  costTime: number;
 }
 
 export class LoginLogItemDto {
   @ApiProperty({ description: '访问 ID' })
   id: string;
 
-  @ApiProperty({ description: '用户账号' })
-  userName: string;
+  @ApiPropertyOptional({ type: String, description: '用户 ID', nullable: true })
+  userId?: string | null;
+
+  @ApiProperty({ description: '用户账号/邮箱' })
+  username: string;
 
   @ApiProperty({ description: '登录 IP 地址' })
-  ipaddr: string;
+  ip: string;
 
   @ApiPropertyOptional({ type: String, description: '登录地点', nullable: true })
-  loginLocation: string | null;
+  location: string | null;
 
   @ApiPropertyOptional({ type: String, description: '浏览器类型', nullable: true })
   browser: string | null;

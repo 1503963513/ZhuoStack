@@ -18,26 +18,21 @@ export interface OperLogItemDto {
   /** 请求方式 */
   requestMethod: string;
   /** 请求 URL */
-  operUrl: string;
-  /** 主机地址 */
-  operIp: string;
+  url: string;
+  /** 操作人 IP 地址 */
+  ip: string;
   /**
-     * 操作地点
+     * 操作人员名称
      * @nullable
      */
-  operLocation?: string | null;
+  operName?: string | null;
+  /** 操作状态（0异常 1正常） */
+  status: number;
   /**
-     * 请求参数
-     * @nullable
-     */
-  operParam?: string | null;
-  /**
-     * 返回参数
+     * 返回参数结果
      * @nullable
      */
   jsonResult?: string | null;
-  /** 操作状态（0异常 1正常） */
-  status: number;
   /**
      * 错误消息
      * @nullable
@@ -45,6 +40,4 @@ export interface OperLogItemDto {
   errorMsg?: string | null;
   /** 操作时间 */
   operTime: string;
-  /** 消耗时间（毫秒） */
-  costTime: number;
 }

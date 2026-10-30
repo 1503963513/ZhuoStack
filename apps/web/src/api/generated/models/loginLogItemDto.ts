@@ -9,15 +9,20 @@
 export interface LoginLogItemDto {
   /** 访问 ID */
   id: string;
-  /** 用户账号 */
-  userName: string;
+  /**
+     * 用户 ID
+     * @nullable
+     */
+  userId?: string | null;
+  /** 用户账号/邮箱 */
+  username: string;
   /** 登录 IP 地址 */
-  ipaddr: string;
+  ip: string;
   /**
      * 登录地点
      * @nullable
      */
-  loginLocation?: string | null;
+  location?: string | null;
   /**
      * 浏览器类型
      * @nullable
