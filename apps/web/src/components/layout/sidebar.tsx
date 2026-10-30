@@ -49,7 +49,8 @@ export function Sidebar() {
 
   const handleLogout = async () => {
     const ok = await confirm({ description: '确定要退出登录吗？', variant: 'destructive' });
-    if (ok) logout();
+    if (!ok) return;
+    logout();
   };
 
   // 从 API 获取当前用户的菜单（按角色过滤）
@@ -60,24 +61,28 @@ export function Sidebar() {
 
   const menuList = useMemo(() => response?.data || [], [response]);
 
-  // 一级菜单（没有父级的 MENU 类型，如仪表盘、个人中心，排除隐藏菜单）
-  const topMenus = useMemo(() => {
+  // 所有顶级导航项（包括独立页面 MENU 和可折叠目录 DIRECTORY，排除已隐藏项），统一按后端 sort 升序排列
+  const navItems = useMemo(() => {
     return menuList
-      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && !m.hidden && m.type === 'MENU' && !m.parentId)
-      .sort((a, b) => a.sort - b.sort);
-  }, [menuList]);
-
-  // 分组菜单（DIRECTORY 类型，如系统管理，排除隐藏菜单）
-  const menuGroups = useMemo(() => {
-    return menuList
-      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && !m.hidden && m.type === 'DIRECTORY')
-      .sort((a, b) => a.sort - b.sort)
-      .map((dir) => ({
-        ...dir,
-        children: (dir.children || [])
-          .filter((c: UserMenuTreeNodeDto) => c.status === 'ACTIVE' && !c.hidden && c.type === 'MENU')
-          .sort((a, b) => a.sort - b.sort),
-      }));
+      .filter(
+        (m: UserMenuTreeNodeDto) =>
+          m.status === 'ACTIVE' && !m.hidden && !m.parentId,
+      )
+      .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+      .map((item) => {
+        if (item.type === 'DIRECTORY') {
+          return {
+            ...item,
+            children: (item.children || [])
+              .filter(
+                (c: UserMenuTreeNodeDto) =>
+                  c.status === 'ACTIVE' && !c.hidden && c.type === 'MENU',
+              )
+              .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0)),
+          };
+        }
+        return item;
+      });
   }, [menuList]);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -101,81 +106,84 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
-        {/* 一级菜单（仪表盘、个人中心等） */}
-        {topMenus.map((item) => {
-          const Icon = getIcon(item.icon);
+        {navItems.map((item) => {
+          // 1. 如果是目录（DIRECTORY），渲染为可折叠的分组菜单
+          if (item.type === 'DIRECTORY') {
+            const GroupIcon = getIcon(item.icon);
+            const children = item.children || [];
+            const hasActiveChild = children.some((c) => pathname === c.path);
+            const isOpen = openGroups[item.id] ?? hasActiveChild;
+
+            return (
+              <div key={item.id} className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(item.id, hasActiveChild)}
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    hasActiveChild
+                      ? 'text-primary font-semibold'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <GroupIcon className="h-4 w-4" />
+                    <span>{item.name}</span>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform duration-200',
+                      isOpen && 'rotate-180',
+                    )}
+                  />
+                </button>
+
+                {isOpen && (
+                  <div className="ml-4 mt-1 flex flex-col gap-1 border-l pl-2">
+                    {children.map((child) => {
+                      const ChildIcon = getIcon(child.icon);
+                      const isActive = pathname === child.path;
+
+                      return (
+                        <Link
+                          key={child.id}
+                          href={child.path || '#'}
+                          className={cn(
+                            'flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                            isActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                          )}
+                        >
+                          <ChildIcon className="h-3.5 w-3.5" />
+                          {child.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // 2. 如果是顶级单项菜单（MENU，如仪表盘、个人中心等），按其自身 sort 权重直接渲染为单项链接
+          const ItemIcon = getIcon(item.icon);
+          const isActive = pathname === item.path;
+
           return (
             <Link
               key={item.id}
               href={item.path || '#'}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                pathname === item.path
+                isActive
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )}
             >
-              <Icon className="h-4 w-4" />
+              <ItemIcon className="h-4 w-4" />
               {item.name}
             </Link>
-          );
-        })}
-
-        {/* 分组菜单（带可折叠子菜单） */}
-        {menuGroups.map((group) => {
-          const GroupIcon = getIcon(group.icon);
-          const hasActiveChild = group.children.some((c) => pathname === c.path);
-          const isOpen = openGroups[group.id] ?? hasActiveChild;
-
-          return (
-            <div key={group.id} className="pt-2">
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.id, hasActiveChild)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  hasActiveChild
-                    ? 'text-primary font-semibold'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <GroupIcon className="h-4 w-4" />
-                  <span>{group.name}</span>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 transition-transform duration-200',
-                    isOpen && 'rotate-180',
-                  )}
-                />
-              </button>
-
-              {isOpen && (
-                <div className="ml-4 mt-1 flex flex-col gap-1 border-l pl-2">
-                  {group.children.map((child) => {
-                    const ChildIcon = getIcon(child.icon);
-                    const isActive = pathname === child.path;
-
-                    return (
-                      <Link
-                        key={child.id}
-                        href={child.path || '#'}
-                        className={cn(
-                          'flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                          isActive
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                        )}
-                      >
-                        <ChildIcon className="h-3.5 w-3.5" />
-                        {child.name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           );
         })}
       </nav>

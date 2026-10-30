@@ -551,7 +551,7 @@ async function main() {
     },
   });
 
-  // 一级菜单：个人中心（默认隐藏）
+  // 一级菜单：个人中心（默认隐藏，排序放在最后）
   await prisma.sysMenu.create({
     data: {
       name: '个人中心',
@@ -559,7 +559,7 @@ async function main() {
       path: '/profile',
       component: 'profile/index',
       icon: 'User',
-      sort: 2,
+      sort: 99,
       status: Status.ACTIVE,
       hidden: true,
     },
