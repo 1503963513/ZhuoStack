@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { RefreshCw, Play, Pause, Timer, Zap, History } from 'lucide-react';
+import { RefreshCw, Play, Pause, Timer, Zap, History, PlayCircle, PauseCircle } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 import {
   monitorControllerGetJobs,
@@ -78,9 +78,7 @@ export default function JobsPage() {
 
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center text-green-600 dark:text-green-400 font-bold">
-              ✓
-            </div>
+            <PlayCircle className="h-8 w-8 text-green-600 dark:text-green-500" />
             <div>
               <p className="text-2xl font-bold">{runningCount}</p>
               <p className="text-sm text-muted-foreground">运行中</p>
@@ -90,9 +88,7 @@ export default function JobsPage() {
 
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold">
-              ⏸
-            </div>
+            <PauseCircle className="h-8 w-8 text-muted-foreground" />
             <div>
               <p className="text-2xl font-bold">{jobs.length - runningCount}</p>
               <p className="text-sm text-muted-foreground">已暂停</p>
