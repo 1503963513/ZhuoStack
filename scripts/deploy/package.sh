@@ -35,7 +35,7 @@ pack_pm2() {
 
   if [ "$mode" = offline ]; then
     command -v docker >/dev/null 2>&1 || die "生成跨平台离线依赖需要 Docker"
-    platform=${TARGET_ARCH:-linux/amd64}
+    platform=$(resolve_target_platform)
     info "在 $platform 容器中安装生产依赖、PM2 和 Prisma Client"
     docker run --rm --platform "$platform" -v "$ROOT_DIR/$staging:/app" -w /app node:24-bookworm-slim bash -lc "
       set -eu
@@ -60,11 +60,12 @@ pack_pm2() {
 }
 
 pack_docker_offline() {
-  local db_type=${1:-postgres} timestamp staging archive image_list platform db_image version
+  local db_type=${1:-postgres} timestamp staging archive image_list platform db_image version comp
   case "$db_type" in postgres|mysql) ;; *) die "数据库类型只能是 postgres 或 mysql" ;; esac
   command -v docker >/dev/null 2>&1 || die "生成 Docker 离线包需要 Docker"
   ensure_deploy_env
-  platform=${TARGET_ARCH:-linux/amd64}
+  platform=$(resolve_target_platform)
+  info "已选定目标容器平台: $platform"
   timestamp=$(date +%Y%m%d_%H%M%S)
   version="offline-${timestamp}"
   staging=".deploy-temp/docker-offline-${db_type}"
@@ -97,12 +98,18 @@ pack_docker_offline() {
     DOCKER_DEFAULT_PLATFORM="$platform" APP_IMAGE_PREFIX=zhuostack APP_VERSION="$version" DB_TYPE=postgres docker compose --env-file .env.deploy -f docker-compose.yml build
     image_list=$(APP_IMAGE_PREFIX=zhuostack APP_VERSION="$version" DB_TYPE=postgres docker compose --env-file .env.deploy -f docker-compose.yml config --images)
   fi
+  info "拉取基础环境镜像 ($platform: $db_image, redis:7-alpine)"
   docker pull --platform "$platform" "$db_image"
   docker pull --platform "$platform" redis:7-alpine
-  info "导出 Docker 镜像"
-  # image_list 由 docker compose 生成，按换行拆分为 docker save 参数。
-  docker image save -o "$staging/offline-images.tar" $image_list
-  COPYFILE_DISABLE=1 tar -C "$staging" -czf "$archive" .
+
+  comp=$(compress_cmd)
+  info "流式压缩导出 Docker 镜像 ($comp)"
+  # 流式压缩直接写入文件，避免在 Docker 虚拟机内部产生未压缩巨型临时文件而报 no space left
+  # shellcheck disable=SC2086
+  docker image save $image_list | $comp -c > "$staging/offline-images.tar.gz"
+
+  info "归档离线部署包为 $archive"
+  COPYFILE_DISABLE=1 tar -C "$staging" -cf - . | $comp -1 -c > "$archive"
   rm -rf .deploy-temp
   ok "已生成 $archive ($(du -h "$archive" | awk '{print $1}'))"
 }
@@ -110,18 +117,19 @@ pack_docker_offline() {
 package_interactive() {
   local kind db_type skip_build=false
 
-  echo "PM2 发布包向导"
+  echo "全栈部署包发布向导"
   if [ -f apps/api/dist/src/main.js ] && [ -f apps/web/out/index.html ]; then
-    read -rp "检测到现有构建产物，是否复用？[y/N] " answer
+    read -rp "检测到现有本地构建产物，是否复用？[y/N] " answer
     case "${answer:-N}" in [yY]*) skip_build=true ;; esac
   fi
 
   PS3='请选择发布包类型 > '
-  select option in "在线 + 离线" "仅在线" "仅离线" "取消"; do
+  select option in "Docker 离线镜像包 (推荐，开箱即用)" "PM2 在线 + 离线包" "PM2 仅在线包" "PM2 仅离线包" "取消"; do
     case "$option" in
-      "在线 + 离线") kind=pm2-all; break ;;
-      "仅在线") kind=pm2-online; break ;;
-      "仅离线") kind=pm2-offline; break ;;
+      "Docker 离线镜像包 (推荐，开箱即用)") kind=docker-offline; break ;;
+      "PM2 在线 + 离线包") kind=pm2-all; break ;;
+      "PM2 仅在线包") kind=pm2-online; break ;;
+      "PM2 仅离线包") kind=pm2-offline; break ;;
       "取消") return 0 ;;
       *) warn "请输入有效序号" ;;
     esac
@@ -141,6 +149,7 @@ package_interactive() {
   fi
 
   case "$kind" in
+    docker-offline) pack_docker_offline "$db_type" ;;
     pm2-online) DEPLOY_SKIP_BUILD="$skip_build" pack_pm2 online "$db_type" ;;
     pm2-offline) DEPLOY_SKIP_BUILD="$skip_build" pack_pm2 offline "$db_type" ;;
     pm2-all)

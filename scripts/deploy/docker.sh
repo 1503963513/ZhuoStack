@@ -16,10 +16,16 @@ compose_command() {
 }
 
 load_offline_images_if_needed() {
-  [ -f offline-images.tar ] || return 0
+  local img_file=""
+  if [ -f offline-images.tar.gz ]; then
+    img_file="offline-images.tar.gz"
+  elif [ -f offline-images.tar ]; then
+    img_file="offline-images.tar"
+  fi
+  [ -n "$img_file" ] || return 0
   [ -f .offline-images-loaded ] && return 0
-  info "导入离线 Docker 镜像，首次执行可能需要几分钟"
-  docker load -i offline-images.tar
+  info "导入离线 Docker 镜像 ($img_file)，首次执行可能需要几分钟"
+  docker load -i "$img_file"
   touch .offline-images-loaded
 }
 
@@ -30,7 +36,7 @@ docker_deploy() {
   case "$action" in
     up)
       load_offline_images_if_needed
-      if [ -f offline-images.tar ]; then
+      if [ -f offline-images.tar.gz ] || [ -f offline-images.tar ]; then
         info "使用离线镜像启动服务"
         "${COMPOSE[@]}" up -d --no-build
       else

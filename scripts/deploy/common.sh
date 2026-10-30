@@ -149,3 +149,51 @@ build_project() {
   [ -f apps/api/dist/src/main.js ] || die "API 构建产物缺失"
   [ -f apps/web/out/index.html ] || die "Web 构建产物缺失"
 }
+
+compress_cmd() {
+  if command -v pigz >/dev/null 2>&1; then
+    printf 'pigz'
+  else
+    printf 'gzip'
+  fi
+}
+
+resolve_target_platform() {
+  if [ -n "${TARGET_ARCH:-}" ]; then
+    printf '%s' "$TARGET_ARCH"
+    return 0
+  fi
+
+  local host_arch native_platform
+  host_arch=$(uname -m)
+  case "$host_arch" in
+    x86_64|amd64) native_platform="linux/amd64" ;;
+    aarch64|arm64) native_platform="linux/arm64" ;;
+    *) native_platform="linux/amd64" ;;
+  esac
+
+  # 非交互终端环境（如 CI/CD 或后台脚本），默认按通用生产服务器架构 linux/amd64
+  if [ ! -t 0 ]; then
+    printf '%s' "${DEFAULT_ARCH:-linux/amd64}"
+    return 0
+  fi
+
+  echo >&2
+  info "当前主机硬件架构: $host_arch (原生容器平台: $native_platform)" >&2
+  echo "请选择打包的目标服务器架构：" >&2
+  echo "  1) linux/amd64 (标准 x86_64 云服务器，如阿里云/腾讯云/Intel/AMD)" >&2
+  echo "  2) linux/arm64 (ARM 云服务器 / 树莓派 / 本地 Apple Silicon)" >&2
+  echo "  3) 本机原生架构 ($native_platform, 无跨平台转译，构建速度最快)" >&2
+
+  local choice
+  while true; do
+    read -rp "请输入序号 [1-3, 默认 1]: " choice
+    choice=${choice:-1}
+    case "$choice" in
+      1) printf 'linux/amd64'; return 0 ;;
+      2) printf 'linux/arm64'; return 0 ;;
+      3) printf '%s' "$native_platform"; return 0 ;;
+      *) warn "无效选项，请输入 1、2 或 3" >&2 ;;
+    esac
+  done
+}
