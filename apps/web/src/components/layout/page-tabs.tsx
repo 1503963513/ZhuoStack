@@ -125,7 +125,7 @@ export function PageTabs() {
   };
 
   return (
-    <div className="sticky top-16 z-30 flex h-10 w-full items-center border-b bg-background/95 backdrop-blur px-4 select-none">
+    <div className="sticky top-16 z-20 flex h-10 w-full items-center border-b bg-background/95 backdrop-blur px-4 select-none">
       {/* 水平可滚动标签列表 */}
       <div
         ref={scrollContainerRef}

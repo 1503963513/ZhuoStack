@@ -63,7 +63,7 @@ export function Header() {
 
   return (
     <>
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-35 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* 主题切换 */}
       <Button
         variant="ghost"
