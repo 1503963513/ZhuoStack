@@ -119,7 +119,11 @@ export class AuthService {
   /**
    * Register a new user
    */
-  async register(dto: RegisterDto, ip?: string, uaInfo?: { browser?: string; os?: string }): Promise<AuthResponse> {
+  async register(
+    dto: RegisterDto,
+    ip?: string,
+    uaInfo?: { browser?: string; os?: string },
+  ): Promise<AuthResponse> {
     // 校验验证码
     const captchaValid = await this.verifyCaptcha(dto.captchaId, dto.captchaCode);
     if (!captchaValid) {
@@ -170,12 +174,7 @@ export class AuthService {
     const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
 
     // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
-    await this.redisService.set(
-      `token:active:${user.id}`,
-      jti,
-      this.tokenTtlSeconds(),
-      true,
-    );
+    await this.redisService.set(`token:active:${user.id}`, jti, this.tokenTtlSeconds(), true);
 
     // 记录注册成功日志
     await this.logService.createLoginLog({
@@ -198,7 +197,11 @@ export class AuthService {
   /**
    * Login with email and password
    */
-  async login(dto: LoginDto, ip?: string, uaInfo?: { browser?: string; os?: string }): Promise<AuthResponse> {
+  async login(
+    dto: LoginDto,
+    ip?: string,
+    uaInfo?: { browser?: string; os?: string },
+  ): Promise<AuthResponse> {
     // 校验验证码
     const captchaValid = await this.verifyCaptcha(dto.captchaId, dto.captchaCode);
     if (!captchaValid) {
@@ -248,12 +251,7 @@ export class AuthService {
     const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
 
     // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
-    await this.redisService.set(
-      `token:active:${user.id}`,
-      jti,
-      this.tokenTtlSeconds(),
-      true,
-    );
+    await this.redisService.set(`token:active:${user.id}`, jti, this.tokenTtlSeconds(), true);
 
     // 记录登录成功日志
     await this.logService.createLoginLog({
@@ -266,8 +264,16 @@ export class AuthService {
       msg: '登录成功',
     });
 
-    // 记录在线用户
-    await this.monitorService.userOnline(user.id, user.name || user.email, ip || 'unknown');
+    // 记录在线用户完整信息
+    await this.monitorService.userOnline({
+      userId: user.id,
+      userName: user.name || user.email,
+      email: user.email,
+      avatar: user.avatar,
+      ip: ip || 'unknown',
+      browser: uaInfo?.browser,
+      os: uaInfo?.os,
+    });
 
     return {
       access_token: token,
@@ -362,7 +368,10 @@ export class AuthService {
     return this.buildTree(menus);
   }
 
-  private buildTree(menus: { id: string; parentId: string | null; [key: string]: unknown }[], parentId: string | null = null): MenuTreeNode[] {
+  private buildTree(
+    menus: { id: string; parentId: string | null; [key: string]: unknown }[],
+    parentId: string | null = null,
+  ): MenuTreeNode[] {
     return menus
       .filter((m) => m.parentId === parentId)
       .map((m) => ({ ...m, children: this.buildTree(menus, m.id) }) as MenuTreeNode);
@@ -385,12 +394,7 @@ export class AuthService {
 
     const captchaId = crypto.randomUUID();
     // 答案存 Redis，5 分钟过期
-    await this.redisService.set(
-      `captcha:${captchaId}`,
-      captcha.text.toLowerCase(),
-      300,
-      true,
-    );
+    await this.redisService.set(`captcha:${captchaId}`, captcha.text.toLowerCase(), 300, true);
 
     return { captchaId, captchaImage: captcha.data };
   }
@@ -410,7 +414,13 @@ export class AuthService {
   /**
    * 记录登录失败并返回累计失败次数
    */
-  private async recordLoginFailure(email: string, ip: string | undefined, msg: string, uaInfo?: { browser?: string; os?: string }, userId?: string): Promise<number> {
+  private async recordLoginFailure(
+    email: string,
+    ip: string | undefined,
+    msg: string,
+    uaInfo?: { browser?: string; os?: string },
+    userId?: string,
+  ): Promise<number> {
     await this.logService.createLoginLog({
       userId,
       username: email,

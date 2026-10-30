@@ -167,19 +167,34 @@ export class MonitorService {
   // ========== 在线用户（Redis 存储） ==========
 
   /**
-   * 记录用户上线（登录时调用）
+   * 记录用户上线（登录或会话刷新时调用）
    */
-  async userOnline(userId: string, username: string, ip: string) {
+  async userOnline(userInfo: {
+    userId: string;
+    userName?: string | null;
+    email?: string;
+    avatar?: string | null;
+    ip: string;
+    browser?: string | null;
+    os?: string | null;
+  }) {
     const client = this.redisService.getClient();
     if (!client) return;
 
-    const key = `${ONLINE_USER_PREFIX}${userId}`;
-    await client.set(
-      key,
-      JSON.stringify({ userId, username, ip, loginTime: new Date().toISOString() }),
-      'EX',
-      ONLINE_USER_TTL,
-    );
+    const key = `${ONLINE_USER_PREFIX}${userInfo.userId}`;
+    const payload = {
+      userId: userInfo.userId,
+      userName: userInfo.userName || userInfo.email || '用户',
+      username: userInfo.userName || userInfo.email || '用户',
+      email: userInfo.email,
+      avatar: userInfo.avatar,
+      ip: userInfo.ip,
+      browser: userInfo.browser,
+      os: userInfo.os,
+      loginTime: new Date().toISOString(),
+    };
+
+    await client.set(key, JSON.stringify(payload), 'EX', ONLINE_USER_TTL);
   }
 
   /**
@@ -225,7 +240,16 @@ export class MonitorService {
         }),
       );
 
-      return users.filter(Boolean);
+      return users.filter(Boolean).map((u: Record<string, unknown>) => ({
+        userId: String(u['userId']),
+        userName: String(u['userName'] || u['username'] || u['name'] || u['email'] || '用户'),
+        email: u['email'] ? String(u['email']) : undefined,
+        avatar: u['avatar'] ? String(u['avatar']) : null,
+        ip: String(u['ip'] || 'unknown'),
+        browser: u['browser'] ? String(u['browser']) : null,
+        os: u['os'] ? String(u['os']) : null,
+        loginTime: String(u['loginTime'] || new Date().toISOString()),
+      }));
     } catch {
       return [];
     }

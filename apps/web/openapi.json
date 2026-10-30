@@ -5051,27 +5051,41 @@
           },
           "userName": {
             "type": "string",
-            "description": "用户名"
+            "description": "用户名称"
+          },
+          "email": {
+            "type": "string",
+            "description": "用户邮箱"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "用户头像 URL",
+            "nullable": true
           },
           "ip": {
             "type": "string",
             "description": "IP 地址"
           },
-          "loginTime": {
-            "type": "number",
-            "description": "登录时间戳"
+          "browser": {
+            "type": "string",
+            "description": "浏览器",
+            "nullable": true
           },
-          "lastActive": {
-            "type": "number",
-            "description": "最后活跃时间戳"
+          "os": {
+            "type": "string",
+            "description": "操作系统",
+            "nullable": true
+          },
+          "loginTime": {
+            "type": "string",
+            "description": "登录时间（ISO 字符串或格式化时间）"
           }
         },
         "required": [
           "userId",
           "userName",
           "ip",
-          "loginTime",
-          "lastActive"
+          "loginTime"
         ]
       },
       "JobItemDto": {

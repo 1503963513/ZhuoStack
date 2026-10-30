@@ -5,9 +5,10 @@ import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { RefreshCw, UserMinus, Users, Globe, Clock } from 'lucide-react';
-import { getErrorMessage } from '@/lib/utils';
+import { RefreshCw, UserMinus, Users, Globe, Clock, Laptop } from 'lucide-react';
+import { getErrorMessage, fileUrl } from '@/lib/utils';
 import {
   monitorControllerGetOnlineUsers,
   monitorControllerKickUser,
@@ -49,9 +50,8 @@ export default function OnlinePage() {
           <h1 className="text-3xl font-bold">在线用户</h1>
           <p className="text-muted-foreground">当前在线用户列表（共 {users.length} 人）</p>
         </div>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          刷新
+        <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
+          <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
 
@@ -62,7 +62,7 @@ export default function OnlinePage() {
             <Users className="h-8 w-8 text-primary" />
             <div>
               <p className="text-2xl font-bold">{users.length}</p>
-              <p className="text-sm text-muted-foreground">在线用户数</p>
+              <p className="text-sm text-muted-foreground">当前在线用户数</p>
             </div>
           </CardContent>
         </Card>
@@ -77,42 +77,74 @@ export default function OnlinePage() {
             <div className="flex justify-center py-8 text-muted-foreground">暂无在线用户</div>
           ) : (
             <div className="divide-y">
-              {users.map((user: OnlineUserItemDto) => (
-                <div key={user.userId} className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                      {(user.userName || 'U')[0].toUpperCase()}
+              {users.map((user: OnlineUserItemDto) => {
+                const displayName = user.userName || user.email || '用户';
+                const initial = (displayName || 'U')[0].toUpperCase();
+
+                return (
+                  <div
+                    key={user.userId}
+                    className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-10 w-10">
+                        {user.avatar && (
+                          <AvatarImage src={fileUrl(user.avatar)} alt={displayName} />
+                        )}
+                        <AvatarFallback className="font-bold bg-primary/10 text-primary">
+                          {initial}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{displayName}</span>
+                          {user.email && (
+                            <span className="text-xs text-muted-foreground">({user.email})</span>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
+                          >
+                            在线
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1 font-mono">
+                            <Globe className="h-3.5 w-3.5" />
+                            {user.ip}
+                          </span>
+
+                          {(user.browser || user.os) && (
+                            <span className="flex items-center gap-1">
+                              <Laptop className="h-3.5 w-3.5" />
+                              {[user.browser, user.os].filter(Boolean).join(' / ')}
+                            </span>
+                          )}
+
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {new Date(user.loginTime).toLocaleString('zh-CN', { hour12: false })}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{user.userName}</span>
-                        <Badge variant="outline" className="text-xs">
-                          在线
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1">
-                          <Globe className="h-3 w-3" />
-                          {user.ip}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(user.loginTime).toLocaleTimeString('zh-CN')}
-                        </span>
-                      </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleKick(user.userId, displayName)}
+                      >
+                        <UserMinus className="mr-1.5 h-3.5 w-3.5" />
+                        强退
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => handleKick(user.userId, user.userName)}
-                  >
-                    <UserMinus className="mr-1 h-3.5 w-3.5" />
-                    强退
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

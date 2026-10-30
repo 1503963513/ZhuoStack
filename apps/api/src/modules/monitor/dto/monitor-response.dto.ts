@@ -38,17 +38,26 @@ export class OnlineUserItemDto {
   @ApiProperty({ description: '用户 ID' })
   userId: string;
 
-  @ApiProperty({ description: '用户名' })
+  @ApiProperty({ description: '用户名称' })
   userName: string;
+
+  @ApiPropertyOptional({ description: '用户邮箱' })
+  email?: string;
+
+  @ApiPropertyOptional({ type: String, description: '用户头像 URL', nullable: true })
+  avatar?: string | null;
 
   @ApiProperty({ description: 'IP 地址' })
   ip: string;
 
-  @ApiProperty({ description: '登录时间戳' })
-  loginTime: number;
+  @ApiPropertyOptional({ type: String, description: '浏览器', nullable: true })
+  browser?: string | null;
 
-  @ApiProperty({ description: '最后活跃时间戳' })
-  lastActive: number;
+  @ApiPropertyOptional({ type: String, description: '操作系统', nullable: true })
+  os?: string | null;
+
+  @ApiProperty({ description: '登录时间（ISO 字符串或格式化时间）' })
+  loginTime: string;
 }
 
 export class JobItemDto {

@@ -9,12 +9,27 @@
 export interface OnlineUserItemDto {
   /** 用户 ID */
   userId: string;
-  /** 用户名 */
+  /** 用户名称 */
   userName: string;
+  /** 用户邮箱 */
+  email?: string;
+  /**
+     * 用户头像 URL
+     * @nullable
+     */
+  avatar?: string | null;
   /** IP 地址 */
   ip: string;
-  /** 登录时间戳 */
-  loginTime: number;
-  /** 最后活跃时间戳 */
-  lastActive: number;
+  /**
+     * 浏览器
+     * @nullable
+     */
+  browser?: string | null;
+  /**
+     * 操作系统
+     * @nullable
+     */
+  os?: string | null;
+  /** 登录时间（ISO 字符串或格式化时间） */
+  loginTime: string;
 }

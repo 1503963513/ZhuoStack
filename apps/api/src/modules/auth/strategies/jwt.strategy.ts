@@ -124,7 +124,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
             onlineKey,
             JSON.stringify({
               userId: user.id,
+              userName: user.name || user.email,
               username: user.name || user.email,
+              email: user.email,
+              avatar: user.avatar,
               ip,
               loginTime: new Date().toISOString(),
             }),
