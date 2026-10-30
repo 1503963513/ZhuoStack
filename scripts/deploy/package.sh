@@ -84,6 +84,7 @@ pack_docker_offline() {
   fi
   cp docker-compose.yml "$staging/"
   cp docker/compose.mysql.yml "$staging/docker/"
+  cp docker/compose.external-db.yml "$staging/docker/"
   cp scripts/deploy.sh "$staging/scripts/"
   cp -R scripts/deploy "$staging/scripts/"
   printf '%s\n' "$db_type" > "$staging/.offline-db-type"

@@ -3,14 +3,18 @@
 
 compose_command() {
   ensure_deploy_env
-  local db_type packaged_db
+  local db_type packaged_db external_db
   db_type=$(db_type_from_file .env.deploy)
+  external_db=$(env_value .env.deploy EXTERNAL_DB false)
   if [ -f .offline-db-type ]; then
     packaged_db=$(tr -d '[:space:]' < .offline-db-type)
     [ "$packaged_db" = "$db_type" ] || die "该离线 Docker 包为 $packaged_db 构建，但 .env.deploy 配置为 $db_type"
   fi
   COMPOSE=(docker compose --env-file .env.deploy -f docker-compose.yml)
-  if [ "$db_type" = mysql ]; then
+  if [ "$external_db" = true ]; then
+    info "检测到 EXTERNAL_DB=true，启用外部独立数据库与缓存模式（不启动内置 DB 与 Redis 容器）"
+    COMPOSE+=(-f docker/compose.external-db.yml)
+  elif [ "$db_type" = mysql ]; then
     COMPOSE+=(-f docker/compose.mysql.yml)
   fi
 }

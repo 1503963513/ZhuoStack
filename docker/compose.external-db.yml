@@ -1,0 +1,11 @@
+# 外部自建/云数据库与 Redis 模式覆盖配置
+# 当启用 EXTERNAL_DB=true 时生效，禁用内置 db 和 redis 容器服务，直连外部数据库与缓存
+services:
+  db:
+    profiles: ['disabled']
+  redis:
+    profiles: ['disabled']
+  api:
+    depends_on: []
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

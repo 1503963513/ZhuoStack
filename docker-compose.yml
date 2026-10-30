@@ -19,7 +19,7 @@ services:
     volumes:
       - postgres_data:/var/lib/database
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -50,7 +50,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      test: ['CMD-SHELL', 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli ping | grep -q PONG']
       interval: 10s
       timeout: 3s
       retries: 10
@@ -84,20 +84,28 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3100
-      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379
-      REDIS_REQUIRED: "true"
+      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379}
+      REDIS_REQUIRED: 'true'
       FILE_STORAGE_PATH: /app/apps/api/uploads
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     volumes:
       - api_uploads:/app/apps/api/uploads
     ports:
-      - "127.0.0.1:${API_PORT:-3100}:3100"
+      - '127.0.0.1:${API_PORT:-3100}:3100'
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -134,8 +142,8 @@ services:
     mem_limit: ${WEB_MEMORY_LIMIT:-256m}
     cpus: ${WEB_CPU_LIMIT:-0.5}
     ports:
-      - "${WEB_PORT:-3000}:80"
-      - "${WEB_TLS_PORT:-3443}:443"
+      - '${WEB_PORT:-3000}:80'
+      - '${WEB_TLS_PORT:-3443}:443'
     volumes:
       - ${TLS_CERT_DIR:-./docker/certs}:/etc/nginx/tls:ro
     depends_on:
