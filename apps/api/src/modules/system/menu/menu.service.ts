@@ -33,6 +33,7 @@ export class MenuService {
         icon: dto.icon,
         sort: dto.sort || 0,
         status: dto.status,
+        hidden: dto.hidden ?? false,
         perms: dto.perms,
         remark: dto.remark,
       },
@@ -147,10 +148,7 @@ export class MenuService {
   /**
    * 构建树形结构
    */
-  private buildTree(
-    menus: SysMenu[],
-    parentId: string | null = null,
-  ): MenuTreeNode[] {
+  private buildTree(menus: SysMenu[], parentId: string | null = null): MenuTreeNode[] {
     return menus
       .filter((menu) => menu.parentId === parentId)
       .map((menu) => ({

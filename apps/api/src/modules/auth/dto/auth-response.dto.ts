@@ -87,6 +87,9 @@ export class UserMenuTreeNodeDto {
   @ApiProperty({ description: '状态: ACTIVE / INACTIVE' })
   status: string;
 
+  @ApiProperty({ description: '是否隐藏', default: false })
+  hidden: boolean;
+
   @ApiPropertyOptional({
     type: () => [UserMenuTreeNodeDto],
     description: '子菜单列表',

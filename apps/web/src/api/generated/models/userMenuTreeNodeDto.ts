@@ -37,6 +37,8 @@ export interface UserMenuTreeNodeDto {
   sort: number;
   /** 状态: ACTIVE / INACTIVE */
   status: string;
+  /** 是否隐藏 */
+  hidden: boolean;
   /** 子菜单列表 */
   children?: UserMenuTreeNodeDto[];
 }

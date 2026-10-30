@@ -39,6 +39,8 @@ export interface MenuItemDto {
   sort: number;
   /** 状态 */
   status: MenuItemDtoStatus;
+  /** 是否隐藏 */
+  hidden: boolean;
   /**
      * 权限标识
      * @nullable

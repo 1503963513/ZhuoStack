@@ -34,6 +34,8 @@ import {
   FileText,
   MousePointer,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { IconPicker } from '@/components/common/icon-picker';
 import { cn } from '@/lib/utils';
@@ -157,6 +159,7 @@ export default function MenuPage() {
     icon: '',
     sort: 0,
     status: 'ACTIVE' as CreateMenuDtoStatus,
+    hidden: false,
     perms: '',
     remark: '',
   });
@@ -228,6 +231,7 @@ export default function MenuPage() {
         icon: data.icon || undefined,
         sort: data.sort,
         status: data.status,
+        hidden: data.hidden,
         perms: data.perms || undefined,
         remark: data.remark || undefined,
       }),
@@ -252,6 +256,7 @@ export default function MenuPage() {
         icon: data.icon || undefined,
         sort: data.sort,
         status: data.status,
+        hidden: data.hidden,
         perms: data.perms || undefined,
         remark: data.remark || undefined,
       });
@@ -275,6 +280,7 @@ export default function MenuPage() {
       icon: '',
       sort: 0,
       status: 'ACTIVE',
+      hidden: false,
       perms: '',
       remark: '',
     });
@@ -315,10 +321,24 @@ export default function MenuPage() {
       icon: menu.icon || '',
       sort: menu.sort,
       status: (menu.status as CreateMenuDtoStatus) || 'ACTIVE',
+      hidden: menu.hidden ?? false,
       perms: (menu as unknown as { perms?: string }).perms || '',
       remark: (menu as unknown as { remark?: string }).remark || '',
     });
     setDialogOpen(true);
+  };
+
+  /** 快捷就地切换显示/隐藏状态 */
+  const handleToggleHidden = async (menu: MenuTreeNodeDto) => {
+    const nextHidden = !menu.hidden;
+    try {
+      await menuControllerUpdate(menu.id, { hidden: nextHidden });
+      toast.success(nextHidden ? `已隐藏「${menu.name}」` : `已显示「${menu.name}」`);
+      refetch();
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : '切换失败';
+      toast.error('切换失败', { description: errorMsg });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -389,6 +409,7 @@ export default function MenuPage() {
                   menu={menu}
                   collapsedIds={collapsedIds}
                   onToggleExpand={toggleExpand}
+                  onToggleHidden={handleToggleHidden}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onAddChild={handleCreateChild}
@@ -512,7 +533,7 @@ export default function MenuPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="sort">显示顺序</Label>
                   <Input
@@ -539,6 +560,22 @@ export default function MenuPage() {
                     <SelectContent>
                       <SelectItem value="ACTIVE">正常</SelectItem>
                       <SelectItem value="INACTIVE">停用</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="hidden">显示状态</Label>
+                  <Select
+                    value={formData.hidden ? 'true' : 'false'}
+                    onValueChange={(val) => setFormData({ ...formData, hidden: val === 'true' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">显示</SelectItem>
+                      <SelectItem value="true">隐藏</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -576,6 +613,7 @@ function MenuTreeItem({
   menu,
   collapsedIds,
   onToggleExpand,
+  onToggleHidden,
   onEdit,
   onDelete,
   onAddChild,
@@ -584,6 +622,7 @@ function MenuTreeItem({
   menu: MenuTreeNodeDto;
   collapsedIds: Set<string>;
   onToggleExpand: (id: string) => void;
+  onToggleHidden: (menu: MenuTreeNodeDto) => void;
   onEdit: (menu: MenuTreeNodeDto) => void;
   onDelete: (id: string) => void;
   onAddChild: (menu: MenuTreeNodeDto) => void;
@@ -631,6 +670,32 @@ function MenuTreeItem({
           <Badge variant={menu.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
             {menu.status === 'ACTIVE' ? '正常' : '停用'}
           </Badge>
+
+          {menu.type !== 'BUTTON' && (
+            <Badge
+              variant={menu.hidden ? 'outline' : 'secondary'}
+              className={cn(
+                'text-xs cursor-pointer select-none transition-colors gap-1',
+                menu.hidden
+                  ? 'border-dashed text-muted-foreground hover:bg-muted'
+                  : 'text-foreground hover:bg-secondary/80',
+              )}
+              onClick={() => onToggleHidden(menu)}
+              title="点击切换显示/隐藏状态"
+            >
+              {menu.hidden ? (
+                <>
+                  <EyeOff className="h-3 w-3 text-muted-foreground" />
+                  隐藏
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3 w-3 text-primary" />
+                  显示
+                </>
+              )}
+            </Badge>
+          )}
 
           {menu.path && (
             <span className="text-xs text-muted-foreground font-mono">{menu.path}</span>
@@ -687,6 +752,7 @@ function MenuTreeItem({
               menu={child}
               collapsedIds={collapsedIds}
               onToggleExpand={onToggleExpand}
+              onToggleHidden={onToggleHidden}
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}

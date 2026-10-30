@@ -29,6 +29,9 @@ export class MenuItemDto {
   @ApiProperty({ enum: Status, description: '状态' })
   status: Status;
 
+  @ApiProperty({ description: '是否隐藏', default: false })
+  hidden: boolean;
+
   @ApiPropertyOptional({ type: String, description: '权限标识', nullable: true })
   perms: string | null;
 

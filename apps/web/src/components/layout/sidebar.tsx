@@ -60,22 +60,22 @@ export function Sidebar() {
 
   const menuList = useMemo(() => response?.data || [], [response]);
 
-  // 一级菜单（没有父级的 MENU 类型，如仪表盘、个人中心）
+  // 一级菜单（没有父级的 MENU 类型，如仪表盘、个人中心，排除隐藏菜单）
   const topMenus = useMemo(() => {
     return menuList
-      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && m.type === 'MENU' && !m.parentId)
+      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && !m.hidden && m.type === 'MENU' && !m.parentId)
       .sort((a, b) => a.sort - b.sort);
   }, [menuList]);
 
-  // 分组菜单（DIRECTORY 类型，如系统管理）
+  // 分组菜单（DIRECTORY 类型，如系统管理，排除隐藏菜单）
   const menuGroups = useMemo(() => {
     return menuList
-      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && m.type === 'DIRECTORY')
+      .filter((m: UserMenuTreeNodeDto) => m.status === 'ACTIVE' && !m.hidden && m.type === 'DIRECTORY')
       .sort((a, b) => a.sort - b.sort)
       .map((dir) => ({
         ...dir,
         children: (dir.children || [])
-          .filter((c: UserMenuTreeNodeDto) => c.status === 'ACTIVE' && c.type === 'MENU')
+          .filter((c: UserMenuTreeNodeDto) => c.status === 'ACTIVE' && !c.hidden && c.type === 'MENU')
           .sort((a, b) => a.sort - b.sort),
       }));
   }, [menuList]);

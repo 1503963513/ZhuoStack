@@ -4634,6 +4634,11 @@
             "type": "string",
             "description": "状态: ACTIVE / INACTIVE"
           },
+          "hidden": {
+            "type": "boolean",
+            "description": "是否隐藏",
+            "default": false
+          },
           "children": {
             "description": "子菜单列表",
             "type": "array",
@@ -4647,7 +4652,8 @@
           "name",
           "type",
           "sort",
-          "status"
+          "status",
+          "hidden"
         ]
       },
       "PaginationMetaDto": {
@@ -6013,6 +6019,11 @@
             ],
             "description": "状态"
           },
+          "hidden": {
+            "type": "boolean",
+            "description": "是否隐藏",
+            "default": false
+          },
           "perms": {
             "type": "string",
             "description": "权限标识",
@@ -6040,6 +6051,7 @@
           "type",
           "sort",
           "status",
+          "hidden",
           "createdAt",
           "updatedAt"
         ]
@@ -6167,6 +6179,11 @@
             ],
             "description": "状态"
           },
+          "hidden": {
+            "type": "boolean",
+            "description": "是否隐藏",
+            "default": false
+          },
           "perms": {
             "type": "string",
             "description": "权限标识",
@@ -6201,6 +6218,7 @@
           "type",
           "sort",
           "status",
+          "hidden",
           "createdAt",
           "updatedAt"
         ]

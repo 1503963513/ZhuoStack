@@ -39,6 +39,8 @@ export interface MenuTreeNodeDto {
   sort: number;
   /** 状态 */
   status: MenuTreeNodeDtoStatus;
+  /** 是否隐藏 */
+  hidden: boolean;
   /**
      * 权限标识
      * @nullable
