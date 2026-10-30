@@ -22,10 +22,7 @@ describe('AuthController cookies', () => {
         return fallback;
       }),
     };
-    const controller = new AuthController(
-      authService as never,
-      configService as never,
-    );
+    const controller = new AuthController(authService as never, configService as never);
     return { controller, authService };
   }
 
@@ -49,14 +46,14 @@ describe('AuthController cookies', () => {
       expect.objectContaining({
         httpOnly: true,
         secure: false,
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 28_800,
       }),
     );
     expect(reply.setCookie).toHaveBeenCalledWith(
       CSRF_COOKIE_NAME,
       expect.any(String),
-      expect.objectContaining({ httpOnly: false, sameSite: 'strict' }),
+      expect.objectContaining({ httpOnly: false, sameSite: 'lax' }),
     );
   });
 
@@ -75,11 +72,11 @@ describe('AuthController cookies', () => {
     expect(authService.blacklistToken).toHaveBeenCalledWith('cookie-jwt');
     expect(reply.clearCookie).toHaveBeenCalledWith(
       AUTH_COOKIE_NAME,
-      expect.objectContaining({ path: '/', sameSite: 'strict' }),
+      expect.objectContaining({ path: '/', sameSite: 'lax' }),
     );
     expect(reply.clearCookie).toHaveBeenCalledWith(
       CSRF_COOKIE_NAME,
-      expect.objectContaining({ path: '/', sameSite: 'strict' }),
+      expect.objectContaining({ path: '/', sameSite: 'lax' }),
     );
   });
 });

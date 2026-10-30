@@ -31,13 +31,25 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
+  private isSecure(reply: FastifyReply): boolean {
+    const configSecure = this.configService.get<string>('COOKIE_SECURE');
+    if (configSecure !== undefined) {
+      return configSecure === 'true';
+    }
+    // 未显式配置时，检查当前请求是否真正为 https
+    const isHttps =
+      reply.request?.protocol === 'https' ||
+      reply.request?.headers['x-forwarded-proto'] === 'https';
+    return isHttps;
+  }
+
   private issueAuthCookies(reply: FastifyReply, token: string): void {
-    const secure = this.configService.get<string>('NODE_ENV') === 'production';
+    const secure = this.isSecure(reply);
     const maxAge = durationToSeconds(this.configService.get<string>('JWT_EXPIRES_IN', '8h'));
     const commonOptions = {
       path: '/',
       secure,
-      sameSite: 'strict' as const,
+      sameSite: 'lax' as const,
       maxAge,
       priority: 'high' as const,
     };
@@ -53,8 +65,8 @@ export class AuthController {
   }
 
   private clearAuthCookies(reply: FastifyReply): void {
-    const secure = this.configService.get<string>('NODE_ENV') === 'production';
-    const options = { path: '/', secure, sameSite: 'strict' as const };
+    const secure = this.isSecure(reply);
+    const options = { path: '/', secure, sameSite: 'lax' as const };
     reply.clearCookie(AUTH_COOKIE_NAME, options);
     reply.clearCookie(CSRF_COOKIE_NAME, options);
   }
