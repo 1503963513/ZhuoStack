@@ -654,6 +654,54 @@
         ]
       }
     },
+    "/api/monitor/cache/value/{key}": {
+      "get": {
+        "operationId": "MonitorController_getCacheValue",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "缓存键",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CacheValueDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "获取指定缓存键的值与详细信息",
+        "tags": [
+          "系统-系统监控"
+        ]
+      }
+    },
     "/api/monitor/cache/{key}": {
       "delete": {
         "operationId": "MonitorController_deleteCacheKey",
@@ -4990,6 +5038,10 @@
           "size": {
             "type": "string",
             "description": "数据大小描述"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "是否为受保护的安全键（不可通过清空删除）"
           }
         },
         "required": [
@@ -5035,6 +5087,38 @@
           "totalKeys",
           "usedMemory",
           "keys"
+        ]
+      },
+      "CacheValueDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "缓存键名"
+          },
+          "type": {
+            "type": "string",
+            "description": "数据类型"
+          },
+          "ttl": {
+            "type": "number",
+            "description": "TTL 剩余秒数"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "是否为受保护的安全键"
+          },
+          "value": {
+            "type": "string",
+            "description": "值内容（字符串或 JSON 文本）",
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "ttl",
+          "isProtected"
         ]
       },
       "OnlineUserItemDto": {

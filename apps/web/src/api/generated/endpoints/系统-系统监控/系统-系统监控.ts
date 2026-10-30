@@ -31,6 +31,7 @@ import type {
   MonitorControllerFindJobLogs200,
   MonitorControllerFindJobLogsParams,
   MonitorControllerGetCacheInfo200,
+  MonitorControllerGetCacheValue200,
   MonitorControllerGetHealthCheck200,
   MonitorControllerGetJobs200,
   MonitorControllerGetOnlineUsers200,
@@ -221,6 +222,71 @@ export function useMonitorControllerClearAllCache<TData = Awaited<ReturnType<typ
 
 
 /**
+ * @summary 获取指定缓存键的值与详细信息
+ */
+export const monitorControllerGetCacheValue = (
+    key: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerGetCacheValue200>(
+      {url: `/api/monitor/cache/value/${key}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerGetCacheValueMutationKey = () => ['monitorControllerGetCacheValue'] as const;
+
+export const getMonitorControllerGetCacheValueMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetCacheValue>>, TError,MonitorControllerGetCacheValueMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetCacheValue>>, TError,MonitorControllerGetCacheValueMutationVariables, TContext> => {
+
+const mutationKey = getMonitorControllerGetCacheValueMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof monitorControllerGetCacheValue>>, MonitorControllerGetCacheValueMutationVariables> = (props) => {
+          const {key} = props ?? {};
+
+          return  monitorControllerGetCacheValue(key,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MonitorControllerGetCacheValueMutationResult = NonNullable<Awaited<ReturnType<typeof monitorControllerGetCacheValue>>>
+
+    export type MonitorControllerGetCacheValueMutationError = unknown
+    export type MonitorControllerGetCacheValueMutationVariables = {key: string}
+
+    /**
+ * @summary 获取指定缓存键的值与详细信息
+ */
+export const useMonitorControllerGetCacheValue = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetCacheValue>>, TError,MonitorControllerGetCacheValueMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof monitorControllerGetCacheValue>>,
+        TError,
+        MonitorControllerGetCacheValueMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMonitorControllerGetCacheValueMutationOptions(options), queryClient);
+    }
+    /**
  * @summary 删除指定缓存键
  */
 export const monitorControllerDeleteCacheKey = (

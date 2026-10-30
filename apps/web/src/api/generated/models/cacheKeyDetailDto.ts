@@ -15,4 +15,6 @@ export interface CacheKeyDetailDto {
   type: string;
   /** 数据大小描述 */
   size: string;
+  /** 是否为受保护的安全键（不可通过清空删除） */
+  isProtected?: boolean;
 }

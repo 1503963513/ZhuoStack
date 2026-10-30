@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
+import { PageTabs } from '@/components/layout/page-tabs';
 import { Loading } from '@/components/common/loading';
 import { ROUTES } from '@/lib/constants';
 
@@ -40,6 +41,7 @@ export default function DashboardLayout({
       <Sidebar />
       <div className="pl-64">
         <Header />
+        <PageTabs />
         <main className="p-6">{children}</main>
       </div>
     </div>

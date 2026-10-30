@@ -11,6 +11,7 @@ import {
 import { SimpleMessageResponseDto } from '../user/dto/user-response.dto';
 import {
   CacheInfoDto,
+  CacheValueDto,
   OnlineUserItemDto,
   JobItemDto,
   ServerInfoDto,
@@ -37,6 +38,15 @@ export class MonitorController {
   @ApiResultResponse(CacheInfoDto, { description: '获取成功' })
   getCacheInfo() {
     return this.monitorService.getCacheInfo();
+  }
+
+  @Get('cache/value/:key')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '获取指定缓存键的值与详细信息' })
+  @ApiParam({ name: 'key', description: '缓存键' })
+  @ApiResultResponse(CacheValueDto, { description: '获取成功' })
+  getCacheValue(@Param('key') key: string) {
+    return this.monitorService.getCacheValue(key);
   }
 
   @Delete('cache/:key')

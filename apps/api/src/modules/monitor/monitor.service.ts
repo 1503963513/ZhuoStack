@@ -82,7 +82,8 @@ export class MonitorService {
           } catch {
             // ignore
           }
-          return { key, ttl, type, size };
+          const isProtected = PROTECTED_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+          return { key, ttl, type, size, isProtected };
         }),
       );
 
@@ -103,6 +104,54 @@ export class MonitorService {
       this.logger.error('获取缓存信息失败', error);
       return { status: 'error', totalKeys: 0, usedMemory: 'N/A', keys: [] };
     }
+  }
+
+  /**
+   * 获取指定缓存键的值与详细信息
+   */
+  async getCacheValue(key: string) {
+    const client = this.redisService.getClient();
+    if (!client) return { key, type: 'unknown', ttl: -2, isProtected: false, value: null };
+
+    const exists = await client.exists(key);
+    if (!exists) {
+      throw new BadRequestException(`缓存键不存在: ${key}`);
+    }
+
+    const [ttl, type] = await Promise.all([client.ttl(key), client.type(key)]);
+    const isProtected = PROTECTED_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+    let rawValue: unknown = null;
+
+    try {
+      if (type === 'string') {
+        rawValue = await client.get(key);
+      } else if (type === 'hash') {
+        rawValue = await client.hgetall(key);
+      } else if (type === 'list') {
+        rawValue = await client.lrange(key, 0, 100);
+      } else if (type === 'set') {
+        rawValue = await client.smembers(key);
+      } else if (type === 'zset') {
+        rawValue = await client.zrange(key, 0, 100, 'WITHSCORES');
+      }
+    } catch (e) {
+      this.logger.warn(`读取键值异常 [${key}]: ${e}`);
+    }
+
+    let stringValue = '';
+    if (typeof rawValue === 'string') {
+      stringValue = rawValue;
+    } else if (rawValue !== null && rawValue !== undefined) {
+      stringValue = JSON.stringify(rawValue, null, 2);
+    }
+
+    return {
+      key,
+      type,
+      ttl,
+      isProtected,
+      value: stringValue,
+    };
   }
 
   /**

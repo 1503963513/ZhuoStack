@@ -12,6 +12,30 @@ export class CacheKeyDetailDto {
 
   @ApiProperty({ description: '数据大小描述' })
   size: string;
+
+  @ApiPropertyOptional({ description: '是否为受保护的安全键（不可通过清空删除）' })
+  isProtected?: boolean;
+}
+
+export class CacheValueDto {
+  @ApiProperty({ description: '缓存键名' })
+  key: string;
+
+  @ApiProperty({ description: '数据类型' })
+  type: string;
+
+  @ApiProperty({ description: 'TTL 剩余秒数' })
+  ttl: number;
+
+  @ApiProperty({ description: '是否为受保护的安全键' })
+  isProtected: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: '值内容（字符串或 JSON 文本）',
+    nullable: true,
+  })
+  value: string | null;
 }
 
 export class CacheInfoDto {
