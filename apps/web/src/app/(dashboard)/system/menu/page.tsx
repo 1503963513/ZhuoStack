@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import {
   Trash2,
   ChevronRight,
   ChevronDown,
+  ChevronsUpDown,
   Folder,
   FileText,
   MousePointer,
@@ -76,15 +77,68 @@ const MENU_TYPE_MAP: Record<
 };
 
 /**
- * 将树形菜单扁平化为带缩进的选项列表
+ * 递归收集指定节点及其所有子孙节点的 ID
  */
-function flattenMenus(menus: MenuTreeNodeDto[], level = 0): { id: string; label: string }[] {
-  const result: { id: string; label: string }[] = [];
+function getDescendantIds(node: MenuTreeNodeDto): Set<string> {
+  const ids = new Set<string>();
+  const collect = (item: MenuTreeNodeDto) => {
+    ids.add(item.id);
+    if (item.children) {
+      item.children.forEach(collect);
+    }
+  };
+  collect(node);
+  return ids;
+}
+
+/**
+ * 查找指定 ID 的菜单节点
+ */
+function findNodeById(list: MenuTreeNodeDto[], targetId: string): MenuTreeNodeDto | undefined {
+  for (const item of list) {
+    if (item.id === targetId) return item;
+    if (item.children) {
+      const found = findNodeById(item.children, targetId);
+      if (found) return found;
+    }
+  }
+}
+
+/**
+ * 将树形菜单扁平化为上级菜单选项列表：
+ * 1. 严格排除 BUTTON 按钮类型（按钮不能作为上级）
+ * 2. 排除正在编辑的当前节点及其所有子孙节点（防止循环引用）
+ */
+function getParentMenuOptions(
+  menus: MenuTreeNodeDto[],
+  editingMenuId?: string,
+  level = 0,
+  excludeIds?: Set<string>,
+): { id: string; label: string; type: string }[] {
+  let actualExcludeIds = excludeIds;
+  if (!actualExcludeIds && editingMenuId) {
+    const editingNode = findNodeById(menus, editingMenuId);
+    actualExcludeIds = editingNode ? getDescendantIds(editingNode) : new Set([editingMenuId]);
+  }
+
+  const result: { id: string; label: string; type: string }[] = [];
   for (const menu of menus) {
+    // 排除被禁用的自身/子孙节点，且按钮不可作为任何项的上级
+    if (actualExcludeIds?.has(menu.id)) continue;
+    if (menu.type === 'BUTTON') continue;
+
     const prefix = level > 0 ? '│  '.repeat(level - 1) + '├─ ' : '';
-    result.push({ id: menu.id, label: prefix + menu.name });
+    const typeLabel = menu.type === 'DIRECTORY' ? '[目录] ' : '[菜单] ';
+    result.push({
+      id: menu.id,
+      label: prefix + typeLabel + menu.name,
+      type: menu.type,
+    });
+
     if (menu.children && menu.children.length > 0) {
-      result.push(...flattenMenus(menu.children, level + 1));
+      result.push(
+        ...getParentMenuOptions(menu.children, editingMenuId, level + 1, actualExcludeIds),
+      );
     }
   }
   return result;
@@ -116,8 +170,53 @@ export default function MenuPage() {
     queryFn: () => menuControllerFindTree(),
   });
 
-  const menus = response?.data || [];
+  const menus = useMemo(() => response?.data || [], [response]);
 
+  // ========== 展开 / 收起状态控制（默认全部展开，记录被手动收起的节点） ==========
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+  // 收集所有拥有子节点的菜单 ID
+  const allParentIds = useMemo(() => {
+    const ids = new Set<string>();
+    const collect = (items: MenuTreeNodeDto[]) => {
+      for (const item of items) {
+        if (item.children && item.children.length > 0) {
+          ids.add(item.id);
+          collect(item.children);
+        }
+      }
+    };
+    collect(menus);
+    return ids;
+  }, [menus]);
+
+  // 是否当前为全部展开状态（没有被收起的节点）
+  const isAllExpanded = useMemo(() => {
+    return allParentIds.size > 0 && collapsedIds.size === 0;
+  }, [allParentIds, collapsedIds]);
+
+  // 一键切换全部展开 / 全部收起
+  const toggleExpandAll = () => {
+    if (isAllExpanded) {
+      // 全部收起：将所有父节点加入收起集合
+      setCollapsedIds(new Set(allParentIds));
+    } else {
+      // 全部展开：清空收起集合
+      setCollapsedIds(new Set());
+    }
+  };
+
+  // 单个节点切换展开 / 收起
+  const toggleExpand = (id: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // ========== 创建与更新 Mutation ==========
   const createMutation = useMutation({
     mutationFn: (data: typeof formData) =>
       menuControllerCreate({
@@ -189,11 +288,19 @@ export default function MenuPage() {
 
   const handleCreateChild = (parentMenu: MenuTreeNodeDto) => {
     resetForm();
+    // 默认类型：若父级为目录，新增项默认为菜单；若父级为菜单，新增项默认为按钮
+    const defaultType: CreateMenuDtoType = parentMenu.type === 'DIRECTORY' ? 'MENU' : 'BUTTON';
     setFormData((prev) => ({
       ...prev,
       parentId: parentMenu.id,
-      type: 'MENU',
+      type: defaultType,
     }));
+    // 确保父节点处于展开状态（从收起集合中移除）
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(parentMenu.id);
+      return next;
+    });
     setDialogOpen(true);
   };
 
@@ -236,7 +343,10 @@ export default function MenuPage() {
     }
   };
 
-  const menuOptions = flattenMenus(menus);
+  // 获取严格合法的上级菜单选项（只包含目录和菜单，排除按钮与自身子树）
+  const parentMenuOptions = useMemo(() => {
+    return getParentMenuOptions(menus, editingMenu?.id);
+  }, [menus, editingMenu?.id]);
 
   return (
     <div className="space-y-6">
@@ -244,7 +354,16 @@ export default function MenuPage() {
         title="菜单管理"
         description="管理系统的导航目录、菜单页面与操作按钮"
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleExpandAll}
+              title={isAllExpanded ? '一键折叠全部菜单' : '一键展开全部菜单'}
+            >
+              <ChevronsUpDown className="mr-1.5 h-3.5 w-3.5" />
+              {isAllExpanded ? '全部折叠' : '全部展开'}
+            </Button>
             <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -268,6 +387,8 @@ export default function MenuPage() {
                 <MenuTreeItem
                   key={menu.id}
                   menu={menu}
+                  collapsedIds={collapsedIds}
+                  onToggleExpand={toggleExpand}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onAddChild={handleCreateChild}
@@ -318,17 +439,15 @@ export default function MenuPage() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="顶级菜单" />
+                      <SelectValue placeholder="顶级菜单（无上级）" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="root">顶级菜单（无上级）</SelectItem>
-                      {menuOptions
-                        .filter((m) => m.id !== editingMenu?.id)
-                        .map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.label}
-                          </SelectItem>
-                        ))}
+                      {parentMenuOptions.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -455,19 +574,23 @@ export default function MenuPage() {
 
 function MenuTreeItem({
   menu,
+  collapsedIds,
+  onToggleExpand,
   onEdit,
   onDelete,
   onAddChild,
   level = 0,
 }: {
   menu: MenuTreeNodeDto;
+  collapsedIds: Set<string>;
+  onToggleExpand: (id: string) => void;
   onEdit: (menu: MenuTreeNodeDto) => void;
   onDelete: (id: string) => void;
   onAddChild: (menu: MenuTreeNodeDto) => void;
   level?: number;
 }) {
-  const [expanded, setExpanded] = useState(true);
   const hasChildren = menu.children && menu.children.length > 0;
+  const isExpanded = !collapsedIds.has(menu.id);
   const typeConfig = MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU;
   const TypeIcon = typeConfig.icon;
 
@@ -486,9 +609,9 @@ function MenuTreeItem({
               variant="ghost"
               size="icon"
               className="h-6 w-6 p-0"
-              onClick={() => setExpanded(!expanded)}
+              onClick={() => onToggleExpand(menu.id)}
             >
-              {expanded ? (
+              {isExpanded ? (
                 <ChevronDown className="h-4 w-4" />
               ) : (
                 <ChevronRight className="h-4 w-4" />
@@ -556,12 +679,14 @@ function MenuTreeItem({
         </div>
       </div>
 
-      {hasChildren && expanded && (
+      {hasChildren && isExpanded && (
         <div className="space-y-1 mt-1">
           {menu.children!.map((child) => (
             <MenuTreeItem
               key={child.id}
               menu={child}
+              collapsedIds={collapsedIds}
+              onToggleExpand={onToggleExpand}
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}
