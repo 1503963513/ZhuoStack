@@ -23,8 +23,8 @@ usage() {
   pnpm ops docker up|down|restart|logs|status|config
   pnpm ops pm2 prepare|start|restart|update|stop|logs|status|db-migrate
   pnpm ops pack pm2-online|pm2-offline|pm2-all [postgres|mysql]
-  pnpm ops pack docker-offline [postgres|mysql]
-  pnpm ops pack interactive
+  pnpm ops pack docker-offline [postgres|mysql] [all|api|web] [all|none|db-only|redis-only]
+  pnpm ops pack interactive (即 pnpm release)
 
 ────────────────────────────────────────────────────────────
 1. Docker 首次部署（推荐）
