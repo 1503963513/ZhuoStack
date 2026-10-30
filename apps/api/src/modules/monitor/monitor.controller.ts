@@ -1,17 +1,22 @@
-import { Controller, Get, Delete, Post, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Delete, Post, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { MonitorService } from './monitor.service';
 import { SystemJobsService } from './system-jobs.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators';
-import { ApiResultResponse } from '../../common/decorators/api-result.decorator';
+import {
+  ApiResultResponse,
+  ApiPaginatedResultResponse,
+} from '../../common/decorators/api-result.decorator';
 import { SimpleMessageResponseDto } from '../user/dto/user-response.dto';
 import {
   CacheInfoDto,
   OnlineUserItemDto,
   JobItemDto,
   ServerInfoDto,
+  JobLogItemDto,
 } from './dto/monitor-response.dto';
+import { QueryJobLogDto } from './dto/query-job-log.dto';
 import { Role } from '@prisma/client';
 
 @ApiTags('系统-系统监控')
@@ -105,6 +110,24 @@ export class MonitorController {
   @ApiResultResponse(SimpleMessageResponseDto, { description: '操作成功' })
   runJob(@Param('name') name: string) {
     return this.monitorService.runJob(name);
+  }
+
+  // ========== 定时任务日志 ==========
+
+  @Get('jobs/logs')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '获取定时任务执行日志' })
+  @ApiPaginatedResultResponse(JobLogItemDto, { description: '获取成功' })
+  findJobLogs(@Query() query: QueryJobLogDto) {
+    return this.monitorService.findJobLogs(query);
+  }
+
+  @Delete('jobs/logs')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '清空定时任务日志' })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: '清空成功' })
+  clearJobLogs() {
+    return this.monitorService.clearJobLogs();
   }
 
   // ========== 服务器信息 ==========

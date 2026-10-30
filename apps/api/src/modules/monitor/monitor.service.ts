@@ -1,6 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { RedisService } from '../../database/redis.service';
+import { PrismaService } from '../../database/prisma.service';
+import { QueryJobLogDto } from './dto';
+import { Prisma } from '@prisma/client';
 import * as os from 'os';
 
 // 允许通过「清空缓存」删除的键前缀
@@ -18,6 +21,7 @@ export interface ScheduledJobInfo {
   name: string;
   cron: string;
   status: 'running' | 'stopped';
+  running: boolean;
   description: string;
   lastRun: string | null;
   nextRun: string | null;
@@ -30,6 +34,7 @@ export class MonitorService {
   constructor(
     private readonly redisService: RedisService,
     private readonly schedulerRegistry: SchedulerRegistry,
+    private readonly prisma: PrismaService,
   ) {}
 
   // ========== 缓存监控（真实 Redis） ==========
@@ -264,6 +269,7 @@ export class MonitorService {
         name,
         cron: String(job.cronTime.source || 'N/A'),
         status: job.isActive ? 'running' : 'stopped',
+        running: !!job.isActive,
         description: this.getJobDescription(name),
         lastRun: lastDate?.toISOString() ?? null,
         nextRun: nextDate.toISO(),
@@ -349,5 +355,47 @@ export class MonitorService {
       cpuModel: cpus[0]?.model || 'N/A',
       loadAverage: os.loadavg().map((l) => l.toFixed(2)),
     };
+  }
+
+  // ========== 定时任务日志 ==========
+
+  /**
+   * 分页查询定时任务日志
+   */
+  async findJobLogs(query: QueryJobLogDto) {
+    const { page = 1, pageSize = 10, jobName, status } = query;
+    const skip = (page - 1) * pageSize;
+
+    const where: Prisma.SysJobLogWhereInput = {};
+    if (jobName) where.jobName = jobName;
+    if (status !== undefined) where.status = status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.sysJobLog.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.sysJobLog.count({ where }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
+  }
+
+  /**
+   * 清空所有定时任务日志
+   */
+  async clearJobLogs() {
+    await this.prisma.sysJobLog.deleteMany({});
+    return { message: '定时任务日志已清空' };
   }
 }

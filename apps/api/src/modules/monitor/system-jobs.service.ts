@@ -15,7 +15,7 @@ export interface HealthCheckResult {
 /**
  * 系统定时任务
  * 使用 @nestjs/schedule 的 @Cron 装饰器注册真实定时任务
- * 任务会自动注册到 SchedulerRegistry，可在监控页面查看和管理
+ * 任务会自动注册到 SchedulerRegistry，并在每次执行时自动持久化执行日志
  */
 @Injectable()
 export class SystemJobsService {
@@ -30,6 +30,31 @@ export class SystemJobsService {
     private readonly logService: LogService,
   ) {}
 
+  /** 记录定时任务执行日志 */
+  private async recordJobLog(params: {
+    jobName: string;
+    description: string;
+    cronExpression: string;
+    status: number;
+    executionTime: number;
+    exceptionInfo?: string;
+  }) {
+    try {
+      await this.prisma.sysJobLog.create({
+        data: {
+          jobName: params.jobName,
+          description: params.description,
+          cronExpression: params.cronExpression,
+          status: params.status,
+          executionTime: params.executionTime,
+          exceptionInfo: params.exceptionInfo || null,
+        },
+      });
+    } catch (e) {
+      this.logger.warn(`记录任务日志失败: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   /** 获取最近一次健康检查结果 */
   getLastHealthCheck(): HealthCheckResult | null {
     return this.lastHealthCheck;
@@ -39,6 +64,10 @@ export class SystemJobsService {
 
   @Cron(CronExpression.EVERY_5_MINUTES, { name: 'health-check' })
   async handleHealthCheck() {
+    const start = Date.now();
+    let isSuccess = true;
+    let errorDetail: string | undefined;
+
     try {
       let dbStatus: 'up' | 'down' = 'up';
       let redisStatus: 'up' | 'down' | 'skipped' = 'skipped';
@@ -65,8 +94,12 @@ export class SystemJobsService {
       let overall: HealthCheckResult['overall'] = 'healthy';
       if (dbStatus === 'down') {
         overall = 'unhealthy';
+        isSuccess = false;
+        errorDetail = '数据库连接失败';
       } else if (redisStatus === 'down') {
         overall = 'degraded';
+        isSuccess = false;
+        errorDetail = 'Redis 连接失败';
       }
 
       this.lastHealthCheck = {
@@ -82,13 +115,24 @@ export class SystemJobsService {
         this.logger.warn(`健康检查异常 [DB: ${dbStatus}, Redis: ${redisStatus}]`);
       }
     } catch (error) {
-      this.logger.error(`定时任务 [health-check] 执行失败: ${error instanceof Error ? error.message : String(error)}`);
+      isSuccess = false;
+      errorDetail = error instanceof Error ? error.stack || error.message : String(error);
+      this.logger.error(`定时任务 [health-check] 执行失败: ${errorDetail}`);
       this.lastHealthCheck = {
         timestamp: new Date().toISOString(),
         database: 'down',
         redis: 'down',
         overall: 'unhealthy',
       };
+    } finally {
+      await this.recordJobLog({
+        jobName: 'health-check',
+        description: '定期检查系统健康状态',
+        cronExpression: CronExpression.EVERY_5_MINUTES,
+        status: isSuccess ? 1 : 0,
+        executionTime: Date.now() - start,
+        exceptionInfo: errorDetail,
+      });
     }
   }
 
@@ -96,6 +140,10 @@ export class SystemJobsService {
 
   @Cron(CronExpression.EVERY_30_MINUTES, { name: 'cache-cleanup' })
   async handleCacheCleanup() {
+    const start = Date.now();
+    let isSuccess = true;
+    let errorDetail: string | undefined;
+
     try {
       const client = this.redisService.getClient();
       if (!client) {
@@ -103,7 +151,6 @@ export class SystemJobsService {
         return;
       }
 
-      // 应有 TTL 的 key 前缀，清理无 TTL 的孤儿 key
       const stalePrefixes = ['login:lock:', 'login:attempts:'];
       let totalCleaned = 0;
       const stats: Record<string, number> = {};
@@ -118,11 +165,9 @@ export class SystemJobsService {
           cursor = nextCursor;
           count += keys.length;
 
-          // 检查每个 key 的 TTL，删除无过期时间的孤儿 key
           for (const key of keys) {
             const ttl = await client.ttl(key);
             if (ttl === -1) {
-              // -1 表示没有设置过期时间，属于异常状态
               await client.del(key);
               cleaned++;
             }
@@ -136,10 +181,25 @@ export class SystemJobsService {
       if (totalCleaned > 0) {
         this.logger.warn(`缓存清理完成: 清理 ${totalCleaned} 个无 TTL 的孤儿 key`);
       } else {
-        this.logger.debug(`缓存清理完成: 无需清理 (${Object.entries(stats).map(([k, v]) => `${k}${v}个`).join(', ')})`);
+        this.logger.debug(
+          `缓存清理完成: 无需清理 (${Object.entries(stats)
+            .map(([k, v]) => `${k}${v}个`)
+            .join(', ')})`,
+        );
       }
     } catch (error) {
-      this.logger.warn(`定时任务 [cache-cleanup] 执行失败: ${error instanceof Error ? error.message : String(error)}`);
+      isSuccess = false;
+      errorDetail = error instanceof Error ? error.stack || error.message : String(error);
+      this.logger.warn(`定时任务 [cache-cleanup] 执行失败: ${errorDetail}`);
+    } finally {
+      await this.recordJobLog({
+        jobName: 'cache-cleanup',
+        description: '定期清理过期缓存数据',
+        cronExpression: CronExpression.EVERY_30_MINUTES,
+        status: isSuccess ? 1 : 0,
+        executionTime: Date.now() - start,
+        exceptionInfo: errorDetail,
+      });
     }
   }
 
@@ -147,6 +207,10 @@ export class SystemJobsService {
 
   @Cron(CronExpression.EVERY_10_MINUTES, { name: 'online-cleanup' })
   async handleOnlineCleanup() {
+    const start = Date.now();
+    let isSuccess = true;
+    let errorDetail: string | undefined;
+
     try {
       const client = this.redisService.getClient();
       if (!client) {
@@ -159,14 +223,19 @@ export class SystemJobsService {
       let cleaned = 0;
 
       do {
-        const [nextCursor, keys] = await client.scan(cursor, 'MATCH', 'online:user:*', 'COUNT', 200);
+        const [nextCursor, keys] = await client.scan(
+          cursor,
+          'MATCH',
+          'online:user:*',
+          'COUNT',
+          200,
+        );
         cursor = nextCursor;
         total += keys.length;
 
         for (const key of keys) {
           const ttl = await client.ttl(key);
           if (ttl === -1) {
-            // 没有 TTL 的孤儿 key，删除
             await client.del(key);
             cleaned++;
           }
@@ -175,7 +244,18 @@ export class SystemJobsService {
 
       this.logger.debug(`在线用户清理完成: ${total} 个在线用户, 清理 ${cleaned} 个过期记录`);
     } catch (error) {
-      this.logger.warn(`定时任务 [online-cleanup] 执行失败: ${error instanceof Error ? error.message : String(error)}`);
+      isSuccess = false;
+      errorDetail = error instanceof Error ? error.stack || error.message : String(error);
+      this.logger.warn(`定时任务 [online-cleanup] 执行失败: ${errorDetail}`);
+    } finally {
+      await this.recordJobLog({
+        jobName: 'online-cleanup',
+        description: '定期清理过期在线用户状态',
+        cronExpression: CronExpression.EVERY_10_MINUTES,
+        status: isSuccess ? 1 : 0,
+        executionTime: Date.now() - start,
+        exceptionInfo: errorDetail,
+      });
     }
   }
 
@@ -183,20 +263,39 @@ export class SystemJobsService {
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: 'log-cleanup' })
   async handleLogCleanup() {
-    // 操作日志
-    try {
-      const operResult = await this.logService.clearOperLogs();
-      this.logger.log(`操作日志清理: ${operResult.message}`);
-    } catch (error) {
-      this.logger.error(`定时任务 [log-cleanup] 操作日志清理失败: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    const start = Date.now();
+    let isSuccess = true;
+    let errorDetail: string | undefined;
 
-    // 登录日志
     try {
-      const loginResult = await this.logService.clearLoginLogs();
-      this.logger.log(`登录日志清理: ${loginResult.message}`);
-    } catch (error) {
-      this.logger.error(`定时任务 [log-cleanup] 登录日志清理失败: ${error instanceof Error ? error.message : String(error)}`);
+      // 操作日志
+      try {
+        const operResult = await this.logService.clearOperLogs();
+        this.logger.log(`操作日志清理: ${operResult.message}`);
+      } catch (error) {
+        isSuccess = false;
+        errorDetail = error instanceof Error ? error.stack || error.message : String(error);
+        this.logger.error(`定时任务 [log-cleanup] 操作日志清理失败: ${errorDetail}`);
+      }
+
+      // 登录日志
+      try {
+        const loginResult = await this.logService.clearLoginLogs();
+        this.logger.log(`登录日志清理: ${loginResult.message}`);
+      } catch (error) {
+        isSuccess = false;
+        errorDetail = error instanceof Error ? error.stack || error.message : String(error);
+        this.logger.error(`定时任务 [log-cleanup] 登录日志清理失败: ${errorDetail}`);
+      }
+    } finally {
+      await this.recordJobLog({
+        jobName: 'log-cleanup',
+        description: '定期清理过期审计日志（保留最近 7 天）',
+        cronExpression: CronExpression.EVERY_DAY_AT_3AM,
+        status: isSuccess ? 1 : 0,
+        executionTime: Date.now() - start,
+        exceptionInfo: errorDetail,
+      });
     }
   }
 }

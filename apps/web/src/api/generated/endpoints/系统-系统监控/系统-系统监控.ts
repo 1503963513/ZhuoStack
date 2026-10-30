@@ -26,7 +26,10 @@ import type {
 
 import type {
   MonitorControllerClearAllCache200,
+  MonitorControllerClearJobLogs200,
   MonitorControllerDeleteCacheKey200,
+  MonitorControllerFindJobLogs200,
+  MonitorControllerFindJobLogsParams,
   MonitorControllerGetCacheInfo200,
   MonitorControllerGetHealthCheck200,
   MonitorControllerGetJobs200,
@@ -796,6 +799,164 @@ export function useMonitorControllerRunJob<TData = Awaited<ReturnType<typeof mon
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getMonitorControllerRunJobQueryOptions(name,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary 获取定时任务执行日志
+ */
+export const monitorControllerFindJobLogs = (
+    params?: MonitorControllerFindJobLogsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerFindJobLogs200>(
+      {url: `/api/monitor/jobs/logs`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerFindJobLogsMutationKey = () => ['monitorControllerFindJobLogs'] as const;
+
+export const getMonitorControllerFindJobLogsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerFindJobLogs>>, TError,MonitorControllerFindJobLogsMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof monitorControllerFindJobLogs>>, TError,MonitorControllerFindJobLogsMutationVariables, TContext> => {
+
+const mutationKey = getMonitorControllerFindJobLogsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof monitorControllerFindJobLogs>>, MonitorControllerFindJobLogsMutationVariables> = (props) => {
+          const {params} = props ?? {};
+
+          return  monitorControllerFindJobLogs(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MonitorControllerFindJobLogsMutationResult = NonNullable<Awaited<ReturnType<typeof monitorControllerFindJobLogs>>>
+
+    export type MonitorControllerFindJobLogsMutationError = unknown
+    export type MonitorControllerFindJobLogsMutationVariables = {params?: MonitorControllerFindJobLogsParams}
+
+    /**
+ * @summary 获取定时任务执行日志
+ */
+export const useMonitorControllerFindJobLogs = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerFindJobLogs>>, TError,MonitorControllerFindJobLogsMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof monitorControllerFindJobLogs>>,
+        TError,
+        MonitorControllerFindJobLogsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMonitorControllerFindJobLogsMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary 清空定时任务日志
+ */
+export const monitorControllerClearJobLogs = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerClearJobLogs200>(
+      {url: `/api/monitor/jobs/logs`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerClearJobLogsQueryKey = () => {
+    return [
+    'DELETE', `/api/monitor/jobs/logs`
+    ] as const;
+    }
+
+
+export const getMonitorControllerClearJobLogsQueryOptions = <TData = Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMonitorControllerClearJobLogsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>> = ({ signal }) => monitorControllerClearJobLogs(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MonitorControllerClearJobLogsQueryResult = NonNullable<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>>
+export type MonitorControllerClearJobLogsQueryError = unknown
+
+
+export function useMonitorControllerClearJobLogs<TData = Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof monitorControllerClearJobLogs>>,
+          TError,
+          Awaited<ReturnType<typeof monitorControllerClearJobLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMonitorControllerClearJobLogs<TData = Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof monitorControllerClearJobLogs>>,
+          TError,
+          Awaited<ReturnType<typeof monitorControllerClearJobLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMonitorControllerClearJobLogs<TData = Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary 清空定时任务日志
+ */
+
+export function useMonitorControllerClearJobLogs<TData = Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearJobLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMonitorControllerClearJobLogsQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

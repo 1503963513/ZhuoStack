@@ -52,17 +52,55 @@ export class OnlineUserItemDto {
 }
 
 export class JobItemDto {
-  @ApiProperty({ description: '任务名称' })
+  @ApiProperty({ description: '任务唯一标识', example: 'health-check' })
   name: string;
 
-  @ApiProperty({ description: '执行状态' })
+  @ApiProperty({ description: '任务中文描述', example: '定期检查系统健康状态' })
+  description: string;
+
+  @ApiProperty({ description: 'Cron 表达式', example: '0 */5 * * * *' })
+  cron: string;
+
+  @ApiProperty({ description: '任务状态: running | stopped', example: 'running' })
+  status: 'running' | 'stopped';
+
+  @ApiProperty({ description: '是否处于激活运行状态', example: true })
   running: boolean;
 
   @ApiPropertyOptional({ type: String, description: '下一次执行时间', nullable: true })
-  nextDate: string | null;
+  nextRun: string | null;
 
   @ApiPropertyOptional({ type: String, description: '上一次执行时间', nullable: true })
-  lastDate: string | null;
+  lastRun: string | null;
+}
+
+export class JobLogItemDto {
+  @ApiProperty({ description: '日志 ID' })
+  id: string;
+
+  @ApiProperty({ description: '任务名称' })
+  jobName: string;
+
+  @ApiProperty({ description: '任务分组' })
+  jobGroup: string;
+
+  @ApiPropertyOptional({ type: String, description: '任务中文描述', nullable: true })
+  description: string | null;
+
+  @ApiPropertyOptional({ type: String, description: 'Cron 表达式', nullable: true })
+  cronExpression: string | null;
+
+  @ApiProperty({ description: '执行状态: 1-成功, 0-失败' })
+  status: number;
+
+  @ApiPropertyOptional({ type: String, description: '异常信息', nullable: true })
+  exceptionInfo: string | null;
+
+  @ApiProperty({ description: '执行耗时（毫秒）' })
+  executionTime: number;
+
+  @ApiProperty({ description: '执行触发时间' })
+  createdAt: Date;
 }
 
 export class ServerInfoDto {

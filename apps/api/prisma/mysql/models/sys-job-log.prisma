@@ -1,0 +1,16 @@
+model SysJobLog {
+  id             String   @id @default(cuid())
+  jobName        String   @db.VarChar(64)
+  jobGroup       String   @default("DEFAULT") @db.VarChar(64)
+  description    String?  @db.VarChar(255)
+  cronExpression String?  @db.VarChar(64)
+  status         Int      @default(1) // 1-成功，0-失败
+  exceptionInfo  String?  @db.Text
+  executionTime  Int // 执行耗时（毫秒）
+  createdAt      DateTime @default(now())
+
+  @@index([jobName])
+  @@index([createdAt])
+  @@index([status])
+  @@map("sys_job_log")
+}

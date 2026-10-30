@@ -7,18 +7,24 @@
  */
 
 export interface JobItemDto {
-  /** 任务名称 */
+  /** 任务唯一标识 */
   name: string;
-  /** 执行状态 */
+  /** 任务中文描述 */
+  description: string;
+  /** Cron 表达式 */
+  cron: string;
+  /** 任务状态: running | stopped */
+  status: string;
+  /** 是否处于激活运行状态 */
   running: boolean;
   /**
      * 下一次执行时间
      * @nullable
      */
-  nextDate?: string | null;
+  nextRun?: string | null;
   /**
      * 上一次执行时间
      * @nullable
      */
-  lastDate?: string | null;
+  lastRun?: string | null;
 }
