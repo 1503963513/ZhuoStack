@@ -1,0 +1,96 @@
+name: ${COMPOSE_PROJECT_NAME:-zhuostack}
+
+# 纯应用模式（外部自建/云数据库与 Redis 模式）：仅启动 api 和 web，不运行内置数据库与 Redis
+services:
+  api:
+    image: ${APP_IMAGE_PREFIX:-zhuostack}-api:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+      args:
+        DB_TYPE: ${DB_TYPE:-postgres}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: ${API_MEMORY_LIMIT:-512m}
+    cpus: ${API_CPU_LIMIT:-1.0}
+    env_file:
+      - ../.env.deploy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3100
+      REDIS_URL: ${REDIS_URL:?EXTERNAL_DB 模式下必须配置 REDIS_URL}
+      REDIS_REQUIRED: 'true'
+      FILE_STORAGE_PATH: /app/apps/api/uploads
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - api_uploads:/app/apps/api/uploads
+    ports:
+      - '127.0.0.1:${API_PORT:-3100}:3100'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-5}
+
+  web:
+    image: ${APP_IMAGE_PREFIX:-zhuostack}-web:${APP_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:rw,nosuid,size=32m
+      - /var/run:rw,nosuid,size=8m
+      - /etc/nginx/conf.d:rw,noexec,nosuid,size=1m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    pids_limit: 128
+    mem_limit: ${WEB_MEMORY_LIMIT:-256m}
+    cpus: ${WEB_CPU_LIMIT:-0.5}
+    ports:
+      - '${WEB_PORT:-3000}:80'
+      - '${WEB_TLS_PORT:-3443}:443'
+    volumes:
+      - ${TLS_CERT_DIR:-./docker/certs}:/etc/nginx/tls:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: ${LOG_MAX_FILES:-5}
+
+volumes:
+  api_uploads:
