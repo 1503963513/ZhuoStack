@@ -96,7 +96,7 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     volumes:
-      - api_uploads:/app/apps/api/uploads
+      - ${HOST_UPLOAD_DIR:-./uploads}:/app/apps/api/uploads
     ports:
       - '127.0.0.1:${API_PORT:-3100}:3100'
     depends_on:
@@ -165,4 +165,3 @@ volumes:
   postgres_data:
   mysql_data:
   redis_data:
-  api_uploads:

@@ -46,6 +46,10 @@ docker_deploy() {
   case "$action" in
     up)
       load_offline_images_if_needed
+      local upload_dir
+      upload_dir=$(env_value .env.deploy HOST_UPLOAD_DIR ./uploads)
+      mkdir -p "$upload_dir"
+      chmod 777 "$upload_dir" 2>/dev/null || true
       if [ -f offline-images.tar.gz ] || [ -f offline-images.tar ]; then
         info "使用离线镜像启动服务"
         "${COMPOSE[@]}" up -d --no-build
