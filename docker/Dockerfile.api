@@ -29,7 +29,9 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/api/prisma apps/api/prisma
 COPY apps/api/prisma.config.ts apps/api/prisma.config.ts
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod --filter "api..." \
-    && DB_TYPE=${DB_TYPE:-postgres} pnpm db:generate
+    && DB_TYPE=${DB_TYPE:-postgres} pnpm db:generate \
+    && find /app/node_modules -type f \( -name "*.map" -o -name "*.d.ts" -o -name "*.ts.buildinfo" -o -name "*.md" \) -delete \
+    && find /app/node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "docs" -o -name "example" -o -name "examples" \) -exec rm -rf {} + 2>/dev/null || true
 
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production
@@ -38,9 +40,11 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates openssl \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
     && groupadd --system --gid 1001 nodeapp \
-    && useradd --system --uid 1001 --gid nodeapp --home-dir /app nodeapp
+    && useradd --system --uid 1001 --gid nodeapp --home-dir /app nodeapp \
+    && mkdir -p /app/apps/api/uploads \
+    && chown -R nodeapp:nodeapp /app
 
 COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/node_modules ./node_modules
 COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/node_modules ./apps/api/node_modules
@@ -48,9 +52,8 @@ COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/prisma
 COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/prisma.config.ts ./apps/api/prisma.config.ts
 COPY --from=production-dependencies --chown=nodeapp:nodeapp /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder --chown=nodeapp:nodeapp /app/apps/api/dist ./apps/api/dist
-COPY --chown=nodeapp:nodeapp docker/entrypoint-api.sh /usr/local/bin/entrypoint-api
+COPY --chmod=755 docker/entrypoint-api.sh /usr/local/bin/entrypoint-api
 
-RUN chmod +x /usr/local/bin/entrypoint-api && mkdir -p /app/apps/api/uploads && chown -R nodeapp:nodeapp /app
 USER nodeapp
 WORKDIR /app/apps/api
 EXPOSE 3100
