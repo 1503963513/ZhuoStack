@@ -1,11 +1,9 @@
-FROM node:24-bookworm-slim AS base
+FROM node:24-alpine AS base
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates openssl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl libc6-compat ca-certificates
 WORKDIR /app
 
 FROM base AS dependencies
@@ -33,16 +31,14 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
     && find /app/node_modules -type f \( -name "*.map" -o -name "*.d.ts" -o -name "*.ts.buildinfo" -o -name "*.md" \) -delete \
     && find /app/node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "docs" -o -name "example" -o -name "examples" \) -exec rm -rf {} + 2>/dev/null || true
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
 ENV PORT=3100
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates openssl \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
-    && groupadd --system --gid 1001 nodeapp \
-    && useradd --system --uid 1001 --gid nodeapp --home-dir /app nodeapp \
+RUN apk add --no-cache openssl libc6-compat ca-certificates \
+    && addgroup -g 1001 -S nodeapp \
+    && adduser -u 1001 -S nodeapp -G nodeapp \
     && mkdir -p /app/apps/api/uploads \
     && chown -R nodeapp:nodeapp /app
 
