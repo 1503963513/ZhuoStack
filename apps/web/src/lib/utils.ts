@@ -21,6 +21,25 @@ export function fileUrl(path: string | null | undefined): string | undefined {
 }
 
 /**
+ * 获取文件的绝对完整地址（包含协议与当前访问的完整域名/IP端口，专用于复制分享）
+ *
+ * @example
+ * absoluteFileUrl('/files/2026/10/31/abc.png')
+ * // → 'http://24.233.0.241:3000/files/2026/10/31/abc.png'
+ */
+export function absoluteFileUrl(path: string | null | undefined): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const relative = fileUrl(path) || path;
+  if (relative.startsWith('http://') || relative.startsWith('https://')) return relative;
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    return `${origin}${relative.startsWith('/') ? '' : '/'}${relative}`;
+  }
+  return relative;
+}
+
+/**
  * 构建带查询参数的 URL，自动过滤空值
  *
  * @example
