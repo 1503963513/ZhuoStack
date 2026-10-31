@@ -65,6 +65,8 @@ docker/certs/*
 # Deploy packages
 deploy_*.tar.gz
 .deploy-temp/
+.deploy-*/
+.test-*/
 apps/web/tsconfig.tsbuildinfo
 
 # Upload files
