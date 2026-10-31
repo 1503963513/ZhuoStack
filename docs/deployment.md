@@ -16,19 +16,46 @@ scripts/
 
 ## 方案选择
 
-| 场景                           | 推荐命令                                | 目标机要求                                    |
-| ------------------------------ | --------------------------------------- | --------------------------------------------- |
-| 常规服务器 / 云主机            | `pnpm ops docker up`                    | Docker + Compose                              |
-| 已有 Nginx、Node 运维体系      | `pnpm ops pm2 start`                    | Node.js 24 LTS；在线准备时需要 pnpm           |
-| 完全离线，允许 Docker          | `pnpm ops pack docker-offline postgres` | 目标机只有 Docker 即可                        |
-| 完全离线，不使用 Docker 跑应用 | `pnpm ops pack pm2-offline postgres`    | Linux glibc 系统；Node、PM2、依赖均已随包提供 |
+| 场景                           | 推荐命令                                         | 目标机要求                                    |
+| ------------------------------ | ------------------------------------------------ | --------------------------------------------- |
+| **交互式全栈打包（强烈推荐）** | **`pnpm release`**                               | 本地 Docker（带交互问答，自由组合各组件）     |
+| 常规服务器 / 云主机源码部署    | `pnpm ops docker up`                             | Docker + Compose                              |
+| 已有 Nginx、Node 运维体系      | `pnpm ops pm2 start`                             | Node.js 24 LTS；在线准备时需要 pnpm           |
+| 纯应用离线包（已有 DB/Redis）  | `pnpm ops pack docker-offline postgres all none` | 目标机只有 Docker 即可，体积仅 200MB          |
+| 全套离线交付包（含 DB/Redis）  | `pnpm ops pack docker-offline postgres all all`  | 目标机只有 Docker 即可，开箱即用              |
+| 完全离线，不使用 Docker 跑应用 | `pnpm ops pack pm2-offline postgres`             | Linux glibc 系统；Node、PM2、依赖均已随包提供 |
 
-`postgres` 可替换为 `mysql`。离线包中的 Prisma Client 与 CPU 架构、数据库类型相关，必须按目标环境生成。
+`postgres` 可替换为 `mysql`。
+
+---
+
+## 交互式发布向导：`pnpm release`（新手强烈推荐）
+
+项目内置了保姆级的交互式打包向导，无需记忆复杂的参数：
+
+```bash
+pnpm release
+```
+
+向导将依次引导你完成 4 步决策：
+
+1. **发布包类型**：Docker 离线镜像包 / PM2 在线包 / PM2 离线包；
+2. **应用组件范围**：前后端完整打包 (API + Web) / 仅后端 API / 仅前端 Web；
+3. **数据库引擎**：PostgreSQL (默认推荐) / MySQL (兼容 8.0+)；
+4. **中间件策略**：
+   - **不打包中间件（纯应用包，体积仅 200MB，推荐！）**：适用于服务器上已安装现成 MySQL/Postgres 和 Redis，打包与传输极快；
+   - **打包全部中间件（全套交付包，约 400MB）**：包含数据库与 Redis 镜像，适合客户内网完全空白的开箱即用交付；
+5. **硬件架构自适应**：自动检测本机架构（Apple Silicon arm64 / x86_64），避免跨平台 QEMU 软件转译导致的龟速构建。
+
+打包完成后，会自动在根目录下输出 `.tar.gz` 离线压缩包。
+
+---
 
 ## Docker 一键部署
 
 ```bash
 pnpm ops docker up
+# 或直接简写：pnpm docker:up
 ```
 
 首次运行会从 `.env.deploy.example` 创建 `.env.deploy`，并自动生成强随机数据库密码和 `JWT_SECRET`。正式环境至少要修改 `CORS_ORIGIN`、TLS 证书、开放端口和 AI 配置。浏览器认证使用 `Secure + HttpOnly + SameSite=Strict` Cookie，因此正式环境必须通过 HTTPS 访问。

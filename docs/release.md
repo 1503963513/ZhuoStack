@@ -33,7 +33,23 @@ Docker 镜像默认在目标环境根据 `DB_TYPE` 构建；这保证 Prisma Cli
 - CI 的 quality、migrations、secrets、images 全部通过；
 - 已准备数据库备份、健康检查和上一个可回滚部署包。
 
-本地建议先执行：
+## 本地交互式打包工具：`pnpm release`
+
+本地开发负责人或运维在准备发布交付包时，推荐直接使用内置交互式向导：
+
+```bash
+pnpm release
+```
+
+支持自由组合：
+
+- **发布格式**：Docker 离线镜像包 / PM2 在线包 / PM2 离线包
+- **打包组件**：前后端完整 (API + Web) / 仅后端 API / 仅前端 Web
+- **数据库选型**：PostgreSQL / MySQL
+- **中间件策略**：纯应用包 (不含 DB/Redis，仅 200MB) / 全套开箱即用交付包 (含 DB/Redis，约 400MB)
+- **硬件架构自适应**：支持自动检测本机 CPU 架构（Apple Silicon arm64 / x86_64）避免转译卡顿。
+
+本地建议在发布前先执行门禁检查：
 
 ```bash
 pnpm install --frozen-lockfile

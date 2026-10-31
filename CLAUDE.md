@@ -41,6 +41,9 @@ pnpm contract:sync  # 导出 OpenAPI 并同步生成前端强类型客户端
 # Docker
 pnpm docker:up
 pnpm docker:down
+
+# 发布与打包（交互向导，支持选择组件/数据库/是否包含中间件）
+pnpm release
 ```
 
 ## 项目架构

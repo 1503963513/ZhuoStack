@@ -199,15 +199,20 @@ pnpm db:setup --mysql   # MySQL
 项目使用同一个入口管理 Docker、PM2 和离线内网部署：
 
 ```bash
-# Docker：首次运行自动创建 .env.deploy，构建并启动完整服务
-pnpm ops docker up
+# 交互式全栈打包向导（强烈推荐！可自由选择组件、数据库与是否打包中间件）
+pnpm release
 
-# PM2：运行 API（Web 静态文件由 Nginx 托管）
+# Docker 一键启动（首次运行自动创建 .env.deploy，构建并启动服务）
+pnpm docker:up
+# 或等价命令：pnpm ops docker up
+
+# PM2 裸机部署：运行 API（Web 静态文件由 Nginx 托管）
 pnpm build:deploy
 pnpm ops pm2 start
 
-# 生成无需访问镜像仓库的 Docker 离线包
-pnpm ops pack docker-offline postgres
+# 生成无需访问镜像仓库的 Docker 离线包（命令行高级模式）
+pnpm ops pack docker-offline postgres all none  # 纯应用包（仅 API+Web，200MB）
+pnpm ops pack docker-offline postgres all all   # 全家桶交付包（含 DB+Redis，400MB）
 
 # 生成自带 Linux Node、PM2、依赖和 Prisma Client 的 PM2 离线包
 pnpm ops pack pm2-offline postgres
@@ -232,6 +237,7 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 | `pnpm audit:prod`                       | 阻断 high/critical 生产依赖漏洞                       |
 | `pnpm docker:up`                        | 启动 Docker 服务                                      |
 | `pnpm docker:down`                      | 停止 Docker 服务                                      |
+| `pnpm release`                          | 交互式全栈打包向导（可自由组合组件/数据库/中间件）    |
 | `pnpm ops --help`                       | 查看统一部署命令                                      |
 | `pnpm ops pm2 start`                    | 使用项目内置 PM2 启动 API                             |
 | `pnpm ops pack pm2-offline postgres`    | 生成 PM2 离线包                                       |
