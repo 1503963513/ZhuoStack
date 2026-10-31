@@ -158,7 +158,10 @@ pack_docker_offline() {
     fi
   fi
 
-  local all_save_images=("${app_images[@]}" "${middleware_images[@]}")
+  local all_save_images=("${app_images[@]}")
+  if [ "${#middleware_images[@]}" -gt 0 ]; then
+    all_save_images+=("${middleware_images[@]}")
+  fi
   info "待导出镜像列表: ${all_save_images[*]}"
 
   comp=$(compress_cmd)
