@@ -49,7 +49,7 @@ import {
   Monitor,
   CheckCircle2,
 } from 'lucide-react';
-import { getErrorMessage, fileUrl } from '@/lib/utils';
+import { getErrorMessage, fileUrl, copyText } from '@/lib/utils';
 import {
   monitorControllerGetOnlineUsers,
   monitorControllerKickUser,
@@ -242,9 +242,13 @@ export default function OnlinePage() {
     );
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label}已复制到剪贴板`);
+  const copyToClipboard = async (text: string, label: string) => {
+    const success = await copyText(text);
+    if (success) {
+      toast.success(`${label}已复制到剪贴板`);
+    } else {
+      toast.error('复制失败，请手动选择复制');
+    }
   };
 
   return (

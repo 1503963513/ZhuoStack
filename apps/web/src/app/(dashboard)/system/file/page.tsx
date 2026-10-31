@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { fileUrl } from '@/lib/utils';
+import { fileUrl, copyText } from '@/lib/utils';
 import { CSRF_HEADER_NAME, getCsrfToken } from '@/lib/csrf';
 import {
   Upload,
@@ -298,10 +298,14 @@ export default function FilePage() {
     }
   };
 
-  const copyUrl = (url: string) => {
+  const copyUrl = async (url: string) => {
     const full = fileUrl(url || '') || '';
-    navigator.clipboard.writeText(full);
-    toast.success('已复制链接到剪贴板');
+    const success = await copyText(full);
+    if (success) {
+      toast.success('已复制链接到剪贴板');
+    } else {
+      toast.error('复制失败，请手动长按或选择复制');
+    }
   };
 
   return (

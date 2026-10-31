@@ -35,7 +35,7 @@ import {
   Layers,
   Search,
 } from 'lucide-react';
-import { getErrorMessage, cn } from '@/lib/utils';
+import { getErrorMessage, cn, copyText } from '@/lib/utils';
 import { Pagination } from '@/components/common/pagination';
 import {
   monitorControllerGetCacheInfo,
@@ -197,9 +197,13 @@ export default function CachePage() {
     }
   };
 
-  const copyContent = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('内容已复制到剪贴板');
+  const copyContent = async (text: string) => {
+    const success = await copyText(text);
+    if (success) {
+      toast.success('内容已复制到剪贴板');
+    } else {
+      toast.error('复制失败，请手动选择复制');
+    }
   };
 
   return (
