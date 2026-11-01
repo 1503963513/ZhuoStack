@@ -67,7 +67,7 @@ services:
         max-file: ${LOG_MAX_FILES:-5}
 
   api:
-    image: ${APP_IMAGE_PREFIX:-zhuostack}-api:${APP_VERSION:-latest}
+    image: ${APP_IMAGE_PREFIX:-zhuostack}-api:${API_VERSION:-${APP_VERSION:-latest}}
     build:
       context: .
       dockerfile: docker/Dockerfile.api
@@ -123,7 +123,7 @@ services:
         max-file: ${LOG_MAX_FILES:-5}
 
   web:
-    image: ${APP_IMAGE_PREFIX:-zhuostack}-web:${APP_VERSION:-latest}
+    image: ${APP_IMAGE_PREFIX:-zhuostack}-web:${WEB_VERSION:-${APP_VERSION:-latest}}
     build:
       context: .
       dockerfile: docker/Dockerfile.web

@@ -94,8 +94,15 @@ pack_docker_offline() {
 
   cp .env.deploy.example "$staging/.env.deploy.example"
   set_env_value "$staging/.env.deploy.example" APP_IMAGE_PREFIX zhuostack
-  set_env_value "$staging/.env.deploy.example" APP_VERSION "$version"
   set_env_value "$staging/.env.deploy.example" DB_TYPE "$db_type"
+
+  if [ "$components" = web ]; then
+    set_env_value "$staging/.env.deploy.example" WEB_VERSION "$version"
+  elif [ "$components" = api ]; then
+    set_env_value "$staging/.env.deploy.example" API_VERSION "$version"
+  else
+    set_env_value "$staging/.env.deploy.example" APP_VERSION "$version"
+  fi
   if [ "$db_type" = mysql ]; then
     set_env_value "$staging/.env.deploy.example" DATABASE_URL 'mysql://zhuostack:zhuostack123@db:3306/zhuostack'
   else
@@ -117,6 +124,7 @@ pack_docker_offline() {
   else
     printf '%s\n' "$db_type" > "$staging/.offline-db-type"
   fi
+  printf '%s\n' "$components" > "$staging/.offline-components"
 
   # 1. 构建所选的应用组件镜像
   local compose_files=(-f docker-compose.yml)

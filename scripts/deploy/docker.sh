@@ -47,11 +47,20 @@ load_offline_images_if_needed() {
 
   # 如果解压出的模板中包含新版本号，自动同步更新到 .env.deploy 中
   if [ -f .env.deploy.example ] && [ -f .env.deploy ]; then
-    local new_ver
-    new_ver=$(env_value .env.deploy.example APP_VERSION '')
-    if [ -n "$new_ver" ]; then
-      set_env_value .env.deploy APP_VERSION "$new_ver"
-      info "已自动将 .env.deploy 中的 APP_VERSION 更新为: $new_ver"
+    local new_app_ver new_web_ver new_api_ver
+    new_app_ver=$(env_value .env.deploy.example APP_VERSION '')
+    new_web_ver=$(env_value .env.deploy.example WEB_VERSION '')
+    new_api_ver=$(env_value .env.deploy.example API_VERSION '')
+
+    if [ -n "$new_web_ver" ]; then
+      set_env_value .env.deploy WEB_VERSION "$new_web_ver"
+      info "已自动将 .env.deploy 中的 WEB_VERSION 更新为: $new_web_ver"
+    elif [ -n "$new_api_ver" ]; then
+      set_env_value .env.deploy API_VERSION "$new_api_ver"
+      info "已自动将 .env.deploy 中的 API_VERSION 更新为: $new_api_ver"
+    elif [ -n "$new_app_ver" ]; then
+      set_env_value .env.deploy APP_VERSION "$new_app_ver"
+      info "已自动将 .env.deploy 中的 APP_VERSION 更新为: $new_app_ver"
     fi
   fi
 }
@@ -67,12 +76,34 @@ docker_deploy() {
       upload_dir=$(env_value .env.deploy HOST_UPLOAD_DIR ./uploads)
       mkdir -p "$upload_dir" docker/uploads 2>/dev/null || true
       chmod -R 777 "$upload_dir" docker/uploads 2>/dev/null || true
+
+      local target_services=()
+      if [ -f .offline-components ]; then
+        local comp_type
+        comp_type=$(tr -d '[:space:]' < .offline-components)
+        if [ "$comp_type" = web ]; then
+          info "检测到仅 Web 离线更新包，仅重启 Web 服务"
+          target_services=(web)
+        elif [ "$comp_type" = api ]; then
+          info "检测到仅 API 离线更新包，仅重启 API 服务"
+          target_services=(api)
+        fi
+      fi
+
       if [ -f offline-images.tar.gz ] || [ -f offline-images.tar ]; then
         info "使用离线镜像启动服务"
-        "${COMPOSE[@]}" up -d --no-build
+        if [ "${#target_services[@]}" -gt 0 ]; then
+          "${COMPOSE[@]}" up -d --no-build --no-deps "${target_services[@]}"
+        else
+          "${COMPOSE[@]}" up -d --no-build
+        fi
       else
         info "构建并启动服务"
-        "${COMPOSE[@]}" up -d --build
+        if [ "${#target_services[@]}" -gt 0 ]; then
+          "${COMPOSE[@]}" up -d --build --no-deps "${target_services[@]}"
+        else
+          "${COMPOSE[@]}" up -d --build
+        fi
       fi
       "${COMPOSE[@]}" ps
       local tls_dir
