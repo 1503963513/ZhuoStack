@@ -33,10 +33,25 @@ load_offline_images_if_needed() {
     img_file="offline-images.tar"
   fi
   [ -n "$img_file" ] || return 0
-  [ -f .offline-images-loaded ] && return 0
-  info "导入离线 Docker 镜像 ($img_file)，首次执行可能需要几分钟"
+
+  # 仅当标记文件存在且比镜像压缩包更新时，才跳过导入；否则自动载入新包镜像
+  if [ -f .offline-images-loaded ] && [ .offline-images-loaded -nt "$img_file" ]; then
+    return 0
+  fi
+
+  info "检测到新版本离线 Docker 镜像包 ($img_file)，正在自动导入"
   docker load -i "$img_file"
   touch .offline-images-loaded
+
+  # 如果解压出的模板中包含新版本号，自动同步更新到 .env.deploy 中
+  if [ -f .env.deploy.example ] && [ -f .env.deploy ]; then
+    local new_ver
+    new_ver=$(env_value .env.deploy.example APP_VERSION '')
+    if [ -n "$new_ver" ]; then
+      set_env_value .env.deploy APP_VERSION "$new_ver"
+      info "已自动将 .env.deploy 中的 APP_VERSION 更新为: $new_ver"
+    fi
+  fi
 }
 
 docker_deploy() {
