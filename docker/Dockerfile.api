@@ -37,6 +37,14 @@ ENV PORT=3100
 WORKDIR /app
 
 RUN apk add --no-cache openssl libc6-compat ca-certificates \
+    && rm -rf /usr/local/lib/node_modules/npm \
+      /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm \
+      /usr/local/bin/npx \
+      /usr/local/bin/corepack \
+      /usr/local/bin/yarn \
+      /usr/local/bin/yarnpkg \
+      /opt/yarn-v1.22.22 \
     && addgroup -g 1001 -S nodeapp \
     && adduser -u 1001 -S nodeapp -G nodeapp \
     && mkdir -p /app/apps/api/uploads \
