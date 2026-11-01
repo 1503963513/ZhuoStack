@@ -8,7 +8,9 @@ compose_command() {
   external_db=$(env_value .env.deploy EXTERNAL_DB false)
   if [ -f .offline-db-type ]; then
     packaged_db=$(tr -d '[:space:]' < .offline-db-type)
-    [ "$packaged_db" = "$db_type" ] || die "该离线 Docker 包为 $packaged_db 构建，但 .env.deploy 配置为 $db_type"
+    if [ "$packaged_db" != "any" ] && [ "$packaged_db" != "$db_type" ]; then
+      die "该离线 Docker 包为 $packaged_db 构建，但 .env.deploy 配置为 $db_type"
+    fi
   fi
   if [ "$external_db" = true ]; then
     info "检测到 EXTERNAL_DB=true，启用外部独立数据库与缓存模式（仅启动 API 与 Web，不启动内置 DB 与 Redis 容器）"

@@ -112,7 +112,11 @@ pack_docker_offline() {
   cp docker/compose.app-only.yml "$staging/docker/"
   cp scripts/deploy.sh "$staging/scripts/"
   cp -R scripts/deploy "$staging/scripts/"
-  printf '%s\n' "$db_type" > "$staging/.offline-db-type"
+  if [ "$components" = web ]; then
+    printf 'any\n' > "$staging/.offline-db-type"
+  else
+    printf '%s\n' "$db_type" > "$staging/.offline-db-type"
+  fi
 
   # 1. 构建所选的应用组件镜像
   local compose_files=(-f docker-compose.yml)
