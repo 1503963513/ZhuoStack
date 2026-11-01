@@ -11,6 +11,14 @@ const __dirname = path.dirname(__filename);
 async function exportOpenApi() {
   process.env.NODE_ENV = 'development';
   process.env.REDIS_REQUIRED = 'false';
+  // Contract generation builds the Nest module graph without opening a database
+  // connection. Keep these values provider-independent and independent of local
+  // development secrets so CI can reproduce the committed contract exactly.
+  process.env.DB_TYPE = 'postgres';
+  process.env.DATABASE_URL =
+    'postgresql://prisma:prisma@127.0.0.1:5432/prisma';
+  process.env.JWT_SECRET =
+    'openapi-contract-export-only-secret-at-least-32-characters';
 
   // 引入已经通过 nest build 产出的 dist/src/app.module.js
   const appModulePath = path.resolve(__dirname, '../dist/src/app.module.js');
@@ -24,6 +32,7 @@ async function exportOpenApi() {
 
   const app = await NestFactory.create(AppModule, new FastifyAdapter(), {
     logger: false,
+    abortOnError: false,
   });
 
   app.setGlobalPrefix('api', { exclude: ['health'] });
