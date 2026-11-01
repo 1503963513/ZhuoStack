@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTabsStore } from '@/stores/tabs-store';
 import type { LoginFormData, RegisterFormData } from '@/schemas/auth.schema';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from '@/lib/constants';
@@ -71,6 +72,7 @@ export function useLogout() {
     }
     // 再清本地状态
     clearAuth();
+    useTabsStore.getState().resetTabs();
     queryClient.clear();
     router.push(ROUTES.LOGIN);
   };

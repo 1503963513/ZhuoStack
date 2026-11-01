@@ -51,6 +51,9 @@ interface TabsState {
 
   /** 关闭全部标签（仅保留固定项并重定向回首页） */
   closeAll: (navigate?: (path: string) => void) => void;
+
+  /** 重置标签页（用户登出时清空所有会话标签） */
+  resetTabs: () => void;
 }
 
 export const useTabsStore = create<TabsState>()(
@@ -58,6 +61,10 @@ export const useTabsStore = create<TabsState>()(
     (set, get) => ({
       tabs: [DASHBOARD_TAB],
       activeTabId: DASHBOARD_TAB.id,
+
+      resetTabs: () => {
+        set({ tabs: [DASHBOARD_TAB], activeTabId: DASHBOARD_TAB.id });
+      },
 
       addTab: (tab) => {
         const { tabs } = get();

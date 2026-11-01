@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import type { ApiResponse } from '@/types/api';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTabsStore } from '@/stores/tabs-store';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
 
 // 直接请求后端 API（静态站点无 Node.js 服务端，不做代理）
@@ -38,8 +39,9 @@ function createApiClient(): AxiosInstance {
         // 提取后端错误信息并弹出提示
         const message = error.response?.data?.message || '登录已过期，请重新登录';
         toast.error(message);
-        // HttpOnly Cookie 由服务端管理；这里只清除非敏感的前端用户状态。
+        // HttpOnly Cookie 由服务端管理；这里只清除非敏感的前端用户状态与标签页。
         useAuthStore.getState().clearAuth();
+        useTabsStore.getState().resetTabs();
         // 延迟跳转，让 toast 显示一会儿
         setTimeout(() => {
           window.location.replace('/login');

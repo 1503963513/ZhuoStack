@@ -42,6 +42,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MousePointer,
 };
 
+/** 判断当前路由是否属于该菜单项（支持完全匹配或子页面前缀匹配，如 /monitor/jobs/logs 保持激活 /monitor/jobs） */
+function isPathActive(currentPath: string, menuPath: string | null | undefined): boolean {
+  if (!menuPath) return false;
+  if (currentPath === menuPath) return true;
+  if (menuPath === '/' || menuPath === '/dashboard') return false;
+  return currentPath.startsWith(`${menuPath}/`);
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const logout = useLogout();
@@ -111,7 +119,7 @@ export function Sidebar() {
           if (item.type === 'DIRECTORY') {
             const GroupIcon = getIcon(item.icon);
             const children = item.children || [];
-            const hasActiveChild = children.some((c) => pathname === c.path);
+            const hasActiveChild = children.some((c) => isPathActive(pathname, c.path));
             const isOpen = openGroups[item.id] ?? hasActiveChild;
 
             return (
@@ -142,7 +150,7 @@ export function Sidebar() {
                   <div className="ml-4 mt-1 flex flex-col gap-1 border-l pl-2">
                     {children.map((child) => {
                       const ChildIcon = getIcon(child.icon);
-                      const isActive = pathname === child.path;
+                      const isActive = isPathActive(pathname, child.path);
 
                       return (
                         <Link
@@ -168,7 +176,7 @@ export function Sidebar() {
 
           // 2. 如果是顶级单项菜单（MENU，如仪表盘、个人中心等），按其自身 sort 权重直接渲染为单项链接
           const ItemIcon = getIcon(item.icon);
-          const isActive = pathname === item.path;
+          const isActive = isPathActive(pathname, item.path);
 
           return (
             <Link
