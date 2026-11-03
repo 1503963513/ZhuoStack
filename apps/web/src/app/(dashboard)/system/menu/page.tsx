@@ -5,7 +5,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -27,8 +26,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  ChevronRight,
-  ChevronDown,
   ChevronsUpDown,
   Folder,
   FileText,
@@ -38,6 +35,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { IconPicker } from '@/components/common/icon-picker';
+import { TreeTable } from '@/components/common/tree-table';
 import { cn } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';
 import { PageHeader } from '@/components/common/page-header';
@@ -395,34 +393,160 @@ export default function MenuPage() {
         }
       />
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="w-full overflow-x-auto">
-            <div className="min-w-[840px] p-6">
-              {isLoading ? (
-                <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
-              ) : menus.length === 0 ? (
-                <div className="flex justify-center py-8 text-muted-foreground">暂无菜单数据</div>
-              ) : (
-                <div className="space-y-1">
-                  {menus.map((menu) => (
-                    <MenuTreeItem
-                      key={menu.id}
-                      menu={menu}
-                      collapsedIds={collapsedIds}
-                      onToggleExpand={toggleExpand}
-                      onToggleHidden={handleToggleHidden}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onAddChild={handleCreateChild}
-                    />
-                  ))}
+      <TreeTable
+        columns={[
+          {
+            label: '菜单名称',
+            span: 3,
+            render: (menu) => {
+              const typeConfig = MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU;
+              const TypeIcon = typeConfig.icon;
+              return (
+                <div className="flex min-w-0 items-center gap-2">
+                  <TypeIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate font-semibold" title={menu.name}>
+                    {menu.name}
+                  </span>
                 </div>
-              )}
-            </div>
+              );
+            },
+          },
+          {
+            label: '类型',
+            span: 2,
+            render: (menu) => {
+              const typeConfig = MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU;
+              return (
+                <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', typeConfig.color)}>
+                  {typeConfig.label}
+                </span>
+              );
+            },
+          },
+          {
+            label: '路由路径',
+            span: 2,
+            render: (menu) =>
+              menu.path ? (
+                <span
+                  className="block truncate font-mono text-xs text-muted-foreground"
+                  title={menu.path}
+                >
+                  {menu.path}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">-</span>
+              ),
+          },
+          {
+            label: '权限标识',
+            span: 3,
+            render: (menu) =>
+              menu.perms ? (
+                <Badge
+                  variant="outline"
+                  className="max-w-full truncate font-mono text-xs"
+                  title={menu.perms}
+                >
+                  {menu.perms}
+                </Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">-</span>
+              ),
+          },
+          {
+            label: '显示状态',
+            span: 2,
+            render: (menu) =>
+              menu.type === 'BUTTON' ? (
+                <span className="text-xs text-muted-foreground">-</span>
+              ) : (
+                <Badge
+                  variant={menu.hidden ? 'outline' : 'secondary'}
+                  className={cn(
+                    'cursor-pointer select-none gap-1 text-xs transition-colors',
+                    menu.hidden
+                      ? 'border-dashed text-muted-foreground hover:bg-muted'
+                      : 'text-foreground hover:bg-secondary/80',
+                  )}
+                  onClick={() => handleToggleHidden(menu)}
+                  title="点击切换显示/隐藏状态"
+                >
+                  {menu.hidden ? (
+                    <>
+                      <EyeOff className="h-3 w-3 text-muted-foreground" />
+                      隐藏
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-3 w-3 text-primary" />
+                      显示
+                    </>
+                  )}
+                </Badge>
+              ),
+          },
+          {
+            label: '状态',
+            span: 2,
+            render: (menu) => (
+              <Badge
+                variant={menu.status === 'ACTIVE' ? 'default' : 'secondary'}
+                className="text-xs"
+              >
+                {menu.status === 'ACTIVE' ? '正常' : '停用'}
+              </Badge>
+            ),
+          },
+          {
+            label: '排序',
+            span: 1,
+            key: 'sort',
+          },
+        ]}
+        data={menus}
+        isLoading={isLoading}
+        emptyText="暂无菜单数据"
+        actionsSpan={3}
+        minWidth="min-w-[1080px]"
+        collapsedIds={collapsedIds}
+        onToggleExpand={toggleExpand}
+        rowClassName={(menu) => (MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU).rowBg}
+        actions={(menu) => (
+          <div className="flex items-center gap-1">
+            {menu.type !== 'BUTTON' && (
+              <PermissionButton
+                perm="system:menu:add"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCreateChild(menu)}
+                title="新增子项"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </PermissionButton>
+            )}
+            <PermissionButton
+              perm="system:menu:edit"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(menu)}
+              title="编辑"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </PermissionButton>
+            <PermissionButton
+              perm="system:menu:delete"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(menu.id)}
+              title="删除"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </PermissionButton>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
@@ -609,162 +733,6 @@ export default function MenuPage() {
       </Dialog>
 
       <ConfirmDialog />
-    </div>
-  );
-}
-
-function MenuTreeItem({
-  menu,
-  collapsedIds,
-  onToggleExpand,
-  onToggleHidden,
-  onEdit,
-  onDelete,
-  onAddChild,
-  level = 0,
-}: {
-  menu: MenuTreeNodeDto;
-  collapsedIds: Set<string>;
-  onToggleExpand: (id: string) => void;
-  onToggleHidden: (menu: MenuTreeNodeDto) => void;
-  onEdit: (menu: MenuTreeNodeDto) => void;
-  onDelete: (id: string) => void;
-  onAddChild: (menu: MenuTreeNodeDto) => void;
-  level?: number;
-}) {
-  const hasChildren = menu.children && menu.children.length > 0;
-  const isExpanded = !collapsedIds.has(menu.id);
-  const typeConfig = MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU;
-  const TypeIcon = typeConfig.icon;
-
-  return (
-    <div>
-      <div
-        className={cn(
-          'flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border transition-colors',
-          typeConfig.rowBg,
-        )}
-        style={{ paddingLeft: `${level * 24 + 12}px` }}
-      >
-        <div className="flex items-center gap-2">
-          {hasChildren ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 p-0"
-              onClick={() => onToggleExpand(menu.id)}
-            >
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          ) : (
-            <span className="w-6" />
-          )}
-
-          <TypeIcon className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">{menu.name}</span>
-
-          <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', typeConfig.color)}>
-            {typeConfig.label}
-          </span>
-
-          <Badge variant={menu.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
-            {menu.status === 'ACTIVE' ? '正常' : '停用'}
-          </Badge>
-
-          {menu.type !== 'BUTTON' && (
-            <Badge
-              variant={menu.hidden ? 'outline' : 'secondary'}
-              className={cn(
-                'text-xs cursor-pointer select-none transition-colors gap-1',
-                menu.hidden
-                  ? 'border-dashed text-muted-foreground hover:bg-muted'
-                  : 'text-foreground hover:bg-secondary/80',
-              )}
-              onClick={() => onToggleHidden(menu)}
-              title="点击切换显示/隐藏状态"
-            >
-              {menu.hidden ? (
-                <>
-                  <EyeOff className="h-3 w-3 text-muted-foreground" />
-                  隐藏
-                </>
-              ) : (
-                <>
-                  <Eye className="h-3 w-3 text-primary" />
-                  显示
-                </>
-              )}
-            </Badge>
-          )}
-
-          {menu.path && (
-            <span className="text-xs text-muted-foreground font-mono">{menu.path}</span>
-          )}
-
-          {(menu as unknown as { perms?: string }).perms && (
-            <Badge variant="outline" className="text-xs font-mono">
-              {(menu as unknown as { perms: string }).perms}
-            </Badge>
-          )}
-
-          <span className="text-xs text-muted-foreground">排序: {menu.sort}</span>
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0 flex-nowrap pl-4">
-          {menu.type !== 'BUTTON' && (
-            <PermissionButton
-              perm="system:menu:add"
-              variant="ghost"
-              size="sm"
-              onClick={() => onAddChild(menu)}
-              title="新增子项"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </PermissionButton>
-          )}
-          <PermissionButton
-            perm="system:menu:edit"
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(menu)}
-            title="编辑"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </PermissionButton>
-          <PermissionButton
-            perm="system:menu:delete"
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(menu.id)}
-            title="删除"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </PermissionButton>
-        </div>
-      </div>
-
-      {hasChildren && isExpanded && (
-        <div className="space-y-1 mt-1">
-          {menu.children!.map((child) => (
-            <MenuTreeItem
-              key={child.id}
-              menu={child}
-              collapsedIds={collapsedIds}
-              onToggleExpand={onToggleExpand}
-              onToggleHidden={onToggleHidden}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onAddChild={onAddChild}
-              level={level + 1}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

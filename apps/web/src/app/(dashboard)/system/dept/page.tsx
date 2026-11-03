@@ -5,7 +5,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -23,7 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { TreeTable } from '@/components/common/tree-table';
 import { PermissionButton } from '@/components/common/permission-button';
 import { PageHeader } from '@/components/common/page-header';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -181,31 +181,78 @@ export default function DeptPage() {
         }
       />
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="w-full overflow-x-auto">
-            <div className="min-w-[640px] p-6">
-              {isLoading ? (
-                <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
-              ) : depts.length === 0 ? (
-                <div className="flex justify-center py-8 text-muted-foreground">暂无部门数据</div>
-              ) : (
-                <div className="space-y-2">
-                  {depts.map((dept) => (
-                    <DeptTreeItem
-                      key={dept.id}
-                      dept={dept}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onAddChild={handleCreateChild}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+      <TreeTable
+        columns={[
+          {
+            label: '部门名称',
+            span: 4,
+            render: (dept) => <span className="font-semibold">{dept.name}</span>,
+          },
+          {
+            label: '状态',
+            span: 2,
+            render: (dept) => (
+              <Badge variant={dept.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                {dept.status === 'ACTIVE' ? '正常' : '停用'}
+              </Badge>
+            ),
+          },
+          {
+            label: '排序',
+            span: 1,
+            key: 'sort',
+          },
+          {
+            label: '备注',
+            span: 3,
+            render: (dept) => (
+              <span
+                className="text-xs text-muted-foreground truncate block"
+                title={dept.remark || ''}
+              >
+                {dept.remark || '-'}
+              </span>
+            ),
+          },
+        ]}
+        data={depts}
+        isLoading={isLoading}
+        emptyText="暂无部门数据"
+        actionsSpan={2}
+        minWidth="min-w-[680px]"
+        actions={(dept) => (
+          <div className="flex items-center gap-1">
+            <PermissionButton
+              perm="system:dept:add"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleCreateChild(dept)}
+              title="新增子部门"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </PermissionButton>
+            <PermissionButton
+              perm="system:dept:edit"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(dept)}
+              title="编辑"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </PermissionButton>
+            <PermissionButton
+              perm="system:dept:delete"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(dept.id)}
+              title="删除"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </PermissionButton>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -308,103 +355,6 @@ export default function DeptPage() {
       </Dialog>
 
       <ConfirmDialog />
-    </div>
-  );
-}
-
-function DeptTreeItem({
-  dept,
-  onEdit,
-  onDelete,
-  onAddChild,
-  level = 0,
-}: {
-  dept: DeptTreeNodeDto;
-  onEdit: (dept: DeptTreeNodeDto) => void;
-  onDelete: (id: string) => void;
-  onAddChild: (dept: DeptTreeNodeDto) => void;
-  level?: number;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  const hasChildren = dept.children && dept.children.length > 0;
-
-  return (
-    <div>
-      <div
-        className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border transition-colors"
-        style={{ paddingLeft: `${level * 24 + 12}px` }}
-      >
-        <div className="flex items-center gap-2">
-          {hasChildren ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 p-0"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          ) : (
-            <span className="w-6" />
-          )}
-          <span className="font-medium text-sm">{dept.name}</span>
-          <Badge variant={dept.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
-            {dept.status === 'ACTIVE' ? '正常' : '停用'}
-          </Badge>
-          <span className="text-xs text-muted-foreground">排序: {dept.sort}</span>
-          {dept.remark && <span className="text-xs text-muted-foreground">({dept.remark})</span>}
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0 flex-nowrap pl-4">
-          <PermissionButton
-            perm="system:dept:add"
-            variant="ghost"
-            size="sm"
-            onClick={() => onAddChild(dept)}
-            title="新增子部门"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </PermissionButton>
-          <PermissionButton
-            perm="system:dept:edit"
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(dept)}
-            title="编辑"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </PermissionButton>
-          <PermissionButton
-            perm="system:dept:delete"
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(dept.id)}
-            title="删除"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </PermissionButton>
-        </div>
-      </div>
-
-      {hasChildren && expanded && (
-        <div className="space-y-1 mt-1">
-          {dept.children!.map((child) => (
-            <DeptTreeItem
-              key={child.id}
-              dept={child}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onAddChild={onAddChild}
-              level={level + 1}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
