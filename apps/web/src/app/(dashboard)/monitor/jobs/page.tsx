@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataTable } from '@/components/common/data-table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Play, Pause, Timer, Zap, History, PlayCircle, PauseCircle } from 'lucide-react';
@@ -174,7 +174,6 @@ export default function JobsPage() {
           return (
             <div className="flex items-center gap-1.5">
               <Link href={`/monitor/jobs/logs?jobName=${job.name}`}>
-
                 <Button variant="ghost" size="sm" className="h-7 text-xs px-2.5">
                   <History className="mr-1 h-3 w-3" />
                   日志

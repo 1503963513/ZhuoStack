@@ -36,7 +36,7 @@ import {
   Search,
 } from 'lucide-react';
 import { getErrorMessage, cn, copyText } from '@/lib/utils';
-import { DataTable, type Column } from '@/components/common/data-table';
+import { DataTable } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import {
   monitorControllerGetCacheInfo,
@@ -402,14 +402,10 @@ export default function CachePage() {
           {
             label: '大小',
             span: 1,
-            render: (item) => (
-              <span className="text-xs text-muted-foreground">
-                {item.size}
-              </span>
-            ),
+            render: (item) => <span className="text-xs text-muted-foreground">{item.size}</span>,
           },
         ]}
-        data={pagedKeys.map(k => ({ ...k, id: k.key }))}
+        data={pagedKeys.map((k) => ({ ...k, id: k.key }))}
         isLoading={isLoading}
         emptyText="未找到匹配的缓存键"
         actionsSpan={2}
