@@ -1,9 +1,19 @@
 'use client';
 
-import { useState, useMemo, type ReactNode } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { ChevronDown, ChevronRight, ChevronsUpDown, RefreshCw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Column } from './data-table';
 
@@ -22,10 +32,26 @@ export interface TreeTableProps<T extends { id: string; children?: T[] }> {
   rowClassName?: (row: T, level: number) => string;
   /** 表格最小保护宽度 */
   minWidth?: string;
-  /** 外部控制的已折叠节点 ID 集合 */
-  collapsedIds?: Set<string>;
-  /** 节点折叠/展开回调 */
-  onToggleExpand?: (id: string) => void;
+  /** 是否默认展开全部节点；默认 false，即全部折叠（仅非受控模式生效） */
+  defaultExpandAll?: boolean;
+  /** 是否显示全部展开/折叠按钮，默认 true */
+  showExpandControls?: boolean;
+  /** 是否显示节点数量统计，默认 true */
+  showStats?: boolean;
+  /** 是否启用节点搜索，默认 false */
+  searchable?: boolean;
+  /** 搜索框提示文案 */
+  searchPlaceholder?: string;
+  /** 返回参与搜索匹配的文本 */
+  getSearchText?: (row: T) => string;
+  /** 刷新按钮回调；不传则不显示刷新按钮 */
+  onRefresh?: () => void;
+  /** 是否正在刷新 */
+  isRefreshing?: boolean;
+  /** 外部控制的已展开节点 ID 集合 */
+  expandedIds?: Set<string>;
+  /** 已展开节点集合变更回调 */
+  onExpandedIdsChange?: (ids: Set<string>) => void;
   /** 缩进列的索引（默认 0 即第一列显示折叠展开箭头与层级缩进） */
   indentColumnIndex?: number;
   /** 每一级的缩进像素，默认 24 */
@@ -39,19 +65,86 @@ interface FlattenTreeItem<T> {
   isExpanded: boolean;
 }
 
+interface TreeSearchState {
+  includedIds: Set<string>;
+  matchedIds: Set<string>;
+  parentIds: Set<string>;
+}
+
 /**
- * 递归将树扁平化为当前可见列表（受折叠状态控制）
+ * 收集所有拥有子节点的 ID
+ */
+function collectParentIds<T extends { id: string; children?: T[] }>(data: T[]): Set<string> {
+  const ids = new Set<string>();
+
+  for (const node of data) {
+    if (node.children && node.children.length > 0) {
+      ids.add(node.id);
+      for (const childId of collectParentIds(node.children)) {
+        ids.add(childId);
+      }
+    }
+  }
+
+  return ids;
+}
+
+/**
+ * 统计树中全部节点数量
+ */
+function countTreeNodes<T extends { id: string; children?: T[] }>(data: T[]): number {
+  return data.reduce(
+    (total, node) => total + 1 + (node.children ? countTreeNodes(node.children) : 0),
+    0,
+  );
+}
+
+/**
+ * 收集搜索匹配节点及其祖先节点
+ */
+function collectSearchState<T extends { id: string; children?: T[] }>(
+  data: T[],
+  query: string,
+  getSearchText: (row: T) => string,
+  state: TreeSearchState,
+): boolean {
+  let hasMatch = false;
+
+  for (const node of data) {
+    const selfMatched = getSearchText(node).toLocaleLowerCase().includes(query);
+    if (selfMatched) state.matchedIds.add(node.id);
+
+    const childMatched = node.children
+      ? collectSearchState(node.children, query, getSearchText, state)
+      : false;
+
+    if (selfMatched || childMatched) state.includedIds.add(node.id);
+    if (childMatched) state.parentIds.add(node.id);
+    hasMatch ||= selfMatched || childMatched;
+  }
+
+  return hasMatch;
+}
+
+/**
+ * 递归将树扁平化为当前可见列表
  */
 function flattenTree<T extends { id: string; children?: T[] }>(
   data: T[],
-  collapsedIds: Set<string>,
+  expandedIds: Set<string>,
+  includedIds?: Set<string>,
   level = 0,
 ): FlattenTreeItem<T>[] {
   const result: FlattenTreeItem<T>[] = [];
 
   for (const node of data) {
-    const hasChildren = Boolean(node.children && node.children.length > 0);
-    const isExpanded = !collapsedIds.has(node.id);
+    if (includedIds && !includedIds.has(node.id)) continue;
+
+    const visibleChildren = includedIds
+      ? node.children?.filter((child) => includedIds.has(child.id))
+      : node.children;
+    const hasChildren = Boolean(visibleChildren && visibleChildren.length > 0);
+    const isExpanded = expandedIds.has(node.id);
 
     result.push({
       item: node,
@@ -61,11 +154,55 @@ function flattenTree<T extends { id: string; children?: T[] }>(
     });
 
     if (hasChildren && isExpanded && node.children) {
-      result.push(...flattenTree(node.children, collapsedIds, level + 1));
+      result.push(...flattenTree(node.children, expandedIds, includedIds, level + 1));
     }
   }
 
   return result;
+}
+
+/**
+ * 高亮文本中的搜索命中内容
+ */
+function highlightText(text: string, query: string): ReactNode {
+  if (!query) return text;
+
+  const normalizedText = text.toLocaleLowerCase();
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = normalizedText.indexOf(query);
+
+  while (matchIndex !== -1) {
+    if (matchIndex > cursor) parts.push(text.slice(cursor, matchIndex));
+    parts.push(
+      <mark
+        key={`match-${matchIndex}`}
+        className="rounded-sm bg-yellow-200 px-0.5 text-inherit dark:bg-yellow-500/30"
+      >
+        {text.slice(matchIndex, matchIndex + query.length)}
+      </mark>,
+    );
+    cursor = matchIndex + query.length;
+    matchIndex = normalizedText.indexOf(query, cursor);
+  }
+
+  if (parts.length === 0) return text;
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+}
+
+/**
+ * 递归高亮 ReactNode 中的文本，不修改原有节点结构
+ */
+function highlightNode(node: ReactNode, query: string): ReactNode {
+  if (!query) return node;
+  if (typeof node === 'string') return highlightText(node, query);
+  if (Array.isArray(node)) return Children.map(node, (child) => highlightNode(child, query));
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    if (node.props.children === undefined) return node;
+    return cloneElement(node, undefined, highlightNode(node.props.children, query));
+  }
+  return node;
 }
 
 /**
@@ -83,39 +220,224 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
   onRowClick,
   rowClassName,
   minWidth = 'min-w-[800px]',
-  collapsedIds: externalCollapsedIds,
-  onToggleExpand: externalToggleExpand,
+  defaultExpandAll = false,
+  showExpandControls = true,
+  showStats = true,
+  searchable = false,
+  searchPlaceholder = '搜索节点...',
+  getSearchText,
+  onRefresh,
+  isRefreshing = false,
+  expandedIds: externalExpandedIds,
+  onExpandedIdsChange,
   indentColumnIndex = 0,
   indentWidth = 24,
 }: TreeTableProps<T>) {
-  // 内部折叠状态（未传入 externalCollapsedIds 时使用）
-  const [internalCollapsedIds, setInternalCollapsedIds] = useState<Set<string>>(new Set());
+  const allParentIds = useMemo(() => collectParentIds(data), [data]);
+  const totalNodeCount = useMemo(() => countTreeNodes(data), [data]);
+  const defaultExpandedIds = useMemo(
+    () => (defaultExpandAll ? allParentIds : new Set<string>()),
+    [allParentIds, defaultExpandAll],
+  );
 
-  const currentCollapsedIds = externalCollapsedIds ?? internalCollapsedIds;
+  // null 表示用户尚未操作，仍使用 defaultExpandAll 决定的初始状态
+  const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchCollapsedIds, setSearchCollapsedIds] = useState<Set<string>>(new Set());
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const currentExpandedIds = externalExpandedIds ?? internalExpandedIds ?? defaultExpandedIds;
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase();
+  const isSearching = searchable && normalizedSearchQuery.length > 0;
+
+  const searchState = useMemo<TreeSearchState>(() => {
+    const state: TreeSearchState = {
+      includedIds: new Set(),
+      matchedIds: new Set(),
+      parentIds: new Set(),
+    };
+
+    if (isSearching) {
+      collectSearchState(data, normalizedSearchQuery, getSearchText ?? (() => ''), state);
+    }
+
+    return state;
+  }, [data, getSearchText, isSearching, normalizedSearchQuery]);
+
+  const searchExpandedIds = useMemo(() => {
+    if (!isSearching) return currentExpandedIds;
+
+    const ids = new Set<string>();
+    for (const id of searchState.parentIds) {
+      if (!searchCollapsedIds.has(id)) ids.add(id);
+    }
+    return ids;
+  }, [currentExpandedIds, isSearching, searchCollapsedIds, searchState.parentIds]);
+
+  const expandableParentIds = isSearching ? searchState.parentIds : allParentIds;
+
+  const isAllExpanded = useMemo(
+    () =>
+      expandableParentIds.size > 0 &&
+      [...expandableParentIds].every((id) => searchExpandedIds.has(id)),
+    [expandableParentIds, searchExpandedIds],
+  );
+
+  const visibleList = useMemo(() => {
+    return flattenTree(data, searchExpandedIds, isSearching ? searchState.includedIds : undefined);
+  }, [data, isSearching, searchExpandedIds, searchState.includedIds]);
+
+  const updateExpandedIds = (next: Set<string>) => {
+    if (externalExpandedIds !== undefined) {
+      onExpandedIdsChange?.(next);
+    } else {
+      setInternalExpandedIds(next);
+    }
+  };
 
   const handleToggle = (id: string) => {
-    if (externalToggleExpand) {
-      externalToggleExpand(id);
-    } else {
-      setInternalCollapsedIds((prev) => {
+    if (isSearching) {
+      setSearchCollapsedIds((prev) => {
         const next = new Set(prev);
         if (next.has(id)) next.delete(id);
         else next.add(id);
         return next;
       });
+      return;
     }
+
+    const next = new Set(currentExpandedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    updateExpandedIds(next);
   };
 
-  const visibleList = useMemo(() => {
-    return flattenTree(data, currentCollapsedIds);
-  }, [data, currentCollapsedIds]);
+  const handleToggleExpandAll = () => {
+    if (isSearching) {
+      setSearchCollapsedIds(isAllExpanded ? new Set(expandableParentIds) : new Set());
+      return;
+    }
+
+    updateExpandedIds(isAllExpanded ? new Set() : new Set(allParentIds));
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setSearchCollapsedIds(new Set());
+  };
+
+  const clearSearch = () => handleSearchChange('');
+
+  useEffect(() => {
+    if (!searchable) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isEditable =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable;
+
+      if (event.key === '/' && !isEditable && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+
+      if (event.key === 'Escape' && searchQuery) {
+        setSearchQuery('');
+        setSearchCollapsedIds(new Set());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery, searchable]);
 
   const totalSpan =
     columns.reduce((sum, c) => sum + (c.span || 1), 0) + (actions ? actionsSpan : 0);
+  const showToolbar = searchable || showStats || showExpandControls || Boolean(onRefresh);
+  const statsSummary = `共 ${totalNodeCount} 个${
+    isSearching ? ` · 匹配 ${searchState.matchedIds.size} 个` : ''
+  } · 当前显示 ${visibleList.length} 个`;
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
+        {showToolbar && (
+          <div className="flex min-w-0 flex-nowrap items-center gap-2 border-b px-3 py-2.5 sm:gap-3 sm:px-4">
+            {searchable && (
+              <div className="relative min-w-0 flex-1 sm:max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  aria-label={searchPlaceholder}
+                  className="h-9 pl-9 pr-9"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="清空搜索"
+                    className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showStats && (
+              <span
+                className="shrink-0 whitespace-nowrap text-xs text-muted-foreground"
+                aria-live="polite"
+                title={statsSummary}
+              >
+                <span className="hidden md:inline">{statsSummary}</span>
+                <span className="md:hidden">
+                  {visibleList.length}/{totalNodeCount}
+                </span>
+              </span>
+            )}
+
+            <div className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1">
+              {showExpandControls && expandableParentIds.size > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToggleExpandAll}
+                  aria-label={isAllExpanded ? '折叠全部节点' : '展开全部节点'}
+                  title={isAllExpanded ? '折叠全部节点' : '展开全部节点'}
+                >
+                  <ChevronsUpDown className="h-3.5 w-3.5 sm:mr-1.5" />
+                  <span className="hidden sm:inline">
+                    {isAllExpanded ? '全部折叠' : '全部展开'}
+                  </span>
+                </Button>
+              )}
+              {onRefresh && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  aria-label="刷新"
+                  title="刷新"
+                >
+                  <RefreshCw
+                    className={cn('h-3.5 w-3.5 sm:mr-1.5', isRefreshing && 'animate-spin')}
+                  />
+                  <span className="hidden sm:inline">刷新</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="w-full overflow-x-auto">
           <div className={cn('w-full', minWidth)}>
             {/* 表头 */}
@@ -149,6 +471,13 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
               <div className="p-12 text-center text-muted-foreground text-sm">加载中...</div>
             ) : data.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground text-sm">{emptyText}</div>
+            ) : visibleList.length === 0 && isSearching ? (
+              <div className="flex flex-col items-center gap-2 p-12 text-center text-sm text-muted-foreground">
+                <span>没有找到与“{searchQuery.trim()}”相关的节点</span>
+                <Button type="button" variant="link" size="sm" onClick={clearSearch}>
+                  清除搜索
+                </Button>
+              </div>
             ) : (
               <div className="divide-y">
                 {visibleList.map(({ item, level, hasChildren, isExpanded }) => {
@@ -170,12 +499,14 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
                       >
                         {columns.map((col, i) => {
                           const isIndentCol = i === indentColumnIndex;
-
                           const cellContent = col.render
                             ? col.render(item)
                             : col.key
                               ? ((item[col.key] as ReactNode) ?? '-')
                               : '-';
+                          const highlightedContent = isSearching
+                            ? highlightNode(cellContent, normalizedSearchQuery)
+                            : cellContent;
 
                           return (
                             <div
@@ -213,10 +544,12 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
                                   ) : (
                                     <span className="w-6 shrink-0 mr-1 inline-block" />
                                   )}
-                                  <div className="min-w-0 flex-1 truncate">{cellContent}</div>
+                                  <div className="min-w-0 flex-1 truncate">
+                                    {highlightedContent}
+                                  </div>
                                 </div>
                               ) : (
-                                cellContent
+                                highlightedContent
                               )}
                             </div>
                           );

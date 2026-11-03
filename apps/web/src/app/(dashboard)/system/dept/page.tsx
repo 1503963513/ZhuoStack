@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { TreeTable } from '@/components/common/tree-table';
 import { PermissionButton } from '@/components/common/permission-button';
 import { PageHeader } from '@/components/common/page-header';
@@ -65,6 +65,7 @@ export default function DeptPage() {
   const {
     data: response,
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: ['depts-tree'],
@@ -170,9 +171,6 @@ export default function DeptPage() {
         description="管理企业组织架构与层级关系"
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
             <PermissionButton perm="system:dept:add" onClick={handleCreate}>
               <Plus className="mr-2 h-4 w-4" />
               新增部门
@@ -218,6 +216,11 @@ export default function DeptPage() {
         data={depts}
         isLoading={isLoading}
         emptyText="暂无部门数据"
+        searchable
+        searchPlaceholder="搜索部门名称或备注..."
+        getSearchText={(dept) => [dept.name, dept.remark].filter(Boolean).join(' ')}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
         actionsSpan={2}
         minWidth="min-w-[680px]"
         actions={(dept) => (

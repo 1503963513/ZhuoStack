@@ -22,18 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  ChevronsUpDown,
-  Folder,
-  FileText,
-  MousePointer,
-  RefreshCw,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
+import { Plus, Pencil, Trash2, Folder, FileText, MousePointer, Eye, EyeOff } from 'lucide-react';
 import { IconPicker } from '@/components/common/icon-picker';
 import { TreeTable } from '@/components/common/tree-table';
 import { cn } from '@/lib/utils';
@@ -165,6 +154,7 @@ export default function MenuPage() {
   const {
     data: response,
     isLoading,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: ['menus-tree'],
@@ -173,49 +163,8 @@ export default function MenuPage() {
 
   const menus = useMemo(() => response?.data || [], [response]);
 
-  // ========== 展开 / 收起状态控制（默认全部展开，记录被手动收起的节点） ==========
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
-
-  // 收集所有拥有子节点的菜单 ID
-  const allParentIds = useMemo(() => {
-    const ids = new Set<string>();
-    const collect = (items: MenuTreeNodeDto[]) => {
-      for (const item of items) {
-        if (item.children && item.children.length > 0) {
-          ids.add(item.id);
-          collect(item.children);
-        }
-      }
-    };
-    collect(menus);
-    return ids;
-  }, [menus]);
-
-  // 是否当前为全部展开状态（没有被收起的节点）
-  const isAllExpanded = useMemo(() => {
-    return allParentIds.size > 0 && collapsedIds.size === 0;
-  }, [allParentIds, collapsedIds]);
-
-  // 一键切换全部展开 / 全部收起
-  const toggleExpandAll = () => {
-    if (isAllExpanded) {
-      // 全部收起：将所有父节点加入收起集合
-      setCollapsedIds(new Set(allParentIds));
-    } else {
-      // 全部展开：清空收起集合
-      setCollapsedIds(new Set());
-    }
-  };
-
-  // 单个节点切换展开 / 收起
-  const toggleExpand = (id: string) => {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  // 默认全部折叠，仅记录用户已展开的节点
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // ========== 创建与更新 Mutation ==========
   const createMutation = useMutation({
@@ -299,10 +248,10 @@ export default function MenuPage() {
       parentId: parentMenu.id,
       type: defaultType,
     }));
-    // 确保父节点处于展开状态（从收起集合中移除）
-    setCollapsedIds((prev) => {
+    // 新增子项后确保父节点处于展开状态
+    setExpandedIds((prev) => {
       const next = new Set(prev);
-      next.delete(parentMenu.id);
+      next.add(parentMenu.id);
       return next;
     });
     setDialogOpen(true);
@@ -373,18 +322,6 @@ export default function MenuPage() {
         description="管理系统的导航目录、菜单页面与操作按钮"
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleExpandAll}
-              title={isAllExpanded ? '一键折叠全部菜单' : '一键展开全部菜单'}
-            >
-              <ChevronsUpDown className="mr-1.5 h-3.5 w-3.5" />
-              {isAllExpanded ? '全部折叠' : '全部展开'}
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => refetch()} title="刷新">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
             <PermissionButton perm="system:menu:add" onClick={handleCreate}>
               <Plus className="mr-2 h-4 w-4" />
               新增菜单
@@ -507,10 +444,15 @@ export default function MenuPage() {
         data={menus}
         isLoading={isLoading}
         emptyText="暂无菜单数据"
+        searchable
+        searchPlaceholder="搜索菜单名称、路由或权限..."
+        getSearchText={(menu) => [menu.name, menu.path, menu.perms].filter(Boolean).join(' ')}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
         actionsSpan={3}
         minWidth="min-w-[1080px]"
-        collapsedIds={collapsedIds}
-        onToggleExpand={toggleExpand}
+        expandedIds={expandedIds}
+        onExpandedIdsChange={setExpandedIds}
         rowClassName={(menu) => (MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU).rowBg}
         actions={(menu) => (
           <div className="flex items-center gap-1">
