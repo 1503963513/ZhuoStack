@@ -37,7 +37,7 @@ import {
   dictControllerFindDataByDictId,
   dictControllerCreateData,
   dictControllerRemoveData,
-} from '@/api/generated/endpoints/系统-字典管理/系统-字典管理';
+} from '@/api/generated/endpoints/system-dict/system-dict';
 import type {
   DictItemDto,
   DictDataItemDto,

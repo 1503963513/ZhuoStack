@@ -6,26 +6,28 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { MenuService } from './menu.service';
 import { CreateMenuDto, UpdateMenuDto, MenuItemDto, MenuTreeNodeDto } from './dto';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import { Roles, ApiResultResponse, ApiErrorResponse } from '../../../common/decorators';
+import {
+  Permissions,
+  ApiResultResponse,
+  ApiErrorResponse,
+  ApiSessionAuth,
+} from '../../../common/decorators';
 import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
-import { Role } from '@prisma/client';
 
-@ApiTags('系统-菜单管理')
-@ApiBearerAuth()
-@UseGuards(RolesGuard)
+@ApiTags('system-menu')
+@ApiSessionAuth()
+@Permissions('system:menu')
 @Controller('system/menu')
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Permissions('system:menu:add')
   @ApiOperation({ summary: '创建菜单' })
   @ApiResultResponse(MenuItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   create(@Body() dto: CreateMenuDto) {
@@ -56,7 +58,7 @@ export class MenuController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:menu:edit')
   @ApiOperation({ summary: '更新菜单' })
   @ApiParam({ name: 'id', description: '菜单ID' })
   @ApiResultResponse(MenuItemDto, { description: '更新成功' })
@@ -66,7 +68,7 @@ export class MenuController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:menu:delete')
   @ApiOperation({ summary: '删除菜单' })
   @ApiParam({ name: 'id', description: '菜单ID' })
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })

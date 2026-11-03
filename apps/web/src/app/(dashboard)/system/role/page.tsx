@@ -46,8 +46,8 @@ import {
   roleControllerCreate,
   roleControllerUpdate,
   roleControllerRemove,
-} from '@/api/generated/endpoints/系统-角色管理/系统-角色管理';
-import { menuControllerFindTree } from '@/api/generated/endpoints/系统-菜单管理/系统-菜单管理';
+} from '@/api/generated/endpoints/system-role/system-role';
+import { menuControllerFindTree } from '@/api/generated/endpoints/system-menu/system-menu';
 import type { RoleItemDto, MenuTreeNodeDto, CreateRoleDtoStatus } from '@/api/generated/models';
 
 const TYPE_ICON_MAP: Record<string, typeof Folder> = {

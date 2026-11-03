@@ -2,7 +2,6 @@ import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role, Status, MenuType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import Redis from 'ioredis';
 
 function createPrismaAdapter(): PrismaMariaDb | PrismaPg {
   const databaseUrl = process.env.DATABASE_URL;
@@ -27,9 +26,16 @@ function createPrismaAdapter(): PrismaMariaDb | PrismaPg {
 const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('生产环境禁止执行会清空业务数据的 Seed');
+  }
+  if (process.env.SEED_ALLOW_DESTRUCTIVE !== 'true') {
+    throw new Error('Seed 会清空现有业务数据；请通过 pnpm db:seed/db:setup 执行并确认数据可丢弃');
+  }
+
   console.log('Seeding database...');
 
-  // Clean existing data（按依赖顺序删除）
+  // Clean existing data（仅限已显式确认的非生产环境）
   await prisma.sysDictData.deleteMany({});
   await prisma.sysDict.deleteMany({});
   await prisma.sysMenu.deleteMany({});
@@ -727,12 +733,14 @@ async function main() {
   // ========== 用户管理 ==========
   console.log('Creating users...');
 
-  // Create admin user
+  // Create admin user（仅用于本地示例数据，生产环境不会执行）
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@example.com',
+      email: adminEmail,
       name: 'Admin User',
-      password: await bcrypt.hash('admin123', 10),
+      password: await bcrypt.hash(adminPassword, 12),
       role: Role.ADMIN,
       avatar: null,
       deptId: deptTech.id,
@@ -759,7 +767,7 @@ async function main() {
       data: {
         email: u.email,
         name: u.name,
-        password: await bcrypt.hash('password123', 10),
+        password: await bcrypt.hash('Password@123', 12),
         role: Role.USER,
         avatar: null,
         deptId: u.deptId,
@@ -771,23 +779,7 @@ async function main() {
   }
 
   console.log('Seeding completed!');
-
-  // 清除 Redis 缓存
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-  const redis = new Redis(redisUrl, {
-    maxRetriesPerRequest: 1,
-    connectTimeout: 2000,
-    lazyConnect: true,
-  });
-  try {
-    await redis.connect();
-    await redis.flushdb();
-    console.log('Redis cache cleared');
-  } catch {
-    console.log('Redis not available, skipping cache clear');
-  } finally {
-    redis.disconnect();
-  }
+  console.log(`Development admin: ${adminEmail} / ${adminPassword}`);
 }
 
 main()

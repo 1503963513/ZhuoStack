@@ -6,26 +6,28 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { DeptService } from './dept.service';
 import { CreateDeptDto, UpdateDeptDto, DeptItemDto, DeptTreeNodeDto } from './dto';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import { Roles, ApiResultResponse, ApiErrorResponse } from '../../../common/decorators';
+import {
+  Permissions,
+  ApiResultResponse,
+  ApiErrorResponse,
+  ApiSessionAuth,
+} from '../../../common/decorators';
 import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
-import { Role } from '@prisma/client';
 
-@ApiTags('系统-部门管理')
-@ApiBearerAuth()
-@UseGuards(RolesGuard)
+@ApiTags('system-dept')
+@ApiSessionAuth()
+@Permissions('system:dept')
 @Controller('system/dept')
 export class DeptController {
   constructor(private readonly deptService: DeptService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Permissions('system:dept:add')
   @ApiOperation({ summary: '创建部门' })
   @ApiResultResponse(DeptItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   @ApiErrorResponse(HttpStatus.CONFLICT, '同级下已存在同名部门')
@@ -57,7 +59,7 @@ export class DeptController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dept:edit')
   @ApiOperation({ summary: '更新部门' })
   @ApiParam({ name: 'id', description: '部门ID' })
   @ApiResultResponse(DeptItemDto, { description: '更新成功' })
@@ -67,7 +69,7 @@ export class DeptController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dept:delete')
   @ApiOperation({ summary: '删除部门' })
   @ApiParam({ name: 'id', description: '部门ID' })
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })

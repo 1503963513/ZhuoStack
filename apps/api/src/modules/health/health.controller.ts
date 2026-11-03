@@ -1,6 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
+import {
+  Controller,
+  Get,
+  Logger,
+  Req,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FastifyRequest } from 'fastify';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../database/redis.service';
 import { Public } from '../../common/decorators';
@@ -9,101 +15,62 @@ import { Public } from '../../common/decorators';
 @Public()
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   constructor(
-    private readonly health: HealthCheckService,
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
   ) {}
 
   /**
-   * 综合健康检查（同时检查数据库与 Redis 连通性及耗时）
+   * 就绪检查只对外暴露汇总状态，数据库/Redis 错误细节仅写入服务端日志。
    */
   @Get()
-  @HealthCheck()
   @ApiOperation({ summary: '深度健康检查（就绪检查）' })
-  async check(): Promise<HealthCheckResult> {
-    return this.health.check([
-      // 1. 数据库连通性与延迟检测
-      async () => {
-        const start = Date.now();
-        try {
-          await this.prisma.$queryRaw`SELECT 1`;
-          const latencyMs = Date.now() - start;
-          return {
-            database: {
-              status: 'up' as const,
-              latencyMs,
-            },
-          };
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err);
-          return {
-            database: {
-              status: 'down' as const,
-              error: message,
-            },
-          };
-        }
-      },
-
-      // 2. Redis 连通性与延迟检测
-      async () => {
-        const client = this.redisService.getClient();
-        if (!client) {
-          return {
-            redis: {
-              status: 'up' as const,
-              mode: 'disabled_or_mock',
-            },
-          };
-        }
-
-        const start = Date.now();
-        try {
-          const pong = await client.ping();
-          const latencyMs = Date.now() - start;
-          const isUp = pong === 'PONG';
-          return {
-            redis: {
-              status: isUp ? ('up' as const) : ('down' as const),
-              latencyMs,
-            },
-          };
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err);
-          return {
-            redis: {
-              status: 'down' as const,
-              error: message,
-            },
-          };
-        }
-      },
+  async check(@Req() request: FastifyRequest) {
+    const checks = await Promise.allSettled([
+      this.prisma.$queryRaw`SELECT 1`,
+      this.checkRedis(),
     ]);
+    const failures = checks.flatMap((result, index) => {
+      if (result.status === 'fulfilled') return [];
+      const dependency = index === 0 ? 'database' : 'redis';
+      this.logger.error(
+        `${dependency} 健康检查失败 (${String(request.id)})`,
+        result.reason instanceof Error ? result.reason.stack : String(result.reason),
+      );
+      return [dependency];
+    });
+
+    if (failures.length > 0) {
+      throw new ServiceUnavailableException({
+        status: 'down',
+        requestId: String(request.id),
+      });
+    }
+
+    return { status: 'up', requestId: String(request.id) };
   }
 
-  /**
-   * 容器存活探针（Liveness Probe）
-   * 仅验证进程存活与事件循环正常，不深度挂钩外部依赖，避免依赖偶发抖动引发容器恶性反复重启
-   */
   @Get('liveness')
   @ApiOperation({ summary: '容器存活探针 (Liveness)' })
-  checkLiveness() {
-    return {
-      status: 'ok',
-      uptime: Math.floor(process.uptime()),
-      timestamp: new Date().toISOString(),
-    };
+  checkLiveness(@Req() request: FastifyRequest) {
+    return { status: 'up', requestId: String(request.id) };
   }
 
-  /**
-   * 容器就绪探针（Readiness Probe）
-   * 别名路由，严格验证 DB 与 Redis 就绪，用于反向代理流量切入
-   */
   @Get('readiness')
-  @HealthCheck()
   @ApiOperation({ summary: '容器就绪探针 (Readiness)' })
-  async checkReadiness(): Promise<HealthCheckResult> {
-    return this.check();
+  checkReadiness(@Req() request: FastifyRequest) {
+    return this.check(request);
+  }
+
+  private async checkRedis(): Promise<void> {
+    const client = this.redisService.getClient();
+    if (!client) return;
+
+    const pong = await client.ping();
+    if (pong !== 'PONG') {
+      throw new Error('Redis PING 返回异常');
+    }
   }
 }

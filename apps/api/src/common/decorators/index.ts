@@ -1,6 +1,8 @@
 export { CurrentUser } from './current-user.decorator';
 export { Public, IS_PUBLIC_KEY } from './public.decorator';
 export { Roles } from './roles.decorator';
+export { Permissions, PERMISSIONS_KEY } from './permissions.decorator';
+export { ApiSessionAuth } from './api-session-auth.decorator';
 export {
   ApiResultResponse,
   ApiPaginatedResultResponse,

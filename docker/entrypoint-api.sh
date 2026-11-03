@@ -7,8 +7,12 @@ if [ "${DB_MIGRATE_ON_START:-true}" = "true" ]; then
 fi
 
 if [ "${DB_SEED_ON_START:-false}" = "true" ]; then
+  if [ "${NODE_ENV:-production}" = "production" ]; then
+    echo "[deploy] 拒绝在生产环境执行数据库 Seed（DB_SEED_ON_START=true）" >&2
+    exit 1
+  fi
   echo "[deploy] 正在执行数据库种子填充（DB_SEED_ON_START=true）..."
-  node dist/prisma/seed.js 2>/dev/null || node -e "console.log('Seed executed')"
+  node dist/prisma/seed.js
 fi
 
 exec "$@"

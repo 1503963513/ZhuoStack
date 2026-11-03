@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database/prisma.service';
 import { RedisService } from '../../../database/redis.service';
+import { SessionService } from '../session.service';
 import * as crypto from 'crypto';
 import { extractAuthToken } from '../auth-security';
 import type { FastifyRequest } from 'fastify';
@@ -30,6 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RedisService) private readonly redisService: RedisService,
+    @Inject(SessionService) private readonly sessionService: SessionService,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
@@ -95,48 +97,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) implements OnModuleD
     if (!payload.jti) {
       throw new UnauthorizedException('Token 缺少会话标识，请重新登录');
     }
-    const activeJti = await this.redisService.get<string>(`token:active:${user.id}`, true);
-    if (!activeJti || activeJti !== payload.jti) {
-      throw new UnauthorizedException('会话已失效，请重新登录');
+    // 踢出标记优先检查，以便给用户明确提示；重新登录会清除该标记。
+    if (await this.sessionService.isKicked(user.id)) {
+      throw new UnauthorizedException('您的账号已被强制下线，请重新登录');
     }
 
-    // 检查是否被管理员踢出
-    const isKicked = await this.redisService.exists(`kicked:user:${user.id}`, true);
-    if (isKicked) {
-      throw new UnauthorizedException('您的账号已被强制下线，请重新登录');
+    const activeJti = await this.sessionService.getActiveJti(user.id);
+    if (!activeJti || activeJti !== payload.jti) {
+      throw new UnauthorizedException('会话已失效，请重新登录');
     }
 
     // 刷新或重新激活在线用户状态（节流：同一用户 5 分钟内只处理一次）
     const now = Date.now();
     const lastRefresh = this.onlineRefreshMap.get(user.id) || 0;
     if (now - lastRefresh > ONLINE_REFRESH_INTERVAL) {
-      const client = this.redisService.getClient();
-      if (client) {
-        const onlineKey = `online:user:${user.id}`;
-        const exists = await client.exists(onlineKey);
-        if (exists) {
-          // 在线 key 存在 → 刷新 TTL
-          await client.expire(onlineKey, 1800);
-        } else {
-          // 在线 key 已过期（用户空闲超过 30 分钟），但 JWT 仍然有效 → 重新激活在线状态
-          const ip = req.ip || 'unknown';
-          await client.set(
-            onlineKey,
-            JSON.stringify({
-              userId: user.id,
-              userName: user.name || user.email,
-              username: user.name || user.email,
-              email: user.email,
-              avatar: user.avatar,
-              ip,
-              loginTime: new Date().toISOString(),
-            }),
-            'EX',
-            1800,
-          );
-        }
-        this.onlineRefreshMap.set(user.id, now);
-      }
+      await this.sessionService.refreshOnline(user.id, payload.jti, {
+        userName: user.name || user.email,
+        email: user.email,
+        avatar: user.avatar,
+        ip: req.ip || 'unknown',
+      });
+      this.onlineRefreshMap.set(user.id, now);
     }
 
     return user;

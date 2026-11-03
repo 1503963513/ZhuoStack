@@ -7,6 +7,6 @@
  */
 
 export interface BatchDeleteDto {
-  /** 文件 ID 列表 */
+  /** 文件 ID 列表（最多 100 个） */
   ids: string[];
 }

@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsIn,
   IsNotEmpty,
@@ -29,7 +31,8 @@ export class MessageDto {
 export class ChatDto {
   @ApiProperty({ description: 'Array of chat messages', type: [MessageDto] })
   @IsArray()
-  @Max(20, { message: '消息条数不能超过 20 条' })
+  @ArrayMinSize(1, { message: '至少需要一条消息' })
+  @ArrayMaxSize(20, { message: '消息条数不能超过 20 条' })
   @ValidateNested({ each: true })
   @Type(() => MessageDto)
   messages: MessageDto[];

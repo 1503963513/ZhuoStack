@@ -43,7 +43,7 @@ import {
   monitorControllerGetCacheValue,
   monitorControllerDeleteCacheKey,
   monitorControllerClearAllCache,
-} from '@/api/generated/endpoints/系统-系统监控/系统-系统监控';
+} from '@/api/generated/endpoints/system-monitor/system-monitor';
 import type { CacheKeyDetailDto, CacheValueDto } from '@/api/generated/models';
 
 // 预定义的前缀分类定义

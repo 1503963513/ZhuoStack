@@ -12,7 +12,7 @@ services:
     cpus: ${DB_CPU_LIMIT:-1.0}
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-zhuostack}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zhuostack123}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:-zhuostack}
       PGDATA: /var/lib/database/postgres
       TZ: ${TZ:-Asia/Shanghai}
@@ -68,6 +68,7 @@ services:
 
   api:
     image: ${APP_IMAGE_PREFIX:-zhuostack}-api:${API_VERSION:-${APP_VERSION:-latest}}
+    user: "${DOCKER_UID:-1001}:${DOCKER_GID:-1001}"
     build:
       context: .
       dockerfile: docker/Dockerfile.api

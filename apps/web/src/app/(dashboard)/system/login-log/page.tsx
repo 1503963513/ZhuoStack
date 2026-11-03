@@ -26,7 +26,7 @@ import { getErrorMessage } from '@/lib/utils';
 import {
   logControllerGetLoginLogs,
   logControllerClearLoginLogs,
-} from '@/api/generated/endpoints/系统-日志管理/系统-日志管理';
+} from '@/api/generated/endpoints/system-log/system-log';
 import type { LoginLogItemDto } from '@/api/generated/models';
 
 export default function LoginLogPage() {

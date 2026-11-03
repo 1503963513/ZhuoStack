@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 export interface Column<T> {
   /** 列标题 */
   label: string;
-  /** grid col-span（默认 1） */
+  /** 相对宽度比例（默认 1） */
   span?: number;
   /** 自定义渲染，默认取 row[key] */
   render?: (row: T) => ReactNode;
@@ -25,6 +25,7 @@ interface DataTableProps<T> {
   emptyText?: string;
   /** 行操作列（放在最后） */
   actions?: (row: T) => ReactNode;
+  /** 操作列最小宽度（以 4rem 为一份，最少 1 份） */
   actionsSpan?: number;
   /** 操作列标题，默认为 "操作" */
   actionsLabel?: string;
@@ -34,24 +35,28 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   /** 行 className */
   rowClassName?: string;
-  /** 整体表格容器最小宽度（防止窄屏挤压溢出，默认 "min-w-[760px]"，可设为 "" 或自定义） */
+  /** 整体表格容器最小宽度（默认 "min-w-[760px]"） */
   minWidth?: string;
 }
 
 /**
+ * 数据列使用比例宽度，操作列使用 max-content。
+ * 这样按钮不会参与 `minmax(0, 1fr)` 挤压，也不会冲出表格滚动区域。
+ */
+export function buildTableGridTemplate<T>(
+  columns: Column<T>[],
+  actions: boolean,
+  actionsSpan: number,
+): string {
+  const dataTracks = columns.map((column) => `minmax(0, ${Math.max(1, column.span || 1)}fr)`);
+  if (actions) {
+    dataTracks.push(`minmax(${Math.max(1, actionsSpan) * 4}rem, max-content)`);
+  }
+  return dataTracks.join(' ');
+}
+
+/**
  * 通用响应式数据表格组件
- *
- * @example
- * <DataTable
- *   columns={[
- *     { label: '名称', key: 'name', span: 3 },
- *     { label: '状态', span: 2, render: (row) => <Badge>{row.status}</Badge> },
- *   ]}
- *   data={list}
- *   isLoading={isLoading}
- *   actions={(row) => <Button onClick={() => edit(row)}>编辑</Button>}
- *   actionsSpan={2}
- * />
  */
 export function DataTable<T extends { id: string }>({
   columns,
@@ -66,33 +71,37 @@ export function DataTable<T extends { id: string }>({
   rowClassName,
   minWidth = 'min-w-[760px]',
 }: DataTableProps<T>) {
-  const totalSpan = columns.reduce((sum, c) => sum + (c.span || 1), 0) + (actions ? actionsSpan : 0);
+  const gridTemplateColumns = buildTableGridTemplate(columns, Boolean(actions), actionsSpan);
+
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>, row: T) => {
+    if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    onRowClick(row);
+  };
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        {/* 外层水平滚动容器，防止列挤压或按钮超出 */}
         <div className="w-full overflow-x-auto">
-          <div className={cn('w-full', minWidth)}>
-            {/* 表头 */}
-            <div className="border-b px-4 py-3 font-medium bg-muted/20 text-muted-foreground text-sm">
-              <div
-                className="grid gap-4 items-center"
-                style={{ gridTemplateColumns: `repeat(${totalSpan}, minmax(0, 1fr))` }}
-              >
+          <div className={cn('w-full', minWidth)} role="table" aria-rowcount={data.length + 1}>
+            <div
+              className="border-b bg-muted/20 px-4 py-3 text-sm font-medium text-muted-foreground"
+              role="rowgroup"
+            >
+              <div className="grid items-center gap-4" style={{ gridTemplateColumns }} role="row">
                 {columns.map((col, i) => (
                   <div
                     key={i}
-                    className={cn('overflow-hidden truncate', col.className)}
-                    style={{ gridColumn: `span ${col.span || 1}` }}
+                    className={cn('min-w-0 overflow-hidden truncate', col.className)}
+                    role="columnheader"
                   >
                     {col.label}
                   </div>
                 ))}
                 {actions && (
                   <div
-                    className={cn('text-right pr-2 font-medium', actionsClassName)}
-                    style={{ gridColumn: `span ${actionsSpan}` }}
+                    className={cn('min-w-max pr-2 text-right font-medium', actionsClassName)}
+                    role="columnheader"
                   >
                     {actionsLabel}
                   </div>
@@ -100,48 +109,47 @@ export function DataTable<T extends { id: string }>({
               </div>
             </div>
 
-            {/* 加载与数据内容 */}
             {isLoading ? (
-              <div className="p-12 text-center text-muted-foreground text-sm">加载中...</div>
+              <div className="p-12 text-center text-sm text-muted-foreground">加载中...</div>
             ) : data.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground text-sm">{emptyText}</div>
+              <div className="p-12 text-center text-sm text-muted-foreground">{emptyText}</div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y" role="rowgroup">
                 {data.map((row) => (
                   <div
                     key={row.id}
                     className={cn(
-                      'px-4 py-3 hover:bg-muted/50 transition-colors',
-                      onRowClick && 'cursor-pointer',
+                      'px-4 py-3 transition-colors hover:bg-muted/50',
+                      onRowClick && 'cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                       rowClassName,
                     )}
                     onClick={() => onRowClick?.(row)}
+                    onKeyDown={(event) => handleRowKeyDown(event, row)}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    role="row"
                   >
-                    <div
-                      className="grid gap-4 items-center"
-                      style={{ gridTemplateColumns: `repeat(${totalSpan}, minmax(0, 1fr))` }}
-                    >
+                    <div className="grid items-center gap-4" style={{ gridTemplateColumns }}>
                       {columns.map((col, i) => (
                         <div
                           key={i}
-                          className={cn('text-sm overflow-hidden break-words min-w-0', col.className)}
-                          style={{ gridColumn: `span ${col.span || 1}` }}
+                          className={cn('min-w-0 overflow-hidden break-words text-sm', col.className)}
+                          role="cell"
                         >
                           {col.render
                             ? col.render(row)
                             : col.key
-                              ? (row[col.key] as ReactNode) ?? '-'
+                              ? ((row[col.key] as ReactNode) ?? '-')
                               : '-'}
                         </div>
                       ))}
                       {actions && (
                         <div
                           className={cn(
-                            'flex items-center justify-end gap-1.5 flex-nowrap shrink-0 whitespace-nowrap min-w-0',
+                            'flex min-w-max flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap',
                             actionsClassName,
                           )}
-                          style={{ gridColumn: `span ${actionsSpan}` }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                          role="cell"
                         >
                           {actions(row)}
                         </div>

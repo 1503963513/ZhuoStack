@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsEmail, IsArray, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsArray, MinLength, MaxLength, IsEnum } from 'class-validator';
+import { Role } from '@prisma/client';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto {
@@ -20,13 +21,14 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ description: '用户密码（留空不修改）' })
   @IsOptional()
   @IsString()
-  @MinLength(6, { message: '密码至少 6 个字符' })
+  @MinLength(8, { message: '密码至少 8 个字符' })
+  @MaxLength(128, { message: '密码不能超过 128 个字符' })
   password?: string;
 
   @ApiPropertyOptional({ description: '系统角色', example: 'USER' })
   @IsOptional()
-  @IsString()
-  role?: string;
+  @IsEnum(Role, { message: '系统角色不合法' })
+  role?: Role;
 
   @ApiPropertyOptional({ description: '部门 ID' })
   @IsOptional()

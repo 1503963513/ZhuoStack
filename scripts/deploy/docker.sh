@@ -75,7 +75,7 @@ docker_deploy() {
       local upload_dir
       upload_dir=$(env_value .env.deploy HOST_UPLOAD_DIR ./uploads)
       mkdir -p "$upload_dir" docker/uploads 2>/dev/null || true
-      chmod -R 777 "$upload_dir" docker/uploads 2>/dev/null || true
+      chmod -R u+rwX,g+rwX,o-rwx "$upload_dir" docker/uploads 2>/dev/null || true
 
       local target_services=()
       if [ -f .offline-components ]; then

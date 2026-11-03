@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dictControllerFindByCode } from '@/api/generated/endpoints/系统-字典管理/系统-字典管理';
+import { dictControllerFindByCode } from '@/api/generated/endpoints/system-dict/system-dict';
 import type { DictDataItemDto } from '@/api/generated/models';
 
 /**

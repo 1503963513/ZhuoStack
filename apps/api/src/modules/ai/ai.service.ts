@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import {
@@ -36,15 +36,22 @@ export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly openai: OpenAI;
   private readonly defaultModel: string;
-  private readonly defaultMaxTokens: number;
+  private readonly maxRequestTokens: number;
+  private readonly allowedModels: Set<string>;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     const baseURL = this.configService.get<string>('OPENAI_BASE_URL');
     this.defaultModel =
       this.configService.get<string>('OPENAI_MODEL') || 'gpt-4o';
-    this.defaultMaxTokens =
-      parseInt(this.configService.get<string>('OPENAI_MAX_TOKENS') || '4096', 10);
+    this.maxRequestTokens = this.readPositiveInteger('OPENAI_MAX_TOKENS', 4096);
+    this.allowedModels = new Set(
+      (this.configService.get<string>('OPENAI_ALLOWED_MODELS') || this.defaultModel)
+        .split(',')
+        .map((model) => model.trim())
+        .filter(Boolean),
+    );
+    this.allowedModels.add(this.defaultModel);
 
     this.openai = new OpenAI({
       apiKey: apiKey || 'sk-placeholder',
@@ -60,9 +67,11 @@ export class AiService {
       messages,
       model = this.defaultModel,
       temperature = 0.7,
-      maxTokens = this.defaultMaxTokens,
+      maxTokens = this.maxRequestTokens,
+      abortSignal,
     } = options;
 
+    this.validateRequest(messages, model, maxTokens);
     this.logger.log(`Chat completion request with model: ${model}`);
 
     const formattedMessages: ChatCompletionMessageParam[] = messages.map(
@@ -72,12 +81,15 @@ export class AiService {
       }),
     );
 
-    const response = await this.openai.chat.completions.create({
-      model,
-      messages: formattedMessages,
-      temperature,
-      max_tokens: maxTokens,
-    });
+    const response = await this.openai.chat.completions.create(
+      {
+        model,
+        messages: formattedMessages,
+        temperature,
+        max_tokens: maxTokens,
+      },
+      { signal: abortSignal },
+    );
 
     const choice = response.choices[0];
     return {
@@ -104,10 +116,11 @@ export class AiService {
       messages,
       model = this.defaultModel,
       temperature = 0.7,
-      maxTokens = this.defaultMaxTokens,
+      maxTokens = this.maxRequestTokens,
       abortSignal,
     } = options;
 
+    this.validateRequest(messages, model, maxTokens);
     this.logger.log(`Streaming chat request with model: ${model}`);
 
     const formattedMessages: ChatCompletionMessageParam[] = messages.map(
@@ -118,13 +131,16 @@ export class AiService {
     );
 
     const stream: Stream<ChatCompletionChunk> =
-      await this.openai.chat.completions.create({
-        model,
-        messages: formattedMessages,
-        temperature,
-        max_tokens: maxTokens,
-        stream: true,
-      });
+      await this.openai.chat.completions.create(
+        {
+          model,
+          messages: formattedMessages,
+          temperature,
+          max_tokens: maxTokens,
+          stream: true,
+        },
+        { signal: abortSignal },
+      );
 
     for await (const chunk of stream) {
       if (abortSignal?.aborted) break;
@@ -141,14 +157,40 @@ export class AiService {
   async prompt(
     content: string,
     systemPrompt?: string,
-  ): Promise<string> {
+    model?: string,
+  ): Promise<ChatResponse> {
     const messages: ChatMessage[] = [];
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt });
     }
     messages.push({ role: 'user', content });
 
-    const result = await this.chatCompletion({ messages });
-    return result.content;
+    return this.chatCompletion({ messages, model });
+  }
+
+  private validateRequest(
+    messages: ChatMessage[],
+    model: string,
+    maxTokens: number,
+  ): void {
+    if (!this.allowedModels.has(model)) {
+      throw new BadRequestException(`不支持的 AI 模型: ${model}`);
+    }
+    if (!Number.isInteger(maxTokens) || maxTokens < 1) {
+      throw new BadRequestException('maxTokens 必须为正整数');
+    }
+    if (maxTokens > this.maxRequestTokens) {
+      throw new BadRequestException(`maxTokens 不能超过 ${this.maxRequestTokens}`);
+    }
+
+    const totalCharacters = messages.reduce((total, message) => total + message.content.length, 0);
+    if (totalCharacters > 20_000) {
+      throw new BadRequestException('对话内容总长度不能超过 20000 字符');
+    }
+  }
+
+  private readPositiveInteger(key: string, fallback: number): number {
+    const value = parseInt(this.configService.get<string>(key) || String(fallback), 10);
+    return Number.isSafeInteger(value) && value > 0 ? value : fallback;
   }
 }

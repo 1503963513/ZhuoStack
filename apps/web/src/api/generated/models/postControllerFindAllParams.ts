@@ -12,7 +12,8 @@ export type PostControllerFindAllParams = {
  */
 page?: number;
 /**
- * 每页数量
+ * 每页数量，最大 100
+ * @maximum 100
  */
 pageSize?: number;
 /**

@@ -1,9 +1,10 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
 import type { ApiResponse } from '@/types/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTabsStore } from '@/stores/tabs-store';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
+import { clearPublicKeyCache } from '@/lib/crypto';
 
 // 直接请求后端 API（静态站点无 Node.js 服务端，不做代理）
 // 开发环境 .env.local 设置 NEXT_PUBLIC_API_URL=http://localhost:3100
@@ -12,6 +13,51 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 /** 防止 401 时多次跳转 */
 let isRedirecting = false;
+
+type RetryableRequestConfig = AxiosRequestConfig & { _retry?: boolean };
+
+interface ApiErrorPayload {
+  message?: string;
+  requestId?: string;
+}
+
+/** 并发 401 共用同一次刷新请求，避免重复轮换 Token。 */
+let refreshPromise: Promise<void> | null = null;
+
+function isAuthEntryRequest(url?: string): boolean {
+  return Boolean(url && /\/(auth\/login|auth\/register|auth\/refresh)(?:\?|$)/.test(url));
+}
+
+function handleSessionExpired(message?: string): void {
+  if (typeof window === 'undefined' || isRedirecting) return;
+  isRedirecting = true;
+  toast.error(message || '登录已过期，请重新登录');
+  useAuthStore.getState().clearAuth();
+  useTabsStore.getState().resetTabs();
+  setTimeout(() => window.location.replace('/login'), 1500);
+}
+
+async function refreshAccessToken(): Promise<void> {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(
+        `${BASE_URL}/api/auth/refresh`,
+        undefined,
+        {
+          withCredentials: true,
+          withXSRFToken: true,
+          xsrfCookieName: CSRF_COOKIE_NAME,
+          xsrfHeaderName: CSRF_HEADER_NAME,
+          timeout: 10000,
+        },
+      )
+      .then(() => undefined)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
 
 /** Create axios instance with default config */
 function createApiClient(): AxiosInstance {
@@ -28,36 +74,54 @@ function createApiClient(): AxiosInstance {
   // Response interceptor: handle 401 and extract backend error message
   client.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error: AxiosError) => {
+      const status = error.response?.status;
+      const requestConfig = error.config as RetryableRequestConfig | undefined;
+      const isAuthenticated =
+        typeof window !== 'undefined' && useAuthStore.getState().isAuthenticated;
+
       if (
-        error.response?.status === 401 &&
-        typeof window !== 'undefined' &&
-        useAuthStore.getState().isAuthenticated &&
-        !isRedirecting
+        status === 401 &&
+        isAuthenticated &&
+        requestConfig &&
+        !requestConfig._retry &&
+        !isAuthEntryRequest(requestConfig.url)
       ) {
-        isRedirecting = true;
-        // 提取后端错误信息并弹出提示
-        const message = error.response?.data?.message || '登录已过期，请重新登录';
-        toast.error(message);
-        // HttpOnly Cookie 由服务端管理；这里只清除非敏感的前端用户状态与标签页。
-        useAuthStore.getState().clearAuth();
-        useTabsStore.getState().resetTabs();
-        // 延迟跳转，让 toast 显示一会儿
-        setTimeout(() => {
-          window.location.replace('/login');
-        }, 1500);
+        requestConfig._retry = true;
+        try {
+          await refreshAccessToken();
+          return await client.request(requestConfig);
+        } catch (refreshError) {
+          const refreshMessage =
+            (refreshError as AxiosError<{ message?: string }>).response?.data?.message ||
+            '登录已过期，请重新登录';
+          handleSessionExpired(refreshMessage);
+          return Promise.reject(refreshError);
+        }
+      }
+
+      if (
+        status === 401 &&
+        isAuthenticated
+      ) {
+        const message = (error.response?.data as { message?: string } | undefined)?.message;
+        handleSessionExpired(message);
       }
 
       // 从响应头或后端响应体中提取全链路请求关联 ID，便于排障定位
-      const reqId = error.response?.headers?.['x-request-id'] || error.response?.data?.requestId;
+      const responseData = error.response?.data as ApiErrorPayload | undefined;
+      const reqId = error.response?.headers?.['x-request-id'] || responseData?.requestId;
       if (reqId) {
-        error.requestId = reqId;
+        (error as AxiosError & { requestId?: string }).requestId = reqId;
       }
 
       // 从后端响应体中提取 message，替换 Axios 默认错误信息
-      const backendMessage = error.response?.data?.message;
+      const backendMessage = responseData?.message;
       if (backendMessage) {
         error.message = backendMessage;
+        if (String(backendMessage).includes('密码解密失败')) {
+          clearPublicKeyCache();
+        }
       }
 
       return Promise.reject(error);

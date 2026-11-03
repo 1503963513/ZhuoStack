@@ -16,6 +16,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { PermissionsGuard } from './common/guards/permissions.guard';
 import { RedisThrottlerStorage } from './common/throttling/redis-throttler.storage';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
@@ -74,6 +75,8 @@ const apiEnvFile = `.env.${nodeEnv}`;
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     // 默认拒绝匿名访问，仅 @Public() 路由例外
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // 菜单/按钮级权限校验，默认对未声明权限的接口放行
+    { provide: APP_GUARD, useClass: PermissionsGuard },
     // Global response transformer
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     // Global operation log

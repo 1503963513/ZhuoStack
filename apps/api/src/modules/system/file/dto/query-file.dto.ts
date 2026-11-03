@@ -1,22 +1,8 @@
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { PaginationQueryDto } from '../../../../common/dto';
+import { IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 
-export class QueryFileDto {
-  @ApiPropertyOptional({ description: '页码', example: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
-
-  @ApiPropertyOptional({ description: '每页条数', example: 10 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  pageSize?: number = 10;
-
+export class QueryFileDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: '文件名搜索' })
   @IsOptional()
   @IsString()

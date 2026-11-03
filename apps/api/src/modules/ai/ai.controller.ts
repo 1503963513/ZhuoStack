@@ -1,17 +1,17 @@
 import { Controller, Post, Body, Sse } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProduces } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiProduces } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Observable } from 'rxjs';
 import { AiService, ChatMessage } from './ai.service';
 import { ChatDto, StreamChatDto, PromptDto, ChatResponseDto, PromptResponseDto } from './dto';
-import { ApiResultResponse } from '../../common/decorators/api-result.decorator';
+import { ApiResultResponse, ApiSessionAuth } from '../../common/decorators';
 
 interface SseMessage {
   data: string;
 }
 
 @ApiTags('ai')
-@ApiBearerAuth()
+@ApiSessionAuth()
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
@@ -93,7 +93,6 @@ export class AiController {
   @ApiOperation({ summary: '简单提示 - 发送消息获取回复' })
   @ApiResultResponse(PromptResponseDto, { description: '请求成功' })
   async prompt(@Body() dto: PromptDto) {
-    const result = await this.aiService.prompt(dto.content, dto.systemPrompt);
-    return { content: result, model: dto.model || 'default' };
+    return this.aiService.prompt(dto.content, dto.systemPrompt, dto.model);
   }
 }

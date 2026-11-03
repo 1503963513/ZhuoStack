@@ -9,6 +9,7 @@ import { PrismaService } from '../src/database/prisma.service';
 import { RedisService } from '../src/database/redis.service';
 import {
   AUTH_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   csrfTokensMatch,
@@ -106,6 +107,7 @@ describe('API Contract & Runtime E2E Tests', () => {
       $queryRaw: jest.fn().mockResolvedValue([{ result: 1 }]),
       $connect: jest.fn(),
       $disconnect: jest.fn(),
+      $transaction: jest.fn(),
       user: {
         findUnique: jest.fn().mockImplementation(({ where }) => {
           if (where.email === mockAdminUser.email || where.id === mockAdminUser.id) {
@@ -155,9 +157,12 @@ describe('API Contract & Runtime E2E Tests', () => {
         create: jest.fn().mockResolvedValue({ id: 'login-log-1' }),
       },
     };
+    prismaMock.$transaction.mockImplementation(
+      async (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock),
+    );
 
     // 基于内存 Map 的 Mock Redis
-    const redisStorage = new Map<string, string>();
+    const redisStorage = new Map<string, unknown>();
     const redisMock = {
       getClient: jest.fn().mockReturnValue(null),
       get: jest.fn().mockImplementation((key: string) => {
@@ -167,6 +172,16 @@ describe('API Contract & Runtime E2E Tests', () => {
         redisStorage.set(key, val);
         return Promise.resolve();
       }),
+      compareAndSet: jest
+        .fn()
+        .mockImplementation((key: string, expected: unknown, next: unknown) => {
+          const current = redisStorage.get(key);
+          if (JSON.stringify(current) !== JSON.stringify(expected)) {
+            return Promise.resolve(false);
+          }
+          redisStorage.set(key, next);
+          return Promise.resolve(true);
+        }),
       del: jest.fn().mockImplementation((key: string) => {
         redisStorage.delete(key);
         return Promise.resolve();
@@ -223,8 +238,9 @@ describe('API Contract & Runtime E2E Tests', () => {
       if (pathname === '/api/auth/login' || pathname === '/api/auth/register') return;
 
       const authCookie = request.cookies[AUTH_COOKIE_NAME];
+      const requiresCsrf = Boolean(authCookie) || pathname === '/api/auth/refresh';
       const authorization = request.headers.authorization;
-      if (!authCookie || authorization?.match(/^Bearer\s+/i)) return;
+      if (!requiresCsrf || authorization?.match(/^Bearer\s+/i)) return;
 
       const csrfCookie = request.cookies[CSRF_COOKIE_NAME];
       const csrfHeaderValue = request.headers[CSRF_HEADER_NAME];
@@ -262,6 +278,7 @@ describe('API Contract & Runtime E2E Tests', () => {
   describe('认证 Cookie 与双提交 CSRF 机制', () => {
     let authCookie = '';
     let csrfCookie = '';
+    let refreshCookie = '';
 
     it('POST /api/auth/login 成功时返回 Set-Cookie 并匹配 OpenAPI 成功结构', async () => {
       // 1. 获取公钥并加密密码
@@ -317,15 +334,64 @@ describe('API Contract & Runtime E2E Tests', () => {
       // 验证 Cookie 设置
       const cookies = loginRes.cookies;
       const accessTokenCookie = cookies.find((c) => c.name === AUTH_COOKIE_NAME);
+      const refreshTokenCookie = cookies.find((c) => c.name === REFRESH_COOKIE_NAME);
       const csrfTokenCookie = cookies.find((c) => c.name === CSRF_COOKIE_NAME);
 
       expect(accessTokenCookie).toBeDefined();
       expect(accessTokenCookie?.httpOnly).toBe(true); // 必须是 HttpOnly
+      expect(refreshTokenCookie).toBeDefined();
+      expect(refreshTokenCookie?.httpOnly).toBe(true);
+      expect(refreshTokenCookie?.path).toBe('/api/auth');
       expect(csrfTokenCookie).toBeDefined();
       expect(csrfTokenCookie?.httpOnly).toBeFalsy(); // CSRF Cookie 前端可读
 
       authCookie = `${accessTokenCookie?.name}=${accessTokenCookie?.value}`;
+      refreshCookie = `${refreshTokenCookie?.name}=${refreshTokenCookie?.value}`;
       csrfCookie = `${csrfTokenCookie?.name}=${csrfTokenCookie?.value}`;
+    });
+
+    it('刷新接口即使访问令牌缺失，也拒绝不带 CSRF 请求头的 Cookie 请求', async () => {
+      const res = await fastifyInstance.inject({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        headers: { cookie: `${refreshCookie}; ${csrfCookie}` },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(JSON.parse(res.payload).message).toContain('CSRF 校验失败');
+    });
+
+    it('刷新接口轮换 Refresh Token，旧 Token 不能重放', async () => {
+      const oldRefreshCookie = refreshCookie;
+      const csrfValue = csrfCookie.split('=')[1];
+      const refreshRes = await fastifyInstance.inject({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        headers: {
+          cookie: `${refreshCookie}; ${csrfCookie}`,
+          'x-csrf-token': csrfValue,
+        },
+      });
+
+      expect(refreshRes.statusCode).toBe(200);
+      const rotatedAccess = refreshRes.cookies.find((c) => c.name === AUTH_COOKIE_NAME);
+      const rotatedRefresh = refreshRes.cookies.find((c) => c.name === REFRESH_COOKIE_NAME);
+      expect(rotatedAccess).toBeDefined();
+      expect(rotatedRefresh).toBeDefined();
+      expect(rotatedRefresh?.value).not.toBe(oldRefreshCookie.split('=')[1]);
+
+      authCookie = `${rotatedAccess?.name}=${rotatedAccess?.value}`;
+      refreshCookie = `${rotatedRefresh?.name}=${rotatedRefresh?.value}`;
+
+      const replayRes = await fastifyInstance.inject({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        headers: {
+          cookie: `${oldRefreshCookie}; ${csrfCookie}`,
+          'x-csrf-token': csrfValue,
+        },
+      });
+      expect(replayRes.statusCode).toBe(401);
     });
 
     it('使用 Cookie 发起 POST 修改操作时，缺失 x-csrf-token 应被 403 阻断', async () => {
@@ -426,7 +492,7 @@ describe('API Contract & Runtime E2E Tests', () => {
         code: 403,
         data: null,
       });
-      expect(body.message).toMatch(/permission|Forbidden/i);
+      expect(body.message).toBe('无权访问该资源');
     });
 
     it('GET /api/auth/menus 响应结构严格符合 OpenAPI 树形结构', async () => {
@@ -648,7 +714,7 @@ describe('API Contract & Runtime E2E Tests', () => {
 
   // ========== 6. 深度健康检查与探针契约 ==========
   describe('健康检查与探针端点', () => {
-    it('GET /health/liveness 存活探针返回 status: ok 与进程运行指标', async () => {
+    it('GET /health/liveness 存活探针返回 status: up 与请求标识', async () => {
       const res = await fastifyInstance.inject({
         method: 'GET',
         url: '/health/liveness',
@@ -661,14 +727,13 @@ describe('API Contract & Runtime E2E Tests', () => {
         message: 'success',
         requestId: expect.any(String),
         data: {
-          status: 'ok',
-          uptime: expect.any(Number),
-          timestamp: expect.any(String),
+          status: 'up',
+          requestId: expect.any(String),
         },
       });
     });
 
-    it('GET /health 深度就绪检查返回 database 与 redis 状态及延迟', async () => {
+    it('GET /health 深度就绪检查返回未脱敏的汇总状态与请求标识', async () => {
       const res = await fastifyInstance.inject({
         method: 'GET',
         url: '/health',
@@ -677,10 +742,9 @@ describe('API Contract & Runtime E2E Tests', () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.payload);
       const healthData = body.data || body;
-      expect(healthData.status).toBe('ok');
-      expect(healthData.info).toHaveProperty('database');
-      expect(healthData.info.database.status).toBe('up');
-      expect(healthData.info).toHaveProperty('redis');
+      expect(healthData.status).toBe('up');
+      expect(healthData.requestId).toEqual(expect.any(String));
+      expect(healthData).not.toHaveProperty('info');
     });
   });
 });

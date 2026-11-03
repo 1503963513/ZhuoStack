@@ -34,7 +34,7 @@ import {
   postControllerCreate,
   postControllerUpdate,
   postControllerRemove,
-} from '@/api/generated/endpoints/系统-岗位管理/系统-岗位管理';
+} from '@/api/generated/endpoints/system-post/system-post';
 import type { PostItemDto, CreatePostDtoStatus } from '@/api/generated/models';
 
 export default function PostPage() {

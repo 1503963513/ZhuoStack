@@ -7,10 +7,9 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { DictService } from './dict.service';
 import {
   CreateDictDto,
@@ -22,19 +21,18 @@ import {
   DictDataItemDto,
   DictWithDataDto,
 } from './dto';
-import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
-  Roles,
+  Permissions,
+  ApiSessionAuth,
   ApiResultResponse,
   ApiPaginatedResultResponse,
   ApiErrorResponse,
 } from '../../../common/decorators';
 import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
-import { Role } from '@prisma/client';
 
-@ApiTags('系统-字典管理')
-@ApiBearerAuth()
-@UseGuards(RolesGuard)
+@ApiTags('system-dict')
+@ApiSessionAuth()
+@Permissions('system:dict')
 @Controller('system/dict')
 export class DictController {
   constructor(private readonly dictService: DictService) {}
@@ -42,7 +40,7 @@ export class DictController {
   // ========== 字典管理 ==========
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Permissions('system:dict:add')
   @ApiOperation({ summary: '创建字典' })
   @ApiResultResponse(DictItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   @ApiErrorResponse(HttpStatus.CONFLICT, '字典编码已存在')
@@ -76,7 +74,7 @@ export class DictController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dict:edit')
   @ApiOperation({ summary: '更新字典' })
   @ApiParam({ name: 'id', description: '字典ID' })
   @ApiResultResponse(DictItemDto, { description: '更新成功' })
@@ -86,7 +84,7 @@ export class DictController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dict:delete')
   @ApiOperation({ summary: '删除字典' })
   @ApiParam({ name: 'id', description: '字典ID' })
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
@@ -98,7 +96,7 @@ export class DictController {
   // ========== 字典数据管理 ==========
 
   @Post('data')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dict:data')
   @ApiOperation({ summary: '创建字典数据' })
   @ApiResultResponse(DictDataItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   createData(@Body() dto: CreateDictDataDto) {
@@ -114,7 +112,7 @@ export class DictController {
   }
 
   @Put('data/:id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dict:data')
   @ApiOperation({ summary: '更新字典数据' })
   @ApiParam({ name: 'id', description: '字典数据ID' })
   @ApiResultResponse(DictDataItemDto, { description: '更新成功' })
@@ -124,7 +122,7 @@ export class DictController {
   }
 
   @Delete('data/:id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:dict:data')
   @ApiOperation({ summary: '删除字典数据' })
   @ApiParam({ name: 'id', description: '字典数据ID' })
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })

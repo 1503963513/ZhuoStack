@@ -89,6 +89,65 @@ export class FileStorageService {
     }
   }
 
+  async putFile(
+    key: string,
+    filePath: string,
+    mimeType: string,
+    size: number,
+  ): Promise<StoredObject> {
+    const normalizedKey = this.withObjectPrefix(key);
+
+    switch (this.storageType) {
+      case 'local': {
+        const destination = this.resolveLocalPath(normalizedKey);
+        await fs.promises.mkdir(path.dirname(destination), { recursive: true });
+        await fs.promises.copyFile(filePath, destination);
+        return {
+          key: normalizedKey,
+          url: `${this.urlPrefix}/${this.encodeObjectKey(normalizedKey)}`,
+          storageType: 'local',
+        };
+      }
+      case 'aliyun': {
+        // @types/ali-oss 将运行时可选字段错误标成必填。
+        const options = {
+          contentLength: size,
+          timeout: 120_000,
+          mime: mimeType,
+        } as OSS.PutStreamOptions;
+        await this.getAliyunClient().putStream(
+          normalizedKey,
+          fs.createReadStream(filePath),
+          options,
+        );
+        return {
+          key: normalizedKey,
+          url: this.buildAliyunPublicUrl(normalizedKey),
+          storageType: 'aliyun',
+        };
+      }
+      case 'tencent': {
+        await this.getTencentClient().putObject({
+          Bucket: this.required('TENCENT_COS_BUCKET'),
+          Region: this.required('TENCENT_COS_REGION'),
+          Key: normalizedKey,
+          Body: fs.createReadStream(filePath),
+          ContentLength: size,
+          ContentType: mimeType,
+        });
+        return {
+          key: normalizedKey,
+          url: this.buildTencentPublicUrl(normalizedKey),
+          storageType: 'tencent',
+        };
+      }
+    }
+  }
+
+  createLocalReadStream(key: string): fs.ReadStream {
+    return fs.createReadStream(this.resolveLocalPath(key));
+  }
+
   async get(storageType: string, key: string): Promise<Buffer> {
     const type = this.parseRecordStorageType(storageType);
 

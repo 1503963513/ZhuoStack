@@ -11,7 +11,8 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../database/redis.service';
 import { LogService } from '../log/log.service';
-import { MonitorService } from '../monitor/monitor.service';
+import { SessionService } from './session.service';
+import { RsaKeyService, type PublicKeyMaterial } from './rsa-key.service';
 import { LoginDto, RegisterDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
@@ -32,6 +33,7 @@ interface TokenResult {
 
 export interface AuthResponse {
   access_token: string;
+  refresh_token: string;
   user: {
     id: string;
     email: string;
@@ -61,59 +63,28 @@ export interface MenuTreeNode {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  /** RSA 密钥对（服务启动时生成，重启后更换） */
-  private readonly rsaPublicKey: string;
-  private readonly rsaPrivateKey: string;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
     private readonly logService: LogService,
-    private readonly monitorService: MonitorService,
-  ) {
-    // 启动时生成 RSA-2048 密钥对
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    this.rsaPublicKey = publicKey;
-    this.rsaPrivateKey = privateKey;
-    this.logger.log('RSA 密钥对已生成');
-  }
+    private readonly sessionService: SessionService,
+    private readonly rsaKeyService: RsaKeyService,
+  ) {}
 
   /**
    * 获取 RSA 公钥（前端用于加密密码）
    */
-  getPublicKey(): string {
-    return this.rsaPublicKey;
+  getPublicKey(): PublicKeyMaterial {
+    return this.rsaKeyService.getPublicKey();
   }
 
   /**
-   * 使用 RSA-PKCS1v1.5 解密前端传来的密码密文（JSEncrypt 使用此填充）
-   * @param encrypted Base64 编码的密文
-   * @returns 解密后的明文密码
+   * 解密前端使用 RSA-OAEP (SHA-256) 加密的密码。
    */
   decryptPassword(encrypted: string): string {
-    try {
-      const buffer = Buffer.from(encrypted, 'base64');
-      this.logger.debug(`解密: Base64长度=${encrypted.length}, Buffer长度=${buffer.length}`);
-      const decrypted = crypto.privateDecrypt(
-        {
-          key: this.rsaPrivateKey,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: 'sha-256',
-        },
-        new Uint8Array(buffer),
-      );
-      return decrypted.toString('utf8');
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      this.logger.error(`RSA 解密失败: ${errMsg}, 输入长度=${encrypted.length}`);
-      throw new UnauthorizedException('密码解密失败，请刷新页面重试');
-    }
+    return this.rsaKeyService.decryptPassword(encrypted);
   }
 
   /**
@@ -151,7 +122,7 @@ export class AuthService {
 
     // RSA 解密前端传来的密码密文，再 bcrypt 哈希
     const plainPassword = this.decryptPassword(dto.password);
-    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+    const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
     // Create user
     const user = await this.prisma.user.create({
@@ -170,11 +141,7 @@ export class AuthService {
       },
     });
 
-    // Generate JWT token
-    const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
-
-    // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
-    await this.redisService.set(`token:active:${user.id}`, jti, this.tokenTtlSeconds(), true);
+    const session = await this.establishSession(user, ip, uaInfo);
 
     // 记录注册成功日志
     await this.logService.createLoginLog({
@@ -187,7 +154,7 @@ export class AuthService {
       msg: '注册成功',
     });
 
-    return { access_token: token, user };
+    return session;
   }
 
   // 登录失败锁定配置
@@ -245,13 +212,9 @@ export class AuthService {
 
     // 登录成功，清除失败计数和踢出标记
     await this.redisService.del(`login:attempts:${dto.email}`, true);
-    await this.redisService.del(`kicked:user:${user.id}`, true);
+    await this.sessionService.clearKicked(user.id);
 
-    // Generate JWT token
-    const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
-
-    // 记录当前活跃 token 的 jti（实现单设备登录：旧 token 自动失效）
-    await this.redisService.set(`token:active:${user.id}`, jti, this.tokenTtlSeconds(), true);
+    const session = await this.establishSession(user, ip, uaInfo);
 
     // 记录登录成功日志
     await this.logService.createLoginLog({
@@ -264,9 +227,78 @@ export class AuthService {
       msg: '登录成功',
     });
 
-    // 记录在线用户完整信息
-    await this.monitorService.userOnline({
-      userId: user.id,
+    return session;
+  }
+
+  /** 使用一次性 Refresh Token 轮换访问令牌和刷新令牌。 */
+  async refreshSession(
+    refreshToken: string,
+    ip?: string,
+    uaInfo?: { browser?: string; os?: string },
+  ): Promise<AuthResponse> {
+    const separator = refreshToken.indexOf('.');
+    const userId = separator > 0 ? refreshToken.slice(0, separator) : '';
+    if (!userId || separator === refreshToken.length - 1) {
+      throw new UnauthorizedException('刷新会话无效，请重新登录');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatar: true,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException('刷新会话无效，请重新登录');
+    }
+
+    const session = await this.establishSession(user, ip, uaInfo, refreshToken);
+    return session;
+  }
+
+  /**
+   * 建立单设备会话：签发短期 JWT、一次性轮换的 Refresh Token，并激活两者。
+   * 若传入 previousRefreshToken，则只有该令牌仍为当前值时才会完成轮换。
+   */
+  private async establishSession(
+    user: {
+      id: string;
+      email: string;
+      name: string | null;
+      role: string;
+      avatar: string | null;
+    },
+    ip?: string,
+    uaInfo?: { browser?: string; os?: string },
+    previousRefreshToken?: string,
+  ): Promise<AuthResponse> {
+    const { token, jti } = this.generateToken({ sub: user.id, email: user.email });
+    const refreshToken = this.generateRefreshToken(user.id);
+    const refreshTtl = this.refreshTtlSeconds();
+
+    if (previousRefreshToken) {
+      const rotated = await this.sessionService.rotateRefresh(
+        user.id,
+        this.hashRefreshToken(previousRefreshToken),
+        this.hashRefreshToken(refreshToken),
+        refreshTtl,
+      );
+      if (!rotated) {
+        throw new UnauthorizedException('刷新会话已失效，请重新登录');
+      }
+    } else {
+      await this.sessionService.activateRefresh(
+        user.id,
+        this.hashRefreshToken(refreshToken),
+        refreshTtl,
+      );
+    }
+
+    await this.sessionService.activate(user.id, jti, this.tokenTtlSeconds(), {
       userName: user.name || user.email,
       email: user.email,
       avatar: user.avatar,
@@ -277,6 +309,7 @@ export class AuthService {
 
     return {
       access_token: token,
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -285,6 +318,14 @@ export class AuthService {
         avatar: user.avatar,
       },
     };
+  }
+
+  private generateRefreshToken(userId: string): string {
+    return `${userId}.${crypto.randomBytes(32).toString('base64url')}`;
+  }
+
+  private hashRefreshToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   /**
@@ -435,6 +476,11 @@ export class AuthService {
     return this.redisService.incr(attemptsKey, this.LOCKOUT_DURATION, true);
   }
 
+  /** 吊销用户的全部当前端会话（登出、改密、重置密码、删除用户、踢下线）。 */
+  async revokeUserSessions(userId: string, options: { kicked?: boolean } = {}): Promise<boolean> {
+    return this.sessionService.revokeUserSessions(userId, options);
+  }
+
   /**
    * 将 Token 加入黑名单（登出/改密码时调用）
    * 使用 SHA-256 哈希的前 32 字符作为 Redis key，节省内存
@@ -499,5 +545,9 @@ export class AuthService {
 
   private tokenTtlSeconds(): number {
     return durationToSeconds(this.configService.get<string>('JWT_EXPIRES_IN', '8h'));
+  }
+
+  private refreshTtlSeconds(): number {
+    return durationToSeconds(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'));
   }
 }

@@ -7,6 +7,8 @@
  */
 
 export interface PublicKeyResponseDto {
-  /** RSA-2048 公钥内容 */
+  /** RSA-2048 公钥内容（PEM） */
   publicKey: string;
+  /** 公钥版本标识，用于前端缓存失效 */
+  kid: string;
 }

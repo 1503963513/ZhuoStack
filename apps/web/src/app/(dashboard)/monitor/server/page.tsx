@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/common/page-header';
 import { Loading } from '@/components/common/loading';
 import { RefreshCw, Server, Cpu, MemoryStick, Clock } from 'lucide-react';
-import { monitorControllerGetServerInfo } from '@/api/generated/endpoints/系统-系统监控/系统-系统监控';
+import { monitorControllerGetServerInfo } from '@/api/generated/endpoints/system-monitor/system-monitor';
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';

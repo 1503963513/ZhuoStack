@@ -155,6 +155,7 @@ switch (action) {
         'tsx',
         join(prismaDir, 'seed.ts'),
       ],
+      { SEED_ALLOW_DESTRUCTIVE: 'true' },
     );
     break;
 
@@ -180,6 +181,7 @@ switch (action) {
         'tsx',
         join(prismaDir, 'seed.ts'),
       ],
+      { SEED_ALLOW_DESTRUCTIVE: 'true' },
     );
     console.log(`\n🎉 ${provider} 数据库初始化全部完成！`);
     break;

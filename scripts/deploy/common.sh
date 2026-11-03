@@ -66,6 +66,53 @@ ensure_redis_password() {
   esac
 }
 
+ensure_rsa_keypair() {
+  local file=$1 private_b64 public_b64 temp_dir private_file public_file derived_file
+  private_b64=$(env_value "$file" RSA_PRIVATE_KEY_B64 '')
+  public_b64=$(env_value "$file" RSA_PUBLIC_KEY_B64 '')
+  case "$private_b64" in CHANGE_ME_*) private_b64='' ;; esac
+  case "$public_b64" in CHANGE_ME_*) public_b64='' ;; esac
+
+  if [ -n "$private_b64" ] && [ -n "$public_b64" ]; then
+    command -v openssl >/dev/null 2>&1 || die "校验 RSA 密钥需要 openssl"
+    temp_dir=$(mktemp -d)
+    trap 'rm -rf "$temp_dir"' RETURN
+    printf '%s' "$private_b64" | openssl base64 -d -A > "$temp_dir/private.pem" 2>/dev/null \
+      || die "$file 中 RSA_PRIVATE_KEY_B64 不是有效的 Base64"
+    printf '%s' "$public_b64" | openssl base64 -d -A > "$temp_dir/public.pem" 2>/dev/null \
+      || die "$file 中 RSA_PUBLIC_KEY_B64 不是有效的 Base64"
+    openssl pkey -in "$temp_dir/private.pem" -check -noout >/dev/null 2>&1 \
+      || die "$file 中 RSA_PRIVATE_KEY_B64 不是有效的私钥"
+    openssl pkey -pubin -in "$temp_dir/public.pem" -noout >/dev/null 2>&1 \
+      || die "$file 中 RSA_PUBLIC_KEY_B64 不是有效的公钥"
+    openssl pkey -in "$temp_dir/private.pem" -pubout -out "$temp_dir/derived-public.pem" >/dev/null 2>&1
+    if ! cmp -s "$temp_dir/public.pem" "$temp_dir/derived-public.pem"; then
+      die "$file 中 RSA_PUBLIC_KEY_B64 与 RSA_PRIVATE_KEY_B64 不匹配"
+    fi
+    rm -rf "$temp_dir"
+    trap - RETURN
+    return 0
+  fi
+
+  if [ -n "$private_b64" ] || [ -n "$public_b64" ]; then
+    die "$file 中 RSA_PUBLIC_KEY_B64 与 RSA_PRIVATE_KEY_B64 必须同时配置"
+  fi
+
+  command -v openssl >/dev/null 2>&1 || die "生成 RSA 密钥需要 openssl"
+  temp_dir=$(mktemp -d)
+  private_file="$temp_dir/private.pem"
+  public_file="$temp_dir/public.pem"
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$private_file" >/dev/null 2>&1
+  openssl pkey -in "$private_file" -pubout -out "$public_file" >/dev/null 2>&1
+  chmod 600 "$private_file"
+  private_b64=$(openssl base64 -A -in "$private_file")
+  public_b64=$(openssl base64 -A -in "$public_file")
+  set_env_value "$file" RSA_PRIVATE_KEY_B64 "$private_b64"
+  set_env_value "$file" RSA_PUBLIC_KEY_B64 "$public_b64"
+  rm -rf "$temp_dir"
+  info "已为 $file 生成固定 RSA-2048 密钥对"
+}
+
 db_type_from_file() {
   local file=$1 value
   value=$(env_value "$file" DB_TYPE postgres)
@@ -84,6 +131,33 @@ ensure_database_config() {
   case "$db_type:$database_url" in
     postgres:postgres://*|postgres:postgresql://*|mysql:mysql://*) ;;
     *) die "$file 的 DB_TYPE=$db_type 与 DATABASE_URL 协议不匹配" ;;
+  esac
+}
+
+ensure_database_passwords() {
+  local file=$1 db_type value key
+  # 外部数据库不读取这些内置容器变量，其凭据只通过 DATABASE_URL 管理。
+  if [ "$(env_value "$file" EXTERNAL_DB false)" = true ]; then
+    return 0
+  fi
+  db_type=$(db_type_from_file "$file")
+  if [ "$db_type" = mysql ]; then
+    for key in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD; do
+      value=$(env_value "$file" "$key" '')
+      case "$value" in
+        ''|root|password|123456|root123|zhuostack123|CHANGE_ME_*)
+          die "$file 中 $key 仍为空、占位符或弱密码；请先在数据库中修改对应用户密码，再同步更新配置"
+          ;;
+      esac
+    done
+    return 0
+  fi
+
+  value=$(env_value "$file" POSTGRES_PASSWORD '')
+  case "$value" in
+    ''|postgres|password|123456|zhuostack123|CHANGE_ME_*)
+      die "$file 中 POSTGRES_PASSWORD 仍为空、占位符或弱密码；请先在数据库中修改对应用户密码，再同步更新配置"
+      ;;
   esac
 }
 
@@ -109,8 +183,15 @@ ensure_deploy_env() {
     chmod 600 .env.deploy 2>/dev/null || true
     warn "已创建 .env.deploy 并生成数据库密码和 JWT 密钥；生产部署前请检查 CORS_ORIGIN 与 TLS 证书"
   fi
+  # 容器以执行部署的用户 UID/GID 运行，上传目录无需再放开为 777。
+  set_env_value .env.deploy DOCKER_UID "$(id -u)"
+  set_env_value .env.deploy DOCKER_GID "$(id -g)"
+  # 旧版模板曾默认开启 Seed；部署时强制关闭，避免误删生产数据。
+  set_env_value .env.deploy DB_SEED_ON_START false
+  ensure_database_passwords .env.deploy
   ensure_strong_jwt .env.deploy
   ensure_redis_password .env.deploy
+  ensure_rsa_keypair .env.deploy
   ensure_database_config .env.deploy
 }
 
@@ -128,6 +209,7 @@ ensure_api_env() {
   set_env_value "$env_file" NODE_ENV production
   chmod 600 "$env_file" 2>/dev/null || true
   ensure_strong_jwt "$env_file"
+  ensure_rsa_keypair "$env_file"
   ensure_database_config "$env_file"
 }
 

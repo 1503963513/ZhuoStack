@@ -12,7 +12,8 @@ export type FileControllerFindAllParams = {
  */
 page?: number;
 /**
- * 每页条数
+ * 每页数量，最大 100
+ * @maximum 100
  */
 pageSize?: number;
 /**

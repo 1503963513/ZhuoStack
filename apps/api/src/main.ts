@@ -1,12 +1,10 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
 import fastifyCookie from '@fastify/cookie';
-import fastifyStatic from '@fastify/static';
 import fastifyMultipart from '@fastify/multipart';
 import type { IncomingMessage } from 'http';
 import type { Http2ServerRequest } from 'http2';
@@ -14,6 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import { AppModule } from './app.module';
 import {
   AUTH_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   csrfTokensMatch,
@@ -52,7 +51,11 @@ async function bootstrap() {
     process.exit(1);
   }
   try {
-    durationToSeconds(process.env.JWT_EXPIRES_IN || '8h');
+    const accessTtl = durationToSeconds(process.env.JWT_EXPIRES_IN || '8h');
+    const refreshTtl = durationToSeconds(process.env.JWT_REFRESH_EXPIRES_IN || '7d');
+    if (refreshTtl <= accessTtl) {
+      throw new Error('JWT_REFRESH_EXPIRES_IN 必须大于 JWT_EXPIRES_IN');
+    }
   } catch (error) {
     logger.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
@@ -149,8 +152,9 @@ async function bootstrap() {
     if (pathname === '/api/auth/login' || pathname === '/api/auth/register') return;
 
     const authCookie = request.cookies[AUTH_COOKIE_NAME];
+    const requiresCsrf = Boolean(authCookie) || pathname === '/api/auth/refresh';
     const authorization = request.headers.authorization;
-    if (!authCookie || authorization?.match(/^Bearer\s+/i)) return;
+    if (!requiresCsrf || authorization?.match(/^Bearer\s+/i)) return;
 
     const csrfCookie = request.cookies[CSRF_COOKIE_NAME];
     const csrfHeaderValue = request.headers[CSRF_HEADER_NAME];
@@ -200,31 +204,8 @@ async function bootstrap() {
     limits: { fileSize: maxFileSizeMB * 1024 * 1024 },
   });
 
-  // 本地静态文件服务；云存储模式下如果本地目录仍存在，继续提供历史文件。
-  const fileStorageType = process.env.FILE_STORAGE_TYPE || 'local';
-  const storagePath = process.env.FILE_STORAGE_PATH || 'uploads';
-  const urlPrefix = process.env.FILE_URL_PREFIX || '/files';
-  const uploadsDir = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(process.cwd(), storagePath);
-  const shouldServeLocalFiles = fileStorageType === 'local' || fs.existsSync(uploadsDir);
-  if (shouldServeLocalFiles) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    await app.register(fastifyStatic, {
-      root: uploadsDir,
-      prefix: `${urlPrefix}/`,
-      decorateReply: false,
-      setHeaders: (res) => {
-        res.header('Cache-Control', 'public, max-age=2592000'); // 30 天
-        res.header('X-Content-Type-Options', 'nosniff');
-        // 即使历史目录中残留 HTML/SVG，也禁止其在同源上下文执行脚本。
-        res.header('Content-Security-Policy', "default-src 'none'; sandbox");
-      },
-    });
-    logger.log(`本地静态文件服务: ${urlPrefix} → ${uploadsDir}`);
-  } else {
-    logger.log(`云文件存储已启用: ${fileStorageType}`);
-  }
+  // 本地文件不再通过静态目录公开访问，统一走带鉴权和归属校验的下载接口。
+  logger.log(`文件存储模式: ${process.env.FILE_STORAGE_TYPE || 'local'}`);
 
   // Global prefix（健康检查探针路由均不带 /api 前缀）
   app.setGlobalPrefix('api', {
@@ -289,7 +270,25 @@ async function bootstrap() {
       .setTitle('ZhuoStack API')
       .setDescription('ZhuoStack 基于 NestJS + Fastify + Prisma 的 API 文档')
       .setVersion('1.0')
-      .addBearerAuth()
+      .addBearerAuth(undefined, 'bearer')
+      .addCookieAuth(
+        AUTH_COOKIE_NAME,
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          description: '浏览器登录后由服务端写入的 HttpOnly 访问令牌',
+        },
+        'cookie',
+      )
+      .addCookieAuth(
+        REFRESH_COOKIE_NAME,
+        {
+          type: 'apiKey',
+          in: 'cookie',
+          description: '仅发送到认证路由的一次性刷新令牌',
+        },
+        'refresh-cookie',
+      )
       .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);

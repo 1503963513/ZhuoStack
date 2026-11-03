@@ -741,3 +741,68 @@ export const useFileControllerDownload = <TError = unknown,
       > => {
       return useMutation(getFileControllerDownloadMutationOptions(options), queryClient);
     }
+    /**
+ * @summary 预览文件（需要登录并有文件访问权限）
+ */
+export const fileControllerContent = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<void>(
+      {url: `/api/system/file/content/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFileControllerContentMutationKey = () => ['fileControllerContent'] as const;
+
+export const getFileControllerContentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fileControllerContent>>, TError,FileControllerContentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof fileControllerContent>>, TError,FileControllerContentMutationVariables, TContext> => {
+
+const mutationKey = getFileControllerContentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof fileControllerContent>>, FileControllerContentMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  fileControllerContent(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FileControllerContentMutationResult = NonNullable<Awaited<ReturnType<typeof fileControllerContent>>>
+
+    export type FileControllerContentMutationError = unknown
+    export type FileControllerContentMutationVariables = {id: string}
+
+    /**
+ * @summary 预览文件（需要登录并有文件访问权限）
+ */
+export const useFileControllerContent = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fileControllerContent>>, TError,FileControllerContentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof fileControllerContent>>,
+        TError,
+        FileControllerContentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFileControllerContentMutationOptions(options), queryClient);
+    }

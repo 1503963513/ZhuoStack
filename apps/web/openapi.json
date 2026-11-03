@@ -193,10 +193,88 @@
         ]
       }
     },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "必须与 csrf_token Cookie 一致",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "刷新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AuthSuccessResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "刷新会话已失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF 校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "refresh-cookie": []
+          }
+        ],
+        "summary": "轮换刷新会话并签发新的访问令牌",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/profile": {
       "get": {
         "operationId": "AuthController_getProfile",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取用户资料成功",
@@ -233,6 +311,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取当前用户资料",
@@ -244,7 +325,17 @@
     "/api/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "退出成功",
@@ -271,6 +362,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "退出登录（Token 失效）",
@@ -282,7 +376,17 @@
     "/api/auth/menus": {
       "get": {
         "operationId": "AuthController_getUserMenus",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取菜单列表成功",
@@ -312,6 +416,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取当前用户的菜单权限（按角色过滤）",
@@ -324,6 +431,15 @@
       "get": {
         "operationId": "LogController_getOperLogs",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -338,8 +454,9 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页数量",
+            "description": "每页数量，最大 100",
             "schema": {
+              "maximum": 100,
               "default": 10,
               "type": "number"
             }
@@ -406,16 +523,29 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取操作日志列表",
         "tags": [
-          "系统-日志管理"
+          "system-log"
         ]
       },
       "delete": {
         "operationId": "LogController_clearOperLogs",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "清除成功",
@@ -442,11 +572,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "清除过期操作日志（保留最近 7 天）",
         "tags": [
-          "系统-日志管理"
+          "system-log"
         ]
       }
     },
@@ -454,6 +587,15 @@
       "get": {
         "operationId": "LogController_getLoginLogs",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -468,8 +610,9 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页数量",
+            "description": "每页数量，最大 100",
             "schema": {
+              "maximum": 100,
               "default": 10,
               "type": "number"
             }
@@ -536,16 +679,29 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取登录日志列表",
         "tags": [
-          "系统-日志管理"
+          "system-log"
         ]
       },
       "delete": {
         "operationId": "LogController_clearLoginLogs",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "清除成功",
@@ -572,670 +728,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "清除过期登录日志（保留最近 7 天）",
         "tags": [
-          "系统-日志管理"
-        ]
-      }
-    },
-    "/api/monitor/cache": {
-      "get": {
-        "operationId": "MonitorController_getCacheInfo",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/CacheInfoDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取缓存信息",
-        "tags": [
-          "系统-系统监控"
-        ]
-      },
-      "delete": {
-        "operationId": "MonitorController_clearAllCache",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "清空成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "清空所有缓存",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/cache/value/{key}": {
-      "get": {
-        "operationId": "MonitorController_getCacheValue",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "description": "缓存键",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/CacheValueDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取指定缓存键的值与详细信息",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/cache/{key}": {
-      "delete": {
-        "operationId": "MonitorController_deleteCacheKey",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "description": "缓存键",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "删除成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "删除指定缓存键",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/online": {
-      "get": {
-        "operationId": "MonitorController_getOnlineUsers",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/OnlineUserItemDto"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取在线用户列表",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/online/{userId}": {
-      "delete": {
-        "operationId": "MonitorController_kickUser",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "description": "用户ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "强制用户下线",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/jobs": {
-      "get": {
-        "operationId": "MonitorController_getJobs",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/JobItemDto"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取定时任务列表",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/jobs/{name}/start": {
-      "post": {
-        "operationId": "MonitorController_startJob",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "path",
-            "description": "任务名称",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "启动定时任务",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/jobs/{name}/stop": {
-      "post": {
-        "operationId": "MonitorController_stopJob",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "path",
-            "description": "任务名称",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "停止定时任务",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/jobs/{name}/run": {
-      "post": {
-        "operationId": "MonitorController_runJob",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "path",
-            "description": "任务名称",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "立即执行一次定时任务",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/jobs/logs": {
-      "get": {
-        "operationId": "MonitorController_findJobLogs",
-        "parameters": [
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "当前页码",
-            "schema": {
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "description": "每页条数",
-            "schema": {
-              "default": 10,
-              "type": "number"
-            }
-          },
-          {
-            "name": "jobName",
-            "required": false,
-            "in": "query",
-            "description": "任务标识名称",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "description": "执行状态: 1-成功, 0-失败",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "allOf": [
-                            {
-                              "$ref": "#/components/schemas/PaginatedDataDto"
-                            },
-                            {
-                              "properties": {
-                                "data": {
-                                  "type": "array",
-                                  "items": {
-                                    "$ref": "#/components/schemas/JobLogItemDto"
-                                  }
-                                },
-                                "pagination": {
-                                  "$ref": "#/components/schemas/PaginationMetaDto"
-                                }
-                              }
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取定时任务执行日志",
-        "tags": [
-          "系统-系统监控"
-        ]
-      },
-      "delete": {
-        "operationId": "MonitorController_clearJobLogs",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "清空成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "清空定时任务日志",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/server": {
-      "get": {
-        "operationId": "MonitorController_getServerInfo",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/ServerInfoDto"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取服务器运行信息",
-        "tags": [
-          "系统-系统监控"
-        ]
-      }
-    },
-    "/api/monitor/health": {
-      "get": {
-        "operationId": "MonitorController_getHealthCheck",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiResponseDto"
-                    },
-                    {
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "nullable": true,
-                          "default": null
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "获取最近一次健康检查结果",
-        "tags": [
-          "系统-系统监控"
+          "system-log"
         ]
       }
     },
     "/api/user": {
       "post": {
         "operationId": "UserController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1282,6 +799,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建新用户（管理员）",
@@ -1292,6 +812,15 @@
       "get": {
         "operationId": "UserController_findAll",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -1306,8 +835,9 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页数量",
+            "description": "每页数量，最大 100",
             "schema": {
+              "maximum": 100,
               "default": 10,
               "type": "number"
             }
@@ -1365,6 +895,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取用户列表（管理员）",
@@ -1377,6 +910,15 @@
       "get": {
         "operationId": "UserController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -1423,6 +965,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取用户详情（管理员）",
@@ -1433,6 +978,15 @@
       "put": {
         "operationId": "UserController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -1489,6 +1043,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新用户（管理员）",
@@ -1499,6 +1056,15 @@
       "delete": {
         "operationId": "UserController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -1545,6 +1111,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除用户（管理员）",
@@ -1556,7 +1125,17 @@
     "/api/user/change-password": {
       "post": {
         "operationId": "UserController_changePassword",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1613,6 +1192,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "修改密码",
@@ -1627,161 +1209,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The Health Check is successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    },
-                    "info": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "error": {
-                      "type": "object",
-                      "example": {},
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "details": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The Health Check is not successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "error"
-                    },
-                    "info": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "error": {
-                      "type": "object",
-                      "example": {
-                        "redis": {
-                          "status": "down",
-                          "message": "Could not connect"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "details": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        },
-                        "redis": {
-                          "status": "down",
-                          "message": "Could not connect"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "summary": "深度健康检查（就绪检查）",
@@ -1811,161 +1239,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The Health Check is successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    },
-                    "info": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "error": {
-                      "type": "object",
-                      "example": {},
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "details": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The Health Check is not successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "error"
-                    },
-                    "info": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "error": {
-                      "type": "object",
-                      "example": {
-                        "redis": {
-                          "status": "down",
-                          "message": "Could not connect"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      },
-                      "nullable": true
-                    },
-                    "details": {
-                      "type": "object",
-                      "example": {
-                        "database": {
-                          "status": "up"
-                        },
-                        "redis": {
-                          "status": "down",
-                          "message": "Could not connect"
-                        }
-                      },
-                      "additionalProperties": {
-                        "type": "object",
-                        "required": [
-                          "status"
-                        ],
-                        "properties": {
-                          "status": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "summary": "容器就绪探针 (Readiness)",
@@ -1977,7 +1251,17 @@
     "/api/ai/chat": {
       "post": {
         "operationId": "AiController_chat",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2014,6 +1298,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "发送聊天完成请求",
@@ -2025,7 +1312,17 @@
     "/api/ai/chat/stream": {
       "get": {
         "operationId": "AiController_streamChat",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2044,6 +1341,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "流式聊天完成 (SSE)",
@@ -2055,7 +1355,17 @@
     "/api/ai/prompt": {
       "post": {
         "operationId": "AiController_prompt",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2092,6 +1402,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "简单提示 - 发送消息获取回复",
@@ -2103,7 +1416,17 @@
     "/api/system/dept": {
       "post": {
         "operationId": "DeptController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2150,16 +1473,29 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建部门",
         "tags": [
-          "系统-部门管理"
+          "system-dept"
         ]
       },
       "get": {
         "operationId": "DeptController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取成功",
@@ -2189,18 +1525,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取部门列表（平铺）",
         "tags": [
-          "系统-部门管理"
+          "system-dept"
         ]
       }
     },
     "/api/system/dept/tree": {
       "get": {
         "operationId": "DeptController_findTree",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取成功",
@@ -2230,11 +1579,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取部门树形列表",
         "tags": [
-          "系统-部门管理"
+          "system-dept"
         ]
       }
     },
@@ -2242,6 +1594,15 @@
       "get": {
         "operationId": "DeptController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2288,16 +1649,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取部门详情",
         "tags": [
-          "系统-部门管理"
+          "system-dept"
         ]
       },
       "put": {
         "operationId": "DeptController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2354,16 +1727,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新部门",
         "tags": [
-          "系统-部门管理"
+          "system-dept"
         ]
       },
       "delete": {
         "operationId": "DeptController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2420,18 +1805,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除部门",
         "tags": [
-          "系统-部门管理"
+          "system-dept"
         ]
       }
     },
     "/api/system/post": {
       "post": {
         "operationId": "PostController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2478,16 +1876,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建岗位",
         "tags": [
-          "系统-岗位管理"
+          "system-post"
         ]
       },
       "get": {
         "operationId": "PostController_findAll",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -2502,8 +1912,9 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页数量",
+            "description": "每页数量，最大 100",
             "schema": {
+              "maximum": 100,
               "default": 10,
               "type": "number"
             }
@@ -2561,11 +1972,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取岗位列表",
         "tags": [
-          "系统-岗位管理"
+          "system-post"
         ]
       }
     },
@@ -2573,6 +1987,15 @@
       "get": {
         "operationId": "PostController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2619,16 +2042,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取岗位详情",
         "tags": [
-          "系统-岗位管理"
+          "system-post"
         ]
       },
       "put": {
         "operationId": "PostController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2685,16 +2120,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新岗位",
         "tags": [
-          "系统-岗位管理"
+          "system-post"
         ]
       },
       "delete": {
         "operationId": "PostController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2741,18 +2188,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除岗位",
         "tags": [
-          "系统-岗位管理"
+          "system-post"
         ]
       }
     },
     "/api/system/role": {
       "post": {
         "operationId": "RoleController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2799,16 +2259,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建角色",
         "tags": [
-          "系统-角色管理"
+          "system-role"
         ]
       },
       "get": {
         "operationId": "RoleController_findAll",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -2823,8 +2295,9 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页数量",
+            "description": "每页数量，最大 100",
             "schema": {
+              "maximum": 100,
               "default": 10,
               "type": "number"
             }
@@ -2882,18 +2355,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取角色列表",
         "tags": [
-          "系统-角色管理"
+          "system-role"
         ]
       }
     },
     "/api/system/role/simple": {
       "get": {
         "operationId": "RoleController_findAllSimple",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取成功",
@@ -2923,11 +2409,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取所有角色（下拉选择用）",
         "tags": [
-          "系统-角色管理"
+          "system-role"
         ]
       }
     },
@@ -2935,6 +2424,15 @@
       "get": {
         "operationId": "RoleController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2981,16 +2479,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取角色详情",
         "tags": [
-          "系统-角色管理"
+          "system-role"
         ]
       },
       "put": {
         "operationId": "RoleController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3047,16 +2557,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新角色",
         "tags": [
-          "系统-角色管理"
+          "system-role"
         ]
       },
       "delete": {
         "operationId": "RoleController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3103,18 +2625,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除角色",
         "tags": [
-          "系统-角色管理"
+          "system-role"
         ]
       }
     },
     "/api/system/menu": {
       "post": {
         "operationId": "MenuController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3151,16 +2686,29 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建菜单",
         "tags": [
-          "系统-菜单管理"
+          "system-menu"
         ]
       },
       "get": {
         "operationId": "MenuController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取成功",
@@ -3190,18 +2738,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取菜单列表（平铺）",
         "tags": [
-          "系统-菜单管理"
+          "system-menu"
         ]
       }
     },
     "/api/system/menu/tree": {
       "get": {
         "operationId": "MenuController_findTree",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "获取成功",
@@ -3231,11 +2792,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取菜单树形列表",
         "tags": [
-          "系统-菜单管理"
+          "system-menu"
         ]
       }
     },
@@ -3243,6 +2807,15 @@
       "get": {
         "operationId": "MenuController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3289,16 +2862,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取菜单详情",
         "tags": [
-          "系统-菜单管理"
+          "system-menu"
         ]
       },
       "put": {
         "operationId": "MenuController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3355,16 +2940,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新菜单",
         "tags": [
-          "系统-菜单管理"
+          "system-menu"
         ]
       },
       "delete": {
         "operationId": "MenuController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3411,18 +3008,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除菜单",
         "tags": [
-          "系统-菜单管理"
+          "system-menu"
         ]
       }
     },
     "/api/system/dict": {
       "post": {
         "operationId": "DictController_create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3469,16 +3079,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建字典",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       },
       "get": {
         "operationId": "DictController_findAll",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -3493,8 +3115,9 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页数量",
+            "description": "每页数量，最大 100",
             "schema": {
+              "maximum": 100,
               "default": 10,
               "type": "number"
             }
@@ -3552,11 +3175,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取字典列表",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       }
     },
@@ -3564,6 +3190,15 @@
       "get": {
         "operationId": "DictController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3610,16 +3245,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取字典详情",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       },
       "put": {
         "operationId": "DictController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3676,16 +3323,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新字典",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       },
       "delete": {
         "operationId": "DictController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3732,11 +3391,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除字典",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       }
     },
@@ -3744,6 +3406,15 @@
       "get": {
         "operationId": "DictController_findByCode",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "code",
             "required": true,
@@ -3790,18 +3461,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "根据编码获取字典数据",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       }
     },
     "/api/system/dict/data": {
       "post": {
         "operationId": "DictController_createData",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3838,11 +3522,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "创建字典数据",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       }
     },
@@ -3850,6 +3537,15 @@
       "get": {
         "operationId": "DictController_findDataByDictId",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "dictId",
             "required": true,
@@ -3889,11 +3585,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取字典数据列表",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       }
     },
@@ -3901,6 +3600,15 @@
       "put": {
         "operationId": "DictController_updateData",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -3957,16 +3665,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新字典数据",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       },
       "delete": {
         "operationId": "DictController_removeData",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -4013,11 +3733,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除字典数据",
         "tags": [
-          "系统-字典管理"
+          "system-dict"
         ]
       }
     },
@@ -4026,12 +3749,21 @@
         "operationId": "FileController_findAll",
         "parameters": [
           {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "required": false,
             "in": "query",
             "description": "页码",
             "schema": {
-              "example": 1,
+              "default": 1,
               "type": "number"
             }
           },
@@ -4039,9 +3771,10 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
-            "description": "每页条数",
+            "description": "每页数量，最大 100",
             "schema": {
-              "example": 10,
+              "maximum": 100,
+              "default": 10,
               "type": "number"
             }
           },
@@ -4108,11 +3841,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取文件列表",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       }
     },
@@ -4120,6 +3856,15 @@
       "get": {
         "operationId": "FileController_findOne",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -4166,16 +3911,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "获取文件详情",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       },
       "put": {
         "operationId": "FileController_update",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -4232,16 +3989,28 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "更新文件信息",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       },
       "delete": {
         "operationId": "FileController_remove",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -4288,18 +4057,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "删除文件",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       }
     },
     "/api/system/file/batch": {
       "delete": {
         "operationId": "FileController_removeBatch",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4336,18 +4118,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "批量删除文件",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       }
     },
     "/api/system/file/upload": {
       "post": {
         "operationId": "FileController_upload",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4390,18 +4185,31 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "上传文件",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       }
     },
     "/api/system/file/upload/image": {
       "post": {
         "operationId": "FileController_uploadImage",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4444,11 +4252,14 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "上传图片（限制 5MB）",
         "tags": [
-          "系统-文件管理"
+          "system-file"
         ]
       }
     },
@@ -4456,6 +4267,15 @@
       "get": {
         "operationId": "FileController_download",
         "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -4474,11 +4294,884 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "cookie": []
           }
         ],
         "summary": "下载文件",
         "tags": [
-          "系统-文件管理"
+          "system-file"
+        ]
+      }
+    },
+    "/api/system/file/content/{id}": {
+      "get": {
+        "operationId": "FileController_content",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "文件 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件二进制流"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "预览文件（需要登录并有文件访问权限）",
+        "tags": [
+          "system-file"
+        ]
+      }
+    },
+    "/api/monitor/cache": {
+      "get": {
+        "operationId": "MonitorController_getCacheInfo",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CacheInfoDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取缓存信息",
+        "tags": [
+          "system-monitor"
+        ]
+      },
+      "delete": {
+        "operationId": "MonitorController_clearAllCache",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "清空成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "清空所有缓存",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/cache/value/{key}": {
+      "get": {
+        "operationId": "MonitorController_getCacheValue",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "缓存键",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CacheValueDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取指定缓存键的值与详细信息",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/cache/{key}": {
+      "delete": {
+        "operationId": "MonitorController_deleteCacheKey",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "缓存键",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "删除指定缓存键",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/online": {
+      "get": {
+        "operationId": "MonitorController_getOnlineUsers",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/OnlineUserItemDto"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取在线用户列表",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/online/{userId}": {
+      "delete": {
+        "operationId": "MonitorController_kickUser",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "用户ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "强制用户下线",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/jobs": {
+      "get": {
+        "operationId": "MonitorController_getJobs",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/JobItemDto"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取定时任务列表",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/jobs/{name}/start": {
+      "post": {
+        "operationId": "MonitorController_startJob",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "description": "任务名称",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "启动定时任务",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/jobs/{name}/stop": {
+      "post": {
+        "operationId": "MonitorController_stopJob",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "description": "任务名称",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "停止定时任务",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/jobs/{name}/run": {
+      "post": {
+        "operationId": "MonitorController_runJob",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "description": "任务名称",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "立即执行一次定时任务",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/jobs/logs": {
+      "get": {
+        "operationId": "MonitorController_findJobLogs",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "页码",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "每页数量，最大 100",
+            "schema": {
+              "maximum": 100,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "jobName",
+            "required": false,
+            "in": "query",
+            "description": "任务标识名称",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "执行状态: 1-成功, 0-失败",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PaginatedDataDto"
+                            },
+                            {
+                              "properties": {
+                                "data": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/JobLogItemDto"
+                                  }
+                                },
+                                "pagination": {
+                                  "$ref": "#/components/schemas/PaginationMetaDto"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取定时任务执行日志",
+        "tags": [
+          "system-monitor"
+        ]
+      },
+      "delete": {
+        "operationId": "MonitorController_clearJobLogs",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "清空成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "清空定时任务日志",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/server": {
+      "get": {
+        "operationId": "MonitorController_getServerInfo",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ServerInfoDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取服务器运行信息",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/health": {
+      "get": {
+        "operationId": "MonitorController_getHealthCheck",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "nullable": true,
+                          "default": null
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取最近一次健康检查结果",
+        "tags": [
+          "system-monitor"
         ]
       }
     }
@@ -4529,11 +5222,16 @@
         "properties": {
           "publicKey": {
             "type": "string",
-            "description": "RSA-2048 公钥内容"
+            "description": "RSA-2048 公钥内容（PEM）"
+          },
+          "kid": {
+            "type": "string",
+            "description": "公钥版本标识，用于前端缓存失效"
           }
         },
         "required": [
-          "publicKey"
+          "publicKey",
+          "kid"
         ]
       },
       "CaptchaResponseDto": {
@@ -5018,328 +5716,6 @@
           "ip",
           "status",
           "loginTime"
-        ]
-      },
-      "CacheKeyDetailDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string",
-            "description": "键名"
-          },
-          "ttl": {
-            "type": "number",
-            "description": "TTL 剩余秒数"
-          },
-          "type": {
-            "type": "string",
-            "description": "数据类型"
-          },
-          "size": {
-            "type": "string",
-            "description": "数据大小描述"
-          },
-          "isProtected": {
-            "type": "boolean",
-            "description": "是否为受保护的安全键（不可通过清空删除）"
-          }
-        },
-        "required": [
-          "key",
-          "ttl",
-          "type",
-          "size"
-        ]
-      },
-      "CacheInfoDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "连接状态"
-          },
-          "totalKeys": {
-            "type": "number",
-            "description": "总键数"
-          },
-          "usedMemory": {
-            "type": "string",
-            "description": "已用内存"
-          },
-          "peakMemory": {
-            "type": "string",
-            "description": "峰值内存"
-          },
-          "rssMemory": {
-            "type": "string",
-            "description": "RSS 物理内存"
-          },
-          "keys": {
-            "description": "键详情列表",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CacheKeyDetailDto"
-            }
-          }
-        },
-        "required": [
-          "status",
-          "totalKeys",
-          "usedMemory",
-          "keys"
-        ]
-      },
-      "CacheValueDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string",
-            "description": "缓存键名"
-          },
-          "type": {
-            "type": "string",
-            "description": "数据类型"
-          },
-          "ttl": {
-            "type": "number",
-            "description": "TTL 剩余秒数"
-          },
-          "isProtected": {
-            "type": "boolean",
-            "description": "是否为受保护的安全键"
-          },
-          "value": {
-            "type": "string",
-            "description": "值内容（字符串或 JSON 文本）",
-            "nullable": true
-          }
-        },
-        "required": [
-          "key",
-          "type",
-          "ttl",
-          "isProtected"
-        ]
-      },
-      "OnlineUserItemDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "description": "用户 ID"
-          },
-          "userName": {
-            "type": "string",
-            "description": "用户名称"
-          },
-          "email": {
-            "type": "string",
-            "description": "用户邮箱"
-          },
-          "avatar": {
-            "type": "string",
-            "description": "用户头像 URL",
-            "nullable": true
-          },
-          "ip": {
-            "type": "string",
-            "description": "IP 地址"
-          },
-          "browser": {
-            "type": "string",
-            "description": "浏览器",
-            "nullable": true
-          },
-          "os": {
-            "type": "string",
-            "description": "操作系统",
-            "nullable": true
-          },
-          "loginTime": {
-            "type": "string",
-            "description": "登录时间（ISO 字符串或格式化时间）"
-          }
-        },
-        "required": [
-          "userId",
-          "userName",
-          "ip",
-          "loginTime"
-        ]
-      },
-      "JobItemDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "任务唯一标识",
-            "example": "health-check"
-          },
-          "description": {
-            "type": "string",
-            "description": "任务中文描述",
-            "example": "定期检查系统健康状态"
-          },
-          "cron": {
-            "type": "string",
-            "description": "Cron 表达式",
-            "example": "0 */5 * * * *"
-          },
-          "status": {
-            "type": "string",
-            "description": "任务状态: running | stopped",
-            "example": "running"
-          },
-          "running": {
-            "type": "boolean",
-            "description": "是否处于激活运行状态",
-            "example": true
-          },
-          "nextRun": {
-            "type": "string",
-            "description": "下一次执行时间",
-            "nullable": true
-          },
-          "lastRun": {
-            "type": "string",
-            "description": "上一次执行时间",
-            "nullable": true
-          }
-        },
-        "required": [
-          "name",
-          "description",
-          "cron",
-          "status",
-          "running"
-        ]
-      },
-      "JobLogItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "日志 ID"
-          },
-          "jobName": {
-            "type": "string",
-            "description": "任务名称"
-          },
-          "jobGroup": {
-            "type": "string",
-            "description": "任务分组"
-          },
-          "description": {
-            "type": "string",
-            "description": "任务中文描述",
-            "nullable": true
-          },
-          "cronExpression": {
-            "type": "string",
-            "description": "Cron 表达式",
-            "nullable": true
-          },
-          "status": {
-            "type": "number",
-            "description": "执行状态: 1-成功, 0-失败"
-          },
-          "exceptionInfo": {
-            "type": "string",
-            "description": "异常信息",
-            "nullable": true
-          },
-          "executionTime": {
-            "type": "number",
-            "description": "执行耗时（毫秒）"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "description": "执行触发时间"
-          }
-        },
-        "required": [
-          "id",
-          "jobName",
-          "jobGroup",
-          "status",
-          "executionTime",
-          "createdAt"
-        ]
-      },
-      "ServerInfoDto": {
-        "type": "object",
-        "properties": {
-          "hostname": {
-            "type": "string",
-            "description": "主机名"
-          },
-          "platform": {
-            "type": "string",
-            "description": "操作系统平台"
-          },
-          "arch": {
-            "type": "string",
-            "description": "系统架构"
-          },
-          "nodeVersion": {
-            "type": "string",
-            "description": "Node.js 版本"
-          },
-          "uptime": {
-            "type": "number",
-            "description": "进程运行时间（秒）"
-          },
-          "systemUptime": {
-            "type": "number",
-            "description": "系统运行时间（秒）"
-          },
-          "totalMemory": {
-            "type": "number",
-            "description": "系统总内存（字节）"
-          },
-          "usedMemory": {
-            "type": "number",
-            "description": "系统已用内存（字节）"
-          },
-          "freeMemory": {
-            "type": "number",
-            "description": "系统空闲内存（字节）"
-          },
-          "memoryUsage": {
-            "type": "string",
-            "description": "内存使用率百分比字符串"
-          },
-          "cpuCount": {
-            "type": "number",
-            "description": "CPU 核心数"
-          },
-          "cpuModel": {
-            "type": "string",
-            "description": "CPU 型号"
-          },
-          "loadAverage": {
-            "description": "系统负载",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "hostname",
-          "platform",
-          "arch",
-          "nodeVersion",
-          "uptime",
-          "systemUptime",
-          "totalMemory",
-          "usedMemory",
-          "freeMemory",
-          "memoryUsage",
-          "cpuCount",
-          "cpuModel",
-          "loadAverage"
         ]
       },
       "UserItemDto": {
@@ -6999,7 +7375,7 @@
         "type": "object",
         "properties": {
           "ids": {
-            "description": "文件 ID 列表",
+            "description": "文件 ID 列表（最多 100 个）",
             "type": "array",
             "items": {
               "type": "string"
@@ -7035,6 +7411,328 @@
           "url",
           "originalName",
           "fileSize"
+        ]
+      },
+      "CacheKeyDetailDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "键名"
+          },
+          "ttl": {
+            "type": "number",
+            "description": "TTL 剩余秒数"
+          },
+          "type": {
+            "type": "string",
+            "description": "数据类型"
+          },
+          "size": {
+            "type": "string",
+            "description": "数据大小描述"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "是否为受保护的安全键（不可通过清空删除）"
+          }
+        },
+        "required": [
+          "key",
+          "ttl",
+          "type",
+          "size"
+        ]
+      },
+      "CacheInfoDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "连接状态"
+          },
+          "totalKeys": {
+            "type": "number",
+            "description": "总键数"
+          },
+          "usedMemory": {
+            "type": "string",
+            "description": "已用内存"
+          },
+          "peakMemory": {
+            "type": "string",
+            "description": "峰值内存"
+          },
+          "rssMemory": {
+            "type": "string",
+            "description": "RSS 物理内存"
+          },
+          "keys": {
+            "description": "键详情列表",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CacheKeyDetailDto"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "totalKeys",
+          "usedMemory",
+          "keys"
+        ]
+      },
+      "CacheValueDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "缓存键名"
+          },
+          "type": {
+            "type": "string",
+            "description": "数据类型"
+          },
+          "ttl": {
+            "type": "number",
+            "description": "TTL 剩余秒数"
+          },
+          "isProtected": {
+            "type": "boolean",
+            "description": "是否为受保护的安全键"
+          },
+          "value": {
+            "type": "string",
+            "description": "值内容（字符串或 JSON 文本）",
+            "nullable": true
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "ttl",
+          "isProtected"
+        ]
+      },
+      "OnlineUserItemDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "用户 ID"
+          },
+          "userName": {
+            "type": "string",
+            "description": "用户名称"
+          },
+          "email": {
+            "type": "string",
+            "description": "用户邮箱"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "用户头像 URL",
+            "nullable": true
+          },
+          "ip": {
+            "type": "string",
+            "description": "IP 地址"
+          },
+          "browser": {
+            "type": "string",
+            "description": "浏览器",
+            "nullable": true
+          },
+          "os": {
+            "type": "string",
+            "description": "操作系统",
+            "nullable": true
+          },
+          "loginTime": {
+            "type": "string",
+            "description": "登录时间（ISO 字符串或格式化时间）"
+          }
+        },
+        "required": [
+          "userId",
+          "userName",
+          "ip",
+          "loginTime"
+        ]
+      },
+      "JobItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "任务唯一标识",
+            "example": "health-check"
+          },
+          "description": {
+            "type": "string",
+            "description": "任务中文描述",
+            "example": "定期检查系统健康状态"
+          },
+          "cron": {
+            "type": "string",
+            "description": "Cron 表达式",
+            "example": "0 */5 * * * *"
+          },
+          "status": {
+            "type": "string",
+            "description": "任务状态: running | stopped",
+            "example": "running"
+          },
+          "running": {
+            "type": "boolean",
+            "description": "是否处于激活运行状态",
+            "example": true
+          },
+          "nextRun": {
+            "type": "string",
+            "description": "下一次执行时间",
+            "nullable": true
+          },
+          "lastRun": {
+            "type": "string",
+            "description": "上一次执行时间",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "cron",
+          "status",
+          "running"
+        ]
+      },
+      "JobLogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "日志 ID"
+          },
+          "jobName": {
+            "type": "string",
+            "description": "任务名称"
+          },
+          "jobGroup": {
+            "type": "string",
+            "description": "任务分组"
+          },
+          "description": {
+            "type": "string",
+            "description": "任务中文描述",
+            "nullable": true
+          },
+          "cronExpression": {
+            "type": "string",
+            "description": "Cron 表达式",
+            "nullable": true
+          },
+          "status": {
+            "type": "number",
+            "description": "执行状态: 1-成功, 0-失败"
+          },
+          "exceptionInfo": {
+            "type": "string",
+            "description": "异常信息",
+            "nullable": true
+          },
+          "executionTime": {
+            "type": "number",
+            "description": "执行耗时（毫秒）"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "执行触发时间"
+          }
+        },
+        "required": [
+          "id",
+          "jobName",
+          "jobGroup",
+          "status",
+          "executionTime",
+          "createdAt"
+        ]
+      },
+      "ServerInfoDto": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "主机名"
+          },
+          "platform": {
+            "type": "string",
+            "description": "操作系统平台"
+          },
+          "arch": {
+            "type": "string",
+            "description": "系统架构"
+          },
+          "nodeVersion": {
+            "type": "string",
+            "description": "Node.js 版本"
+          },
+          "uptime": {
+            "type": "number",
+            "description": "进程运行时间（秒）"
+          },
+          "systemUptime": {
+            "type": "number",
+            "description": "系统运行时间（秒）"
+          },
+          "totalMemory": {
+            "type": "number",
+            "description": "系统总内存（字节）"
+          },
+          "usedMemory": {
+            "type": "number",
+            "description": "系统已用内存（字节）"
+          },
+          "freeMemory": {
+            "type": "number",
+            "description": "系统空闲内存（字节）"
+          },
+          "memoryUsage": {
+            "type": "string",
+            "description": "内存使用率百分比字符串"
+          },
+          "cpuCount": {
+            "type": "number",
+            "description": "CPU 核心数"
+          },
+          "cpuModel": {
+            "type": "string",
+            "description": "CPU 型号"
+          },
+          "loadAverage": {
+            "description": "系统负载",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "hostname",
+          "platform",
+          "arch",
+          "nodeVersion",
+          "uptime",
+          "systemUptime",
+          "totalMemory",
+          "usedMemory",
+          "freeMemory",
+          "memoryUsage",
+          "cpuCount",
+          "cpuModel",
+          "loadAverage"
         ]
       }
     }

@@ -80,8 +80,8 @@ export default function ProfilePage() {
       toast.error('请填写所有密码字段');
       return;
     }
-    if (pwdForm.newPassword.length < 6) {
-      toast.error('新密码至少需要 6 个字符');
+    if (pwdForm.newPassword.length < 8) {
+      toast.error('新密码至少需要 8 个字符');
       return;
     }
     if (pwdForm.newPassword !== pwdForm.confirmPassword) {
@@ -187,7 +187,7 @@ export default function ProfilePage() {
               <Input
                 id="newPassword"
                 type="password"
-                placeholder="至少 6 位字符"
+                placeholder="至少 8 位字符"
                 value={pwdForm.newPassword}
                 onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
               />

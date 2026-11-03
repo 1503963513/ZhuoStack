@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -29,7 +29,8 @@ export class UserService {
       throw new ConflictException('Email already registered');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const plainPassword = this.authService.decryptPassword(dto.password);
+    const hashedPassword = await bcrypt.hash(plainPassword, 12);
 
     return this.prisma.user.create({
       data: {
@@ -138,49 +139,83 @@ export class UserService {
       }
     }
 
-    // 分离密码、关系字段和普通字段，避免管理员重置密码时把明文直接写入数据库。
+    // 管理员重置密码时同样只接收 RSA 密文，服务端解密后立即哈希。
     const { password, deptId, postIds, roleIds, role: roleValue, ...rest } = dto;
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
+    const hashedPassword = password
+      ? await bcrypt.hash(this.authService.decryptPassword(password), 12)
+      : undefined;
 
-    return this.prisma.user.update({
-      where: { id },
-      data: {
-        ...rest,
-        ...(hashedPassword !== undefined && { password: hashedPassword }),
-        // role 字段需要转为 Prisma 枚举
-        ...(roleValue !== undefined && { role: roleValue as Role }),
-        // 部门：通过关系连接
-        ...(deptId !== undefined && {
-          dept: deptId ? { connect: { id: deptId } } : { disconnect: true },
-        }),
-        // 岗位：多对多关系
-        ...(postIds !== undefined && {
-          posts: { set: postIds.map((pid) => ({ id: pid })) },
-        }),
-        // 角色：多对多关系
-        ...(roleIds !== undefined && {
-          roles: { set: roleIds.map((rid) => ({ id: rid })) },
-        }),
+    const updatedUser = await this.prisma.$transaction(
+      async (tx) => {
+        const current = await tx.user.findUnique({ where: { id }, select: { role: true } });
+        if (!current) {
+          throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        if (current.role === Role.ADMIN && roleValue !== undefined && roleValue !== Role.ADMIN) {
+          const adminCount = await tx.user.count({ where: { role: Role.ADMIN } });
+          if (adminCount <= 1) {
+            throw new BadRequestException('不能降级最后一个管理员');
+          }
+        }
+
+        return tx.user.update({
+          where: { id },
+          data: {
+            ...rest,
+            ...(hashedPassword !== undefined && { password: hashedPassword }),
+            ...(roleValue !== undefined && { role: roleValue }),
+            ...(deptId !== undefined && {
+              dept: deptId ? { connect: { id: deptId } } : { disconnect: true },
+            }),
+            ...(postIds !== undefined && {
+              posts: { set: postIds.map((pid) => ({ id: pid })) },
+            }),
+            ...(roleIds !== undefined && {
+              roles: { set: roleIds.map((rid) => ({ id: rid })) },
+            }),
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            avatar: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatar: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    if (hashedPassword) {
+      await this.authService.revokeUserSessions(id);
+    }
+
+    return updatedUser;
   }
 
   /**
    * Delete user by ID
    */
   async remove(id: string) {
-    await this.findOne(id);
-
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.$transaction(
+      async (tx) => {
+        const current = await tx.user.findUnique({ where: { id }, select: { role: true } });
+        if (!current) {
+          throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        if (current.role === Role.ADMIN) {
+          const adminCount = await tx.user.count({ where: { role: Role.ADMIN } });
+          if (adminCount <= 1) {
+            throw new BadRequestException('不能删除最后一个管理员');
+          }
+        }
+        await tx.user.delete({ where: { id } });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+    await this.authService.revokeUserSessions(id);
     return { message: '用户删除成功' };
   }
 
@@ -205,13 +240,14 @@ export class UserService {
       throw new BadRequestException('旧密码错误');
     }
 
-    const hashedNewPassword = await bcrypt.hash(plainNewPassword, 10);
+    const hashedNewPassword = await bcrypt.hash(plainNewPassword, 12);
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedNewPassword },
     });
 
-    // 将当前 Token 加入黑名单，强制重新登录
+    // 密码变更后吊销全部当前会话；当前 Token 额外加入黑名单作为纵深防御。
+    await this.authService.revokeUserSessions(userId);
     if (token) {
       await this.authService.blacklistToken(token);
     }

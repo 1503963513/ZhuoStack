@@ -2,8 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 
 export class PublicKeyResponseDto {
-  @ApiProperty({ description: 'RSA-2048 公钥内容' })
+  @ApiProperty({ description: 'RSA-2048 公钥内容（PEM）' })
   publicKey: string;
+
+  @ApiProperty({ description: '公钥版本标识，用于前端缓存失效' })
+  kid: string;
 }
 
 export class CaptchaResponseDto {

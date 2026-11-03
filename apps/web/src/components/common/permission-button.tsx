@@ -29,8 +29,14 @@ export function PermissionButton({
 }: PermissionButtonProps) {
   const { hasPermission, isLoading } = usePermissions();
 
-  // 加载中不渲染，避免闪烁
-  if (isLoading) return null;
+  // 加载期间保留按钮占位，避免权限请求完成时工具栏和操作列跳动。
+  if (isLoading) {
+    return (
+      <Button {...props} disabled aria-busy="true">
+        {children}
+      </Button>
+    );
+  }
 
   const permitted = hasPermission(perm);
 

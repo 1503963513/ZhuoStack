@@ -1,9 +1,9 @@
 import { Controller, Get, Delete, Post, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { MonitorService } from './monitor.service';
 import { SystemJobsService } from './system-jobs.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators';
+import { Roles, ApiSessionAuth } from '../../common/decorators';
 import {
   ApiResultResponse,
   ApiPaginatedResultResponse,
@@ -20,8 +20,8 @@ import {
 import { QueryJobLogDto } from './dto/query-job-log.dto';
 import { Role } from '@prisma/client';
 
-@ApiTags('系统-系统监控')
-@ApiBearerAuth()
+@ApiTags('system-monitor')
+@ApiSessionAuth()
 @UseGuards(RolesGuard)
 @Controller('monitor')
 export class MonitorController {

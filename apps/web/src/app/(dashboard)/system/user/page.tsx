@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { fileUrl } from '@/lib/utils';
+import { encryptPassword } from '@/lib/crypto';
 import { PermissionButton } from '@/components/common/permission-button';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
@@ -39,7 +40,7 @@ import {
   userControllerUpdate,
   userControllerRemove,
 } from '@/api/generated/endpoints/user/user';
-import { deptControllerFindAll } from '@/api/generated/endpoints/系统-部门管理/系统-部门管理';
+import { deptControllerFindAll } from '@/api/generated/endpoints/system-dept/system-dept';
 import type { UserItemDto } from '@/api/generated/models';
 
 type RoleType = 'USER' | 'ADMIN';
@@ -96,11 +97,11 @@ export default function UserPage() {
 
   // 3. 创建与修改 Mutation
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) =>
+    mutationFn: async (data: typeof formData) =>
       userControllerCreate({
         name: data.name || data.email.split('@')[0],
         email: data.email,
-        password: data.password,
+        password: await encryptPassword(data.password),
         avatar: data.avatar || undefined,
       }),
     onSuccess: () => {
@@ -113,12 +114,12 @@ export default function UserPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: typeof formData) => {
+    mutationFn: async (data: typeof formData) => {
       if (!editingUser) throw new Error('未选择编辑用户');
       return userControllerUpdate(editingUser.id, {
         name: data.name || undefined,
         email: data.email || undefined,
-        password: data.password || undefined,
+        password: data.password ? await encryptPassword(data.password) : undefined,
         role: data.role,
         deptId: data.deptId || undefined,
         postIds: data.postIds.length ? data.postIds : undefined,
@@ -359,9 +360,11 @@ export default function UserPage() {
                   id="password"
                   type="password"
                   required={!editingUser}
+                  minLength={8}
+                  maxLength={128}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={editingUser ? '••••••••' : '至少 6 位字符'}
+                  placeholder={editingUser ? '••••••••' : '至少 8 位字符'}
                 />
               </div>
 

@@ -34,7 +34,7 @@ import {
   menuControllerCreate,
   menuControllerUpdate,
   menuControllerRemove,
-} from '@/api/generated/endpoints/系统-菜单管理/系统-菜单管理';
+} from '@/api/generated/endpoints/system-menu/system-menu';
 import type {
   MenuTreeNodeDto,
   CreateMenuDtoType,

@@ -32,7 +32,7 @@ import {
   deptControllerCreate,
   deptControllerUpdate,
   deptControllerRemove,
-} from '@/api/generated/endpoints/系统-部门管理/系统-部门管理';
+} from '@/api/generated/endpoints/system-dept/system-dept';
 import type { DeptTreeNodeDto, CreateDeptDtoStatus } from '@/api/generated/models';
 
 /**

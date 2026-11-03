@@ -75,7 +75,7 @@ describe('App (e2e)', () => {
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.payload)).toMatchObject({
       code: 200,
-      data: { status: 'ok' },
+      data: { status: 'up' },
     });
   });
 

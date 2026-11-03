@@ -110,6 +110,44 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** 仅当值匹配时原子替换，用于一次性 Refresh Token 轮换。 */
+  async compareAndSet(
+    key: string,
+    expectedValue: unknown,
+    nextValue: unknown,
+    ttl: number,
+  ): Promise<boolean> {
+    if (!this.isReady() || !this.client) {
+      this.unavailable(true, 'COMPARE_AND_SET');
+      return false;
+    }
+    try {
+      const expected = JSON.stringify(expectedValue);
+      const next = JSON.stringify(nextValue);
+      const result = await this.client.eval(
+        `
+          if redis.call('GET', KEYS[1]) ~= ARGV[1] then
+            return 0
+          end
+          redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+          return 1
+        `,
+        1,
+        key,
+        expected,
+        next,
+        ttl,
+      );
+      return result === 1;
+    } catch (e) {
+      this.logger.warn(
+        `Redis COMPARE_AND_SET 失败 [${key}]: ${e instanceof Error ? e.message : String(e)}`,
+      );
+      this.unavailable(true, 'COMPARE_AND_SET');
+      return false;
+    }
+  }
+
   async del(key: string, strict = false): Promise<void> {
     if (!this.isReady() || !this.client) {
       this.unavailable(strict, 'DEL');

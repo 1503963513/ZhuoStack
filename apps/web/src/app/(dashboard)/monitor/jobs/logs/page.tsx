@@ -32,7 +32,7 @@ import { Pagination } from '@/components/common/pagination';
 import {
   monitorControllerFindJobLogs,
   monitorControllerClearJobLogs,
-} from '@/api/generated/endpoints/系统-系统监控/系统-系统监控';
+} from '@/api/generated/endpoints/system-monitor/system-monitor';
 import type { JobLogItemDto } from '@/api/generated/models';
 
 export default function JobLogsPage() {

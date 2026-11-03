@@ -48,7 +48,7 @@ import {
   fileControllerFindAll,
   fileControllerRemove,
   fileControllerRemoveBatch,
-} from '@/api/generated/endpoints/系统-文件管理/系统-文件管理';
+} from '@/api/generated/endpoints/system-file/system-file';
 import type { FileEntity } from '@/api/generated/models';
 
 /** 格式化文件大小 */

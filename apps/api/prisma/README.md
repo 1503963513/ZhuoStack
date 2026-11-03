@@ -31,7 +31,7 @@ pnpm db:generate
 # 3. 执行开发迁移（自动生成 SQL 并应用）
 pnpm db:migrate
 
-# 4. 填充种子数据
+# 4. 填充种子数据（会清空现有数据，仅用于非生产环境）
 pnpm db:seed
 
 # 5. 打开 Prisma Studio 可视化数据管理
@@ -41,6 +41,14 @@ pnpm db:studio
 > **提示**：所有命令均支持追加 `--pg` 或 `--mysql` 参数强制指定目标，例如 `pnpm db:migrate --mysql`。
 
 一次业务结构变更必须分别修改 `postgres/models/` 与 `mysql/models/`，并分别生成、审核两套迁移 SQL。禁止手工把 MySQL 的反引号、`RENAME TABLE` 等语法复制到 PostgreSQL 目录，反之亦然。
+
+提交前执行 schema 语义一致性检查：
+
+```bash
+pnpm db:schema:check
+```
+
+该命令会校验两种数据库的模型、字段类型、默认值、关系、主键、唯一约束、索引、表映射与枚举值；`provider`、`@db.*` 原生类型和 MySQL 唯一索引长度属于数据库实现差异，不参与比较。CI 会在生成 Prisma Client 前执行该项检查。
 
 ## 生产部署
 
@@ -55,7 +63,7 @@ pnpm db:deploy --pg
 pnpm db:deploy --mysql
 ```
 
-Docker 由构建参数 `DB_TYPE` 固化 Prisma Client 和迁移目录，容器启动时在 `DB_MIGRATE_ON_START=true` 的情况下执行 `prisma migrate deploy`。生产环境禁止使用 `prisma db push` 代替迁移。
+Docker 由构建参数 `DB_TYPE` 固化 Prisma Client 和迁移目录，容器启动时在 `DB_MIGRATE_ON_START=true` 的情况下执行 `prisma migrate deploy`。生产环境禁止使用 `prisma db push` 代替迁移，也禁止执行会清空数据的 Seed。
 
 ### 从旧版 `db push` 部署升级
 

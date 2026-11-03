@@ -53,7 +53,7 @@ import { getErrorMessage, fileUrl, copyText } from '@/lib/utils';
 import {
   monitorControllerGetOnlineUsers,
   monitorControllerKickUser,
-} from '@/api/generated/endpoints/系统-系统监控/系统-系统监控';
+} from '@/api/generated/endpoints/system-monitor/system-monitor';
 import type { OnlineUserItemDto } from '@/api/generated/models';
 
 /** 计算登录时长辅助展示 */

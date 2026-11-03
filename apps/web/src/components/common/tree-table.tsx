@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { Column } from './data-table';
+import { buildTableGridTemplate, type Column } from './data-table';
 
 export interface TreeTableProps<T extends { id: string; children?: T[] }> {
   columns: Column<T>[];
@@ -353,8 +353,7 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchQuery, searchable]);
 
-  const totalSpan =
-    columns.reduce((sum, c) => sum + (c.span || 1), 0) + (actions ? actionsSpan : 0);
+  const gridTemplateColumns = buildTableGridTemplate(columns, Boolean(actions), actionsSpan);
   const showToolbar = searchable || showStats || showExpandControls || Boolean(onRefresh);
   const statsSummary = `共 ${totalNodeCount} 个${
     isSearching ? ` · 匹配 ${searchState.matchedIds.size} 个` : ''
@@ -439,26 +438,30 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
         )}
 
         <div className="w-full overflow-x-auto">
-          <div className={cn('w-full', minWidth)}>
+          <div
+            className={cn('w-full', minWidth)}
+            role="table"
+            aria-rowcount={visibleList.length + 1}
+          >
             {/* 表头 */}
-            <div className="border-b px-4 py-3 font-medium bg-muted/20 text-muted-foreground text-sm">
-              <div
-                className="grid gap-4 items-center"
-                style={{ gridTemplateColumns: `repeat(${totalSpan}, minmax(0, 1fr))` }}
-              >
+            <div
+              className="border-b bg-muted/20 px-4 py-3 text-sm font-medium text-muted-foreground"
+              role="rowgroup"
+            >
+              <div className="grid items-center gap-4" style={{ gridTemplateColumns }} role="row">
                 {columns.map((col, i) => (
                   <div
                     key={i}
-                    className={cn('overflow-hidden truncate', col.className)}
-                    style={{ gridColumn: `span ${col.span || 1}` }}
+                    className={cn('min-w-0 overflow-hidden truncate', col.className)}
+                    role="columnheader"
                   >
                     {col.label}
                   </div>
                 ))}
                 {actions && (
                   <div
-                    className={cn('text-right pr-2 font-medium', actionsClassName)}
-                    style={{ gridColumn: `span ${actionsSpan}` }}
+                    className={cn('min-w-max pr-2 text-right font-medium', actionsClassName)}
+                    role="columnheader"
                   >
                     {actionsLabel}
                   </div>
@@ -479,7 +482,7 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
                 </Button>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y" role="rowgroup">
                 {visibleList.map(({ item, level, hasChildren, isExpanded }) => {
                   const customRowClass = rowClassName ? rowClassName(item, level) : '';
 
@@ -487,16 +490,27 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
                     <div
                       key={item.id}
                       className={cn(
-                        'px-4 py-2.5 hover:bg-muted/50 transition-colors',
-                        onRowClick && 'cursor-pointer',
+                        'px-4 py-2.5 transition-colors hover:bg-muted/50',
+                        onRowClick &&
+                          'cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                         customRowClass,
                       )}
                       onClick={() => onRowClick?.(item)}
+                      onKeyDown={(event) => {
+                        if (
+                          !onRowClick ||
+                          (event.key !== 'Enter' && event.key !== ' ') ||
+                          event.target !== event.currentTarget
+                        ) {
+                          return;
+                        }
+                        event.preventDefault();
+                        onRowClick(item);
+                      }}
+                      tabIndex={onRowClick ? 0 : undefined}
+                      role="row"
                     >
-                      <div
-                        className="grid gap-4 items-center"
-                        style={{ gridTemplateColumns: `repeat(${totalSpan}, minmax(0, 1fr))` }}
-                      >
+                      <div className="grid items-center gap-4" style={{ gridTemplateColumns }}>
                         {columns.map((col, i) => {
                           const isIndentCol = i === indentColumnIndex;
                           const cellContent = col.render
@@ -512,10 +526,10 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
                             <div
                               key={i}
                               className={cn(
-                                'text-sm overflow-hidden break-words min-w-0',
+                                'min-w-0 overflow-hidden break-words text-sm',
                                 col.className,
                               )}
-                              style={{ gridColumn: `span ${col.span || 1}` }}
+                              role="cell"
                             >
                               {isIndentCol ? (
                                 <div
@@ -558,11 +572,11 @@ export function TreeTable<T extends { id: string; children?: T[] }>({
                         {actions && (
                           <div
                             className={cn(
-                              'flex items-center justify-end gap-1.5 flex-nowrap shrink-0 whitespace-nowrap min-w-0',
+                              'flex min-w-max flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap',
                               actionsClassName,
                             )}
-                            style={{ gridColumn: `span ${actionsSpan}` }}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                            role="cell"
                           >
                             {actions(item)}
                           </div>

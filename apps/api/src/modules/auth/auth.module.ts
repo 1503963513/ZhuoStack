@@ -5,17 +5,18 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LogModule } from '../log/log.module';
-import { MonitorModule } from '../monitor/monitor.module';
+import { SessionModule } from './session.module';
+import { RsaKeyService } from './rsa-key.service';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
     LogModule,
-    MonitorModule,
+    SessionModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RsaKeyService],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

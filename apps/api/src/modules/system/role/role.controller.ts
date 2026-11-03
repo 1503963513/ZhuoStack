@@ -7,10 +7,9 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import {
   CreateRoleDto,
@@ -20,25 +19,24 @@ import {
   RoleSimpleDto,
   RoleDetailDto,
 } from './dto';
-import { RolesGuard } from '../../../common/guards/roles.guard';
 import {
-  Roles,
+  Permissions,
+  ApiSessionAuth,
   ApiResultResponse,
   ApiPaginatedResultResponse,
   ApiErrorResponse,
 } from '../../../common/decorators';
 import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
-import { Role } from '@prisma/client';
 
-@ApiTags('系统-角色管理')
-@ApiBearerAuth()
-@UseGuards(RolesGuard)
+@ApiTags('system-role')
+@ApiSessionAuth()
+@Permissions('system:role')
 @Controller('system/role')
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Permissions('system:role:add')
   @ApiOperation({ summary: '创建角色' })
   @ApiResultResponse(RoleItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   @ApiErrorResponse(HttpStatus.CONFLICT, '角色标识已存在')
@@ -70,7 +68,7 @@ export class RoleController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:role:edit')
   @ApiOperation({ summary: '更新角色' })
   @ApiParam({ name: 'id', description: '角色ID' })
   @ApiResultResponse(RoleItemDto, { description: '更新成功' })
@@ -80,7 +78,7 @@ export class RoleController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Permissions('system:role:delete')
   @ApiOperation({ summary: '删除角色' })
   @ApiParam({ name: 'id', description: '角色ID' })
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })

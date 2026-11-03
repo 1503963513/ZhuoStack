@@ -31,6 +31,7 @@ import type {
   AuthControllerGetUserMenus200,
   AuthControllerLogin200,
   AuthControllerLogout200,
+  AuthControllerRefresh200,
   AuthControllerRegister201,
   ErrorResponseDto,
   LoginDto,
@@ -366,6 +367,98 @@ export function useAuthControllerLogin<TData = Awaited<ReturnType<typeof authCon
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAuthControllerLoginQueryOptions(loginDto,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary 轮换刷新会话并签发新的访问令牌
+ */
+export const authControllerRefresh = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<AuthControllerRefresh200>(
+      {url: `/api/auth/refresh`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAuthControllerRefreshQueryKey = () => {
+    return [
+    'POST', `/api/auth/refresh`
+    ] as const;
+    }
+
+
+export const getAuthControllerRefreshQueryOptions = <TData = Awaited<ReturnType<typeof authControllerRefresh>>, TError = ErrorResponseDto>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAuthControllerRefreshQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof authControllerRefresh>>> = ({ signal }) => authControllerRefresh(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AuthControllerRefreshQueryResult = NonNullable<Awaited<ReturnType<typeof authControllerRefresh>>>
+export type AuthControllerRefreshQueryError = ErrorResponseDto
+
+
+export function useAuthControllerRefresh<TData = Awaited<ReturnType<typeof authControllerRefresh>>, TError = ErrorResponseDto>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authControllerRefresh>>,
+          TError,
+          Awaited<ReturnType<typeof authControllerRefresh>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthControllerRefresh<TData = Awaited<ReturnType<typeof authControllerRefresh>>, TError = ErrorResponseDto>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authControllerRefresh>>,
+          TError,
+          Awaited<ReturnType<typeof authControllerRefresh>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthControllerRefresh<TData = Awaited<ReturnType<typeof authControllerRefresh>>, TError = ErrorResponseDto>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary 轮换刷新会话并签发新的访问令牌
+ */
+
+export function useAuthControllerRefresh<TData = Awaited<ReturnType<typeof authControllerRefresh>>, TError = ErrorResponseDto>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAuthControllerRefreshQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

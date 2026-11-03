@@ -31,6 +31,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Verify PostgreSQL/MySQL schema parity
+        run: pnpm db:schema:check
       - name: Generate PostgreSQL Prisma client
         run: pnpm db:generate --pg
         env:
