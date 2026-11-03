@@ -36,6 +36,7 @@ import {
   Search,
 } from 'lucide-react';
 import { getErrorMessage, cn, copyText } from '@/lib/utils';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Pagination } from '@/components/common/pagination';
 import {
   monitorControllerGetCacheInfo,
@@ -341,84 +342,104 @@ export default function CachePage() {
       </div>
 
       {/* 键列表表格 */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-12 text-muted-foreground">加载中...</div>
-          ) : pagedKeys.length === 0 ? (
-            <div className="flex justify-center py-12 text-muted-foreground">
-              未找到匹配的缓存键
-            </div>
-          ) : (
-            <div className="divide-y">
-              {pagedKeys.map((item) => (
-                <div
-                  key={item.key}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-muted/30 transition-colors"
+      <DataTable
+        columns={[
+          {
+            label: '缓存键名 (Key)',
+            span: 4,
+            render: (item) => (
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-mono text-xs font-semibold truncate" title={item.key}>
+                  {item.key}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => copyContent(item.key)}
+                  className="text-muted-foreground hover:text-foreground shrink-0 p-0.5 rounded"
+                  title="复制键名"
                 >
-                  <div className="space-y-1.5 flex-1 min-w-0 pr-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className="font-mono text-sm font-semibold truncate max-w-md block"
-                        title={item.key}
-                      >
-                        {item.key}
-                      </span>
-
-                      <Badge variant="outline" className="text-xs font-mono">
-                        {item.type}
-                      </Badge>
-
-                      {item.isProtected ? (
-                        <Badge
-                          variant="outline"
-                          className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400 gap-1 bg-amber-50 dark:bg-amber-950/20"
-                        >
-                          <Lock className="h-3 w-3" />
-                          受保护安全键
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          可清理缓存
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>TTL: {item.ttl === -1 ? '永久' : `${item.ttl} 秒`}</span>
-                      <span>数据大小: {item.size}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewValue(item.key)}
-                      disabled={loadingValue}
-                    >
-                      <Eye className="mr-1.5 h-3.5 w-3.5" />
-                      查看值
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive disabled:opacity-30"
-                      onClick={() => handleDeleteKey(item.key)}
-                      disabled={deleting === item.key || item.isProtected}
-                      title={item.isProtected ? '受保护安全键，禁止手动删除' : '删除该键'}
-                    >
-                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                      删除
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  <Copy className="h-3 w-3" />
+                </button>
+              </div>
+            ),
+          },
+          {
+            label: '类型',
+            span: 1,
+            render: (item) => (
+              <Badge variant="outline" className="text-xs font-mono">
+                {item.type}
+              </Badge>
+            ),
+          },
+          {
+            label: '安全属性',
+            span: 2,
+            render: (item) =>
+              item.isProtected ? (
+                <Badge
+                  variant="outline"
+                  className="text-xs border-amber-500/50 text-amber-600 dark:text-amber-400 gap-1 bg-amber-50 dark:bg-amber-950/20"
+                >
+                  <Lock className="h-3 w-3" />
+                  受保护安全键
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-xs text-muted-foreground">
+                  可清理缓存
+                </Badge>
+              ),
+          },
+          {
+            label: 'TTL (过期时间)',
+            span: 2,
+            render: (item) => (
+              <span className="text-xs font-mono text-muted-foreground">
+                {item.ttl === -1 ? '永久' : `${item.ttl} 秒`}
+              </span>
+            ),
+          },
+          {
+            label: '大小',
+            span: 1,
+            render: (item) => (
+              <span className="text-xs text-muted-foreground">
+                {item.size}
+              </span>
+            ),
+          },
+        ]}
+        data={pagedKeys.map(k => ({ ...k, id: k.key }))}
+        isLoading={isLoading}
+        emptyText="未找到匹配的缓存键"
+        actionsSpan={2}
+        minWidth="min-w-[840px]"
+        actions={(item) => (
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => handleViewValue(item.key)}
+              disabled={loadingValue}
+            >
+              <Eye className="mr-1 h-3 w-3" />
+              查看值
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs px-2.5 text-destructive hover:text-destructive disabled:opacity-30"
+              onClick={() => handleDeleteKey(item.key)}
+              disabled={deleting === item.key || item.isProtected}
+              title={item.isProtected ? '受保护安全键，禁止手动删除' : '删除该键'}
+            >
+              <Trash2 className="mr-1 h-3 w-3" />
+              删除
+            </Button>
+          </div>
+        )}
+      />
 
       {/* 分页控制 */}
       <Pagination
