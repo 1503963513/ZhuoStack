@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DataTable, type Column } from '@/components/common/data-table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { RefreshCw, Play, Pause, Timer, Zap, History, PlayCircle, PauseCircle } from 'lucide-react';
@@ -97,103 +98,124 @@ export default function JobsPage() {
         </Card>
       </div>
 
-      {/* 任务列表 */}
-      <Card>
-        <CardContent className="p-6">
-          {isLoading ? (
-            <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
-          ) : jobs.length === 0 ? (
-            <div className="flex justify-center py-8 text-muted-foreground">暂无定时任务</div>
-          ) : (
-            <div className="divide-y">
-              {jobs.map((job: JobItemDto) => {
-                const isRunning = job.status === 'running' || Boolean(job.running);
-
-                return (
-                  <div
-                    key={job.name}
-                    className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between"
-                  >
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-semibold text-base">{job.name}</span>
-                        {job.description && (
-                          <span className="text-xs text-muted-foreground">{job.description}</span>
-                        )}
-                        <Badge variant={isRunning ? 'default' : 'secondary'}>
-                          {isRunning ? '运行中' : '已暂停'}
-                        </Badge>
-                        {job.cron && (
-                          <Badge variant="outline" className="font-mono text-xs">
-                            {job.cron}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                        {job.lastRun && (
-                          <span>
-                            上次执行:{' '}
-                            {new Date(job.lastRun).toLocaleString('zh-CN', {
-                              hour12: false,
-                            })}
-                          </span>
-                        )}
-                        {job.nextRun && (
-                          <span>
-                            下次执行:{' '}
-                            {new Date(job.nextRun).toLocaleString('zh-CN', {
-                              hour12: false,
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Link href={`/monitor/jobs/logs?jobName=${job.name}`}>
-                        <Button variant="ghost" size="sm">
-                          <History className="mr-1 h-3.5 w-3.5" />
-                          日志
-                        </Button>
-                      </Link>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleJobAction(job.name, 'run')}
-                      >
-                        <Zap className="mr-1 h-3.5 w-3.5" />
-                        立即执行
-                      </Button>
-
-                      {isRunning ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleJobAction(job.name, 'stop')}
-                        >
-                          <Pause className="mr-1 h-3.5 w-3.5" />
-                          暂停
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleJobAction(job.name, 'start')}
-                        >
-                          <Play className="mr-1 h-3.5 w-3.5" />
-                          启动
-                        </Button>
-                      )}
-                    </div>
+      {/* 任务列表表格 */}
+      <DataTable
+        columns={[
+          {
+            label: '任务名称',
+            span: 3,
+            render: (job) => (
+              <div className="space-y-0.5 min-w-0">
+                <div className="font-semibold text-sm truncate" title={job.name}>
+                  {job.name}
+                </div>
+                {job.description && (
+                  <div className="text-xs text-muted-foreground truncate" title={job.description}>
+                    {job.description}
                   </div>
-                );
-              })}
+                )}
+              </div>
+            ),
+          },
+          {
+            label: 'Cron 表达式',
+            span: 2,
+            render: (job) =>
+              job.cron ? (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {job.cron}
+                </Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">-</span>
+              ),
+          },
+          {
+            label: '状态',
+            span: 1,
+            render: (job) => {
+              const isRunning = job.status === 'running' || Boolean(job.running);
+              return (
+                <Badge variant={isRunning ? 'default' : 'secondary'}>
+                  {isRunning ? '运行中' : '已暂停'}
+                </Badge>
+              );
+            },
+          },
+          {
+            label: '上次执行时间',
+            span: 2,
+            render: (job) => (
+              <span className="text-xs font-mono text-muted-foreground">
+                {job.lastRun
+                  ? new Date(job.lastRun).toLocaleString('zh-CN', { hour12: false })
+                  : '-'}
+              </span>
+            ),
+          },
+          {
+            label: '下次执行时间',
+            span: 2,
+            render: (job) => (
+              <span className="text-xs font-mono text-muted-foreground">
+                {job.nextRun
+                  ? new Date(job.nextRun).toLocaleString('zh-CN', { hour12: false })
+                  : '-'}
+              </span>
+            ),
+          },
+        ]}
+        data={jobs.map((j: JobItemDto) => ({ ...j, id: j.name }))}
+        isLoading={isLoading}
+        emptyText="暂无定时任务"
+        actionsSpan={3}
+        minWidth="min-w-[900px]"
+        actions={(job) => {
+          const isRunning = job.status === 'running' || Boolean(job.running);
+          return (
+            <div className="flex items-center gap-1.5">
+              <Link href={`/monitor/jobs/logs?jobName=${job.name}`}>
+
+                <Button variant="ghost" size="sm" className="h-7 text-xs px-2.5">
+                  <History className="mr-1 h-3 w-3" />
+                  日志
+                </Button>
+              </Link>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2.5"
+                onClick={() => handleJobAction(job.name, 'run')}
+              >
+                <Zap className="mr-1 h-3 w-3" />
+                执行
+              </Button>
+
+              {isRunning ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs px-2.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                  onClick={() => handleJobAction(job.name, 'stop')}
+                >
+                  <Pause className="mr-1 h-3 w-3" />
+                  暂停
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs px-2.5 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
+                  onClick={() => handleJobAction(job.name, 'start')}
+                >
+                  <Play className="mr-1 h-3 w-3" />
+                  启动
+                </Button>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          );
+        }}
+      />
     </div>
   );
 }
