@@ -395,28 +395,32 @@ export default function MenuPage() {
         }
       />
 
-      <Card>
-        <CardContent className="p-6">
-          {isLoading ? (
-            <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
-          ) : menus.length === 0 ? (
-            <div className="flex justify-center py-8 text-muted-foreground">暂无菜单数据</div>
-          ) : (
-            <div className="space-y-1">
-              {menus.map((menu) => (
-                <MenuTreeItem
-                  key={menu.id}
-                  menu={menu}
-                  collapsedIds={collapsedIds}
-                  onToggleExpand={toggleExpand}
-                  onToggleHidden={handleToggleHidden}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onAddChild={handleCreateChild}
-                />
-              ))}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[840px] p-6">
+              {isLoading ? (
+                <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
+              ) : menus.length === 0 ? (
+                <div className="flex justify-center py-8 text-muted-foreground">暂无菜单数据</div>
+              ) : (
+                <div className="space-y-1">
+                  {menus.map((menu) => (
+                    <MenuTreeItem
+                      key={menu.id}
+                      menu={menu}
+                      collapsedIds={collapsedIds}
+                      onToggleExpand={toggleExpand}
+                      onToggleHidden={handleToggleHidden}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onAddChild={handleCreateChild}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
@@ -710,7 +714,7 @@ function MenuTreeItem({
           <span className="text-xs text-muted-foreground">排序: {menu.sort}</span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0 flex-nowrap pl-4">
           {menu.type !== 'BUTTON' && (
             <PermissionButton
               perm="system:menu:add"

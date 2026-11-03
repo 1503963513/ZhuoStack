@@ -181,25 +181,29 @@ export default function DeptPage() {
         }
       />
 
-      <Card>
-        <CardContent className="p-6">
-          {isLoading ? (
-            <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
-          ) : depts.length === 0 ? (
-            <div className="flex justify-center py-8 text-muted-foreground">暂无部门数据</div>
-          ) : (
-            <div className="space-y-2">
-              {depts.map((dept) => (
-                <DeptTreeItem
-                  key={dept.id}
-                  dept={dept}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onAddChild={handleCreateChild}
-                />
-              ))}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[640px] p-6">
+              {isLoading ? (
+                <div className="flex justify-center py-8 text-muted-foreground">加载中...</div>
+              ) : depts.length === 0 ? (
+                <div className="flex justify-center py-8 text-muted-foreground">暂无部门数据</div>
+              ) : (
+                <div className="space-y-2">
+                  {depts.map((dept) => (
+                    <DeptTreeItem
+                      key={dept.id}
+                      dept={dept}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onAddChild={handleCreateChild}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
@@ -355,7 +359,7 @@ function DeptTreeItem({
           {dept.remark && <span className="text-xs text-muted-foreground">({dept.remark})</span>}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0 flex-nowrap pl-4">
           <PermissionButton
             perm="system:dept:add"
             variant="ghost"
