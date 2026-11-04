@@ -60,9 +60,9 @@ export class SystemJobsService {
     return this.lastHealthCheck;
   }
 
-  // ========== 健康检查 - 每 5 分钟 ==========
+  // ========== 健康检查 - 每 30 分钟 ==========
 
-  @Cron(CronExpression.EVERY_5_MINUTES, { name: 'health-check' })
+  @Cron(CronExpression.EVERY_30_MINUTES, { name: 'health-check' })
   async handleHealthCheck() {
     const start = Date.now();
     let isSuccess = true;
@@ -128,7 +128,7 @@ export class SystemJobsService {
       await this.recordJobLog({
         jobName: 'health-check',
         description: '定期检查系统健康状态',
-        cronExpression: CronExpression.EVERY_5_MINUTES,
+        cronExpression: CronExpression.EVERY_30_MINUTES,
         status: isSuccess ? 1 : 0,
         executionTime: Date.now() - start,
         exceptionInfo: errorDetail,
@@ -136,9 +136,9 @@ export class SystemJobsService {
     }
   }
 
-  // ========== 缓存清理 - 每 30 分钟 ==========
+  // ========== 缓存清理 - 每 2 小时 ==========
 
-  @Cron(CronExpression.EVERY_30_MINUTES, { name: 'cache-cleanup' })
+  @Cron(CronExpression.EVERY_2_HOURS, { name: 'cache-cleanup' })
   async handleCacheCleanup() {
     const start = Date.now();
     let isSuccess = true;
@@ -195,7 +195,7 @@ export class SystemJobsService {
       await this.recordJobLog({
         jobName: 'cache-cleanup',
         description: '定期清理过期缓存数据',
-        cronExpression: CronExpression.EVERY_30_MINUTES,
+        cronExpression: CronExpression.EVERY_2_HOURS,
         status: isSuccess ? 1 : 0,
         executionTime: Date.now() - start,
         exceptionInfo: errorDetail,
@@ -203,9 +203,9 @@ export class SystemJobsService {
     }
   }
 
-  // ========== 在线用户清理 - 每 10 分钟 ==========
+  // ========== 在线用户清理 - 每 2 小时 ==========
 
-  @Cron(CronExpression.EVERY_10_MINUTES, { name: 'online-cleanup' })
+  @Cron(CronExpression.EVERY_2_HOURS, { name: 'online-cleanup' })
   async handleOnlineCleanup() {
     const start = Date.now();
     let isSuccess = true;
@@ -251,7 +251,7 @@ export class SystemJobsService {
       await this.recordJobLog({
         jobName: 'online-cleanup',
         description: '定期清理过期在线用户状态',
-        cronExpression: CronExpression.EVERY_10_MINUTES,
+        cronExpression: CronExpression.EVERY_2_HOURS,
         status: isSuccess ? 1 : 0,
         executionTime: Date.now() - start,
         exceptionInfo: errorDetail,
