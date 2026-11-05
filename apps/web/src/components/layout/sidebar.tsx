@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
@@ -52,6 +52,7 @@ function isPathActive(currentPath: string, menuPath: string | null | undefined):
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const logout = useLogout();
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -60,6 +61,16 @@ export function Sidebar() {
     if (!ok) return;
     logout();
   };
+
+  // 鼠标悬停在菜单项上时立即触发预加载，降低点击时的网络延迟
+  const handlePrefetch = useCallback(
+    (path: string | null | undefined) => {
+      if (path && path.startsWith('/')) {
+        router.prefetch(path);
+      }
+    },
+    [router],
+  );
 
   // 从 API 获取当前用户的菜单（按角色过滤）
   const { data: response } = useQuery({
@@ -156,6 +167,8 @@ export function Sidebar() {
                         <Link
                           key={child.id}
                           href={child.path || '#'}
+                          prefetch={true}
+                          onMouseEnter={() => handlePrefetch(child.path)}
                           className={cn(
                             'flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                             isActive
@@ -182,6 +195,8 @@ export function Sidebar() {
             <Link
               key={item.id}
               href={item.path || '#'}
+              prefetch={true}
+              onMouseEnter={() => handlePrefetch(item.path)}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 isActive

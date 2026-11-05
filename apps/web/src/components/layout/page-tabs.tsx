@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useTabsStore, type PageTabItem } from '@/stores/tabs-store';
@@ -74,6 +74,16 @@ export function PageTabs() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // 鼠标悬停标签时提前预取该页面基础路由资源（避免携带 query 参数产生非预期的预取键异常）
+  const handlePrefetch = useCallback(
+    (path: string) => {
+      if (path && path.startsWith('/')) {
+        router.prefetch(path);
+      }
+    },
+    [router],
+  );
+
   // 1. 路由变化时自动记录历史标签
   useEffect(() => {
     // 排除公开登录注册页
@@ -140,6 +150,7 @@ export function PageTabs() {
             <div
               key={tab.id}
               data-tab-id={tab.id}
+              onMouseEnter={() => handlePrefetch(tab.path)}
               onAuxClick={(e) => {
                 // 鼠标中键快捷关闭标签
                 if (e.button === 1 && tab.closable) {
@@ -156,6 +167,7 @@ export function PageTabs() {
             >
               <Link
                 href={tab.fullPath}
+                prefetch={true}
                 className="flex items-center gap-1.5 outline-hidden"
               >
                 {tab.path === '/dashboard' && (

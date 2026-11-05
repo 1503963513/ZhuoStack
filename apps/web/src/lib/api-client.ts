@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { ApiResponse } from '@/types/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTabsStore } from '@/stores/tabs-store';
+import { useProgressStore } from '@/stores/progress-store';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/lib/csrf';
 import { clearPublicKeyCache } from '@/lib/crypto';
 
@@ -14,7 +15,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 /** 防止 401 时多次跳转 */
 let isRedirecting = false;
 
-type RetryableRequestConfig = AxiosRequestConfig & { _retry?: boolean };
+type RetryableRequestConfig = AxiosRequestConfig & { _retry?: boolean; _progressStarted?: boolean };
 
 interface ApiErrorPayload {
   message?: string;
@@ -71,9 +72,26 @@ function createApiClient(): AxiosInstance {
     xsrfHeaderName: CSRF_HEADER_NAME,
   });
 
+  // Request interceptor: 启动全局进度条（仅在未启动过的初次请求执行，防止重试时重复计数）
+  client.interceptors.request.use((config) => {
+    const retryableConfig = config as RetryableRequestConfig;
+    if (typeof window !== 'undefined' && !retryableConfig._progressStarted) {
+      useProgressStore.getState().start();
+      retryableConfig._progressStarted = true;
+    }
+    return config;
+  });
+
   // Response interceptor: handle 401 and extract backend error message
   client.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      const retryableConfig = response.config as RetryableRequestConfig | undefined;
+      if (typeof window !== 'undefined' && retryableConfig?._progressStarted) {
+        retryableConfig._progressStarted = false;
+        useProgressStore.getState().done();
+      }
+      return response;
+    },
     async (error: AxiosError) => {
       const status = error.response?.status;
       const requestConfig = error.config as RetryableRequestConfig | undefined;
@@ -92,12 +110,21 @@ function createApiClient(): AxiosInstance {
           await refreshAccessToken();
           return await client.request(requestConfig);
         } catch (refreshError) {
+          if (typeof window !== 'undefined' && requestConfig._progressStarted) {
+            requestConfig._progressStarted = false;
+            useProgressStore.getState().done();
+          }
           const refreshMessage =
             (refreshError as AxiosError<{ message?: string }>).response?.data?.message ||
             '登录已过期，请重新登录';
           handleSessionExpired(refreshMessage);
           return Promise.reject(refreshError);
         }
+      }
+
+      if (typeof window !== 'undefined' && requestConfig?._progressStarted) {
+        requestConfig._progressStarted = false;
+        useProgressStore.getState().done();
       }
 
       if (
