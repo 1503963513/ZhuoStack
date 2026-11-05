@@ -12,6 +12,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { SystemModule } from './modules/system/system.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
 import { LogModule } from './modules/log/log.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -68,6 +69,9 @@ const apiEnvFile = `.env.${nodeEnv}`;
 
     // Log management
     LogModule,
+
+    // Notification center
+    NotificationModule,
   ],
   providers: [
     Logger,
