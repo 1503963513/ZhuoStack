@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useTabsStore, type PageTabItem } from '@/stores/tabs-store';
@@ -72,7 +72,6 @@ export function PageTabs() {
   } = useTabsStore();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // 鼠标悬停标签时提前预取该页面基础路由资源（避免携带 query 参数产生非预期的预取键异常）
   const handlePrefetch = useCallback(
@@ -130,7 +129,6 @@ export function PageTabs() {
   };
 
   const handleRefresh = () => {
-    setDropdownOpen(false);
     window.location.reload();
   };
 
@@ -199,58 +197,47 @@ export function PageTabs() {
       <div className="relative shrink-0 pl-2">
         <DropdownMenu>
           <DropdownMenuTrigger
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex h-7 w-7 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             title="标签页操作"
+            aria-label="标签页操作"
           >
             <MoreVertical className="h-3.5 w-3.5" />
           </DropdownMenuTrigger>
 
-          {dropdownOpen && (
-            <DropdownMenuContent align="end" className="w-36">
-              <DropdownMenuItem onClick={handleRefresh} className="cursor-pointer">
-                <RotateCw className="mr-2 h-3.5 w-3.5" />
-                刷新当前页
-              </DropdownMenuItem>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={handleRefresh} className="cursor-pointer">
+              <RotateCw className="mr-2 h-3.5 w-3.5" />
+              刷新当前页
+            </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
+            <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                onClick={() => {
-                  setDropdownOpen(false);
-                  closeOthers(activeTabId, handleNavigate);
-                }}
-                className="cursor-pointer"
-              >
-                <MinusCircle className="mr-2 h-3.5 w-3.5" />
-                关闭其他标签
-              </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => closeOthers(activeTabId, handleNavigate)}
+              className="cursor-pointer"
+            >
+              <MinusCircle className="mr-2 h-3.5 w-3.5" />
+              关闭其他标签
+            </DropdownMenuItem>
 
-              <DropdownMenuItem
-                onClick={() => {
-                  setDropdownOpen(false);
-                  closeRight(activeTabId, handleNavigate);
-                }}
-                className="cursor-pointer"
-              >
-                <ArrowRightToLine className="mr-2 h-3.5 w-3.5" />
-                关闭右侧标签
-              </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => closeRight(activeTabId, handleNavigate)}
+              className="cursor-pointer"
+            >
+              <ArrowRightToLine className="mr-2 h-3.5 w-3.5" />
+              关闭右侧标签
+            </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
+            <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                onClick={() => {
-                  setDropdownOpen(false);
-                  closeAll(handleNavigate);
-                }}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <XCircle className="mr-2 h-3.5 w-3.5" />
-                关闭全部标签
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          )}
+            <DropdownMenuItem
+              onClick={() => closeAll(handleNavigate)}
+              className="cursor-pointer text-destructive focus:text-destructive"
+            >
+              <XCircle className="mr-2 h-3.5 w-3.5" />
+              关闭全部标签
+            </DropdownMenuItem>
+          </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </div>
