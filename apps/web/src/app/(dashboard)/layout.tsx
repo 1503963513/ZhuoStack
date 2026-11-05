@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/header';
 import { PageTabs } from '@/components/layout/page-tabs';
 import { Loading } from '@/components/common/loading';
 import { ROUTES } from '@/lib/constants';
+import { useNotificationStream } from '@/hooks/use-notification-stream';
 
 const subscribeToHydration = (onStoreChange: () => void) =>
   useAuthStore.persist.onFinishHydration(onStoreChange);
@@ -35,6 +36,14 @@ export default function DashboardLayout({
   if (!hydrated || !isAuthenticated) {
     return <Loading fullscreen />;
   }
+
+  return <DashboardContent>{children}</DashboardContent>;
+}
+
+/** 已认证后渲染的内容，SSE 连接在此建立 */
+function DashboardContent({ children }: { children: React.ReactNode }) {
+  // 建立 SSE 实时通知连接
+  useNotificationStream();
 
   return (
     <div className="min-h-screen bg-background">

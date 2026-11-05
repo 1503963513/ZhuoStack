@@ -1,0 +1,62 @@
+model SysNotification {
+  id        String   @id @default(cuid())
+
+  /// announcement(系统公告) | system(系统消息)，后续扩展 approval / task
+  type      String   @db.VarChar(32)
+
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+
+  /// 个人消息：目标用户ID；公告：为空，表示面向全体
+  userId    String?
+
+  /// 发送者ID（管理员发公告时记录；系统自动消息为空）
+  senderId  String?
+  /// 发送者名称（冗余存储，避免关联查询）
+  senderName String? @db.VarChar(255)
+
+  /// 个人消息的已读状态（公告走 reads 表）
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+
+  /// 关联业务类型（首期可空，后续审批/任务模块接入）
+  bizType   String?  @db.VarChar(64)
+  /// 关联业务ID
+  bizId     String?  @db.VarChar(64)
+
+  /// 公告专属：draft(草稿) | published(已发布) | revoked(已撤回)
+  status    String?  @db.VarChar(32)
+
+  /// 审计字段
+  createdBy String?  @db.VarChar(64)
+  updatedBy String?  @db.VarChar(64)
+  remark    String?  @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reads     SysNotificationRead[]
+
+  @@index([userId, isRead, createdAt])
+  @@index([type, status, createdAt])
+  @@map("sys_notifications")
+}
+
+model SysNotificationRead {
+  id             String   @id @default(cuid())
+
+  notificationId String
+  userId         String
+
+  /// 用户是否已隐藏此公告
+  hidden         Boolean  @default(false)
+
+  /// 阅读时间
+  createdAt      DateTime @default(now())
+
+  notification   SysNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@index([userId, hidden])
+  @@map("sys_notification_reads")
+}

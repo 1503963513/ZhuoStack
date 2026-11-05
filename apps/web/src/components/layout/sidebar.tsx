@@ -22,6 +22,7 @@ import {
   Folder,
   FileText,
   MousePointer,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 import { useLogout } from '@/hooks/use-auth';
@@ -40,6 +41,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Folder,
   FileText,
   MousePointer,
+  Bell,
 };
 
 /** 判断当前路由是否属于该菜单项（支持完全匹配或子页面前缀匹配，如 /monitor/jobs/logs 保持激活 /monitor/jobs） */

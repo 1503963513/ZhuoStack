@@ -212,6 +212,20 @@ async function main() {
     },
   });
 
+  const menuNotification = await prisma.sysMenu.create({
+    data: {
+      name: '通知中心',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/notifications',
+      component: 'notifications/index',
+      icon: 'Bell',
+      sort: 10,
+      status: Status.ACTIVE,
+    },
+  });
+
+
   // 三级菜单：按钮权限（部门管理下的操作按钮）
   await prisma.sysMenu.createMany({
     data: [
@@ -463,6 +477,22 @@ async function main() {
         sort: 4,
         status: Status.ACTIVE,
       },
+      {
+        name: '发送通知',
+        parentId: menuNotification.id,
+        type: MenuType.BUTTON,
+        perms: 'system:notification:send',
+        sort: 1,
+        status: Status.ACTIVE,
+      },
+      {
+        name: '发布公告',
+        parentId: menuNotification.id,
+        type: MenuType.BUTTON,
+        perms: 'system:notification:announcement',
+        sort: 2,
+        status: Status.ACTIVE,
+      },
     ],
   });
 
@@ -601,6 +631,7 @@ async function main() {
           { id: menuOperLog.id },
           { id: menuLoginLog.id },
           { id: menuFile.id },
+          { id: menuNotification.id },
           // 所有按钮权限
           ...buttonMenus.map((m) => ({ id: m.id })),
         ],

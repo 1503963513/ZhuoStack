@@ -12,6 +12,8 @@ import { useConfirm } from '@/hooks/use-confirm';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
 import { fileUrl } from '@/lib/utils';
+import { NotificationBell } from '@/components/layout/notification-bell';
+import { NotificationDrawer } from '@/components/layout/notification-drawer';
 
 export function Header() {
   const user = useAuthStore((s) => s.user);
@@ -76,6 +78,9 @@ export function Header() {
         <span className="sr-only">切换主题</span>
       </Button>
 
+      {/* 通知铃铛 */}
+      <NotificationBell />
+
       {/* 用户菜单 */}
       <div className="relative" ref={menuRef}>
         <Button
@@ -118,6 +123,7 @@ export function Header() {
         )}
       </div>
     </header>
+    <NotificationDrawer />
     <ConfirmDialog />
     </>
   );
