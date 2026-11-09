@@ -11,7 +11,6 @@ import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 import {
   LayoutDashboard,
   User,
-  LogOut,
   Settings,
   Building2,
   Briefcase,
@@ -25,8 +24,6 @@ import {
   Bell,
   type LucideIcon,
 } from 'lucide-react';
-import { useLogout } from '@/hooks/use-auth';
-import { useConfirm } from '@/hooks/use-confirm';
 
 // 图标映射
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -55,14 +52,6 @@ function isPathActive(currentPath: string, menuPath: string | null | undefined):
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useLogout();
-  const { confirm, ConfirmDialog } = useConfirm();
-
-  const handleLogout = async () => {
-    const ok = await confirm({ description: '确定要退出登录吗？', variant: 'destructive' });
-    if (!ok) return;
-    logout();
-  };
 
   // 鼠标悬停在菜单项上时立即触发预加载，降低点击时的网络延迟
   const handlePrefetch = useCallback(
@@ -212,19 +201,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="border-t p-4">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-        >
-          <LogOut className="h-4 w-4" />
-          退出登录
-        </button>
-      </div>
-
-      <ConfirmDialog />
     </aside>
   );
 }
