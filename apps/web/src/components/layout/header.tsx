@@ -66,20 +66,23 @@ export function Header() {
   return (
     <>
     <header className="sticky top-0 z-35 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* 主题切换 */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        className="mr-4"
-      >
-        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        <span className="sr-only">切换主题</span>
-      </Button>
+      {/* 功能操作区：日夜模式切换、通知提醒 */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        >
+          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">切换主题</span>
+        </Button>
 
-      {/* 通知铃铛 */}
-      <NotificationBell />
+        <NotificationBell />
+      </div>
+
+      {/* 功能区与个人头像之间的视觉分割线 */}
+      <div className="mx-3 h-5 w-px bg-border" />
 
       {/* 用户菜单 */}
       <div className="relative" ref={menuRef}>

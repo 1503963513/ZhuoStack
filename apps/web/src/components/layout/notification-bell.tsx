@@ -7,7 +7,7 @@ import { useNotificationStore } from '@/stores/notification-store';
 import { useNotification } from '@/hooks/use-notification';
 
 /** 顶栏通知铃铛：展示未读红点，点击切换抽屉 */
-export function NotificationBell() {
+export function NotificationBell({ className }: { className?: string }) {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const toggleDrawer = useNotificationStore((s) => s.toggleDrawer);
   const { fetchUnreadCount } = useNotification();
@@ -21,7 +21,7 @@ export function NotificationBell() {
     <Button
       variant="ghost"
       size="icon"
-      className="relative mr-2"
+      className={className || "relative"}
       onClick={toggleDrawer}
       aria-label="通知中心"
     >

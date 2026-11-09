@@ -26,6 +26,7 @@ import {
 const ROUTE_TITLE_MAP: Record<string, string> = {
   '/dashboard': '仪表盘',
   '/profile': '个人资料',
+  '/notifications': '通知中心',
   '/system/user': '用户管理',
   '/system/role': '角色管理',
   '/system/dept': '部门管理',

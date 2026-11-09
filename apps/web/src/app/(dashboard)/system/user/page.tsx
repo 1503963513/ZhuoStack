@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { fileUrl } from '@/lib/utils';
 import { encryptPassword } from '@/lib/crypto';
@@ -51,6 +51,7 @@ export default function UserPage() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItemDto | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -137,6 +138,7 @@ export default function UserPage() {
   });
 
   const resetForm = () => {
+    setShowPassword(false);
     setFormData({
       name: '',
       email: '',
@@ -156,6 +158,7 @@ export default function UserPage() {
   };
 
   const handleEdit = async (user: UserItemDto) => {
+    setShowPassword(false);
     setEditingUser(user);
     setFormData({
       name: user.name || '',
@@ -356,16 +359,33 @@ export default function UserPage() {
 
               <div className="grid gap-2">
                 <Label htmlFor="password">密码 {editingUser ? '（留空不修改）' : '*'}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required={!editingUser}
-                  minLength={8}
-                  maxLength={128}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={editingUser ? '••••••••' : '至少 8 位字符'}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required={!editingUser}
+                    minLength={8}
+                    maxLength={128}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={editingUser ? '••••••••' : '至少 8 位字符'}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    title={showPassword ? '隐藏密码' : '显示密码'}
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="grid gap-2">

@@ -212,7 +212,7 @@ export function NotificationDrawer() {
                         onClick={() => markAsRead(notification.id)}
                         title="标记已读"
                       >
-                        <CheckCheck className="h-3 w-3" />
+                        <CheckCheck className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     <Button
@@ -222,7 +222,7 @@ export function NotificationDrawer() {
                       onClick={() => removeNotification(notification.id)}
                       title="删除"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
