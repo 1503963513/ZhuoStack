@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { fileUrl, copyText, absoluteFileUrl } from '@/lib/utils';
+import { fileUrl, copyText, absoluteFileUrl, formatBytes } from '@/lib/utils';
 import { CSRF_HEADER_NAME, getCsrfToken } from '@/lib/csrf';
 import {
   Upload,
@@ -50,15 +50,6 @@ import {
   fileControllerRemoveBatch,
 } from '@/api/generated/endpoints/system-file/system-file';
 import type { FileEntity } from '@/api/generated/models';
-
-/** 格式化文件大小 */
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-}
 
 /** 获取文件类型图标 */
 function getFileIcon(mimeType: string) {
@@ -486,7 +477,7 @@ export default function FilePage() {
                     {file.originalName}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    {formatFileSize(file.fileSize)}
+                    {formatBytes(file.fileSize)}
                   </p>
                 </div>
               </Card>
@@ -557,7 +548,7 @@ export default function FilePage() {
           <DialogHeader>
             <DialogTitle>{previewFile?.originalName}</DialogTitle>
             <DialogDescription>
-              大小: {previewFile && formatFileSize(previewFile.fileSize)} | 类型:{' '}
+              大小: {previewFile && formatBytes(previewFile.fileSize)} | 类型:{' '}
               {previewFile?.mimeType}
             </DialogDescription>
           </DialogHeader>

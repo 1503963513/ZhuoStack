@@ -8,38 +8,8 @@ import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/constants';
 import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
 import type { UserMenuTreeNodeDto } from '@/api/generated/models';
-import {
-  LayoutDashboard,
-  User,
-  Settings,
-  Building2,
-  Briefcase,
-  Shield,
-  Menu as MenuIcon,
-  BookOpen,
-  ChevronDown,
-  Folder,
-  FileText,
-  MousePointer,
-  Bell,
-  type LucideIcon,
-} from 'lucide-react';
-
-// 图标映射
-const ICON_MAP: Record<string, LucideIcon> = {
-  LayoutDashboard,
-  User,
-  Settings,
-  Building2,
-  Briefcase,
-  Shield,
-  Menu: MenuIcon,
-  BookOpen,
-  Folder,
-  FileText,
-  MousePointer,
-  Bell,
-};
+import { getDynamicIcon } from '@/components/common/dynamic-icon';
+import { ChevronDown } from 'lucide-react';
 
 /** 判断当前路由是否属于该菜单项（支持完全匹配或子页面前缀匹配，如 /monitor/jobs/logs 保持激活 /monitor/jobs） */
 function isPathActive(currentPath: string, menuPath: string | null | undefined): boolean {
@@ -104,11 +74,6 @@ export function Sidebar() {
     }));
   };
 
-  const getIcon = (iconName: string | null | undefined): LucideIcon => {
-    if (!iconName || !ICON_MAP[iconName]) return FileText;
-    return ICON_MAP[iconName];
-  };
-
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
@@ -119,7 +84,7 @@ export function Sidebar() {
         {navItems.map((item) => {
           // 1. 如果是目录（DIRECTORY），渲染为可折叠的分组菜单
           if (item.type === 'DIRECTORY') {
-            const GroupIcon = getIcon(item.icon);
+            const GroupIcon = getDynamicIcon(item.icon);
             const children = item.children || [];
             const hasActiveChild = children.some((c) => isPathActive(pathname, c.path));
             const isOpen = openGroups[item.id] ?? hasActiveChild;
@@ -151,7 +116,7 @@ export function Sidebar() {
                 {isOpen && (
                   <div className="ml-4 mt-1 flex flex-col gap-1 border-l pl-2">
                     {children.map((child) => {
-                      const ChildIcon = getIcon(child.icon);
+                      const ChildIcon = getDynamicIcon(child.icon);
                       const isActive = isPathActive(pathname, child.path);
 
                       return (
@@ -179,7 +144,7 @@ export function Sidebar() {
           }
 
           // 2. 如果是顶级单项菜单（MENU，如仪表盘、个人中心等），按其自身 sort 权重直接渲染为单项链接
-          const ItemIcon = getIcon(item.icon);
+          const ItemIcon = getDynamicIcon(item.icon);
           const isActive = isPathActive(pathname, item.path);
 
           return (

@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';
 import { PageHeader } from '@/components/common/page-header';
 import { useConfirm } from '@/hooks/use-confirm';
+import { getMenuTypeConfig, MenuTypeBadge } from "@/components/common/menu-type-badge";
 import {
   menuControllerFindTree,
   menuControllerCreate,
@@ -41,29 +42,7 @@ import type {
   CreateMenuDtoStatus,
 } from '@/api/generated/models';
 
-const MENU_TYPE_MAP: Record<
-  string,
-  { label: string; icon: typeof Folder; color: string; rowBg: string }
-> = {
-  DIRECTORY: {
-    label: '目录',
-    icon: Folder,
-    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-    rowBg: '',
-  },
-  MENU: {
-    label: '菜单',
-    icon: FileText,
-    color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-    rowBg: '',
-  },
-  BUTTON: {
-    label: '按钮',
-    icon: MousePointer,
-    color: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-    rowBg: 'bg-muted/30',
-  },
-};
+
 
 /**
  * 递归收集指定节点及其所有子孙节点的 ID
@@ -336,7 +315,7 @@ export default function MenuPage() {
             label: '菜单名称',
             span: 3,
             render: (menu) => {
-              const typeConfig = MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU;
+              const typeConfig = getMenuTypeConfig(menu.type);
               const TypeIcon = typeConfig.icon;
               return (
                 <div className="flex min-w-0 items-center gap-2">
@@ -351,14 +330,7 @@ export default function MenuPage() {
           {
             label: '类型',
             span: 2,
-            render: (menu) => {
-              const typeConfig = MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU;
-              return (
-                <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', typeConfig.color)}>
-                  {typeConfig.label}
-                </span>
-              );
-            },
+            render: (menu) => <MenuTypeBadge type={menu.type} />,
           },
           {
             label: '路由路径',
@@ -453,7 +425,7 @@ export default function MenuPage() {
         minWidth="min-w-[1080px]"
         expandedIds={expandedIds}
         onExpandedIdsChange={setExpandedIds}
-        rowClassName={(menu) => (MENU_TYPE_MAP[menu.type] || MENU_TYPE_MAP.MENU).rowBg}
+        rowClassName={(menu) => getMenuTypeConfig(menu.type).rowBg || ''}
         actions={(menu) => (
           <div className="flex items-center gap-1">
             {menu.type !== 'BUTTON' && (

@@ -106,3 +106,31 @@ export async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * 格式化字节大小为易读文本（例如 1024 -> 1.0 KB）
+ */
+export function formatBytes(bytes: number, decimals = 1): string {
+  if (bytes <= 0 || isNaN(bytes)) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const idx = Math.min(i, sizes.length - 1);
+  return `${parseFloat((bytes / Math.pow(k, idx)).toFixed(decimals))} ${sizes[idx]}`;
+}
+
+/**
+ * 格式化运行时长（秒数 -> 几天几小时几分钟）
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds <= 0 || isNaN(seconds)) return '0分钟';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+
+  const parts: string[] = [];
+  if (d > 0) parts.push(`${d}天`);
+  if (h > 0) parts.push(`${h}小时`);
+  if (m > 0 || parts.length === 0) parts.push(`${m}分钟`);
+  return parts.join(' ');
+}

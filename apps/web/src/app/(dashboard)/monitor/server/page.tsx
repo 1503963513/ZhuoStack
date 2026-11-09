@@ -7,22 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/common/page-header';
 import { Loading } from '@/components/common/loading';
 import { RefreshCw, Server, Cpu, MemoryStick, Clock } from 'lucide-react';
+import { formatBytes, formatDuration } from "@/lib/utils";
 import { monitorControllerGetServerInfo } from '@/api/generated/endpoints/system-monitor/system-monitor';
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function formatUptime(seconds: number): string {
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return `${d}天 ${h}小时 ${m}分钟`;
-}
 
 /** 根据使用率返回对应的进度条颜色 */
 function getProgressColor(usage: number): string {
@@ -116,7 +102,7 @@ export default function ServerPage() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{formatUptime(info.uptime)}</div>
+                <div className="text-xl font-bold">{formatDuration(info.uptime)}</div>
                 <p className="text-xs text-muted-foreground mt-1">Node {info.nodeVersion}</p>
               </CardContent>
             </Card>
@@ -183,7 +169,7 @@ export default function ServerPage() {
                   </div>
                   <div className="flex justify-between py-2">
                     <dt className="text-muted-foreground">系统开机时间</dt>
-                    <dd className="font-medium">{formatUptime(info.systemUptime)}</dd>
+                    <dd className="font-medium">{formatDuration(info.systemUptime)}</dd>
                   </div>
                 </dl>
               </CardContent>

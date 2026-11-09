@@ -47,20 +47,11 @@ import {
   roleControllerUpdate,
   roleControllerRemove,
 } from '@/api/generated/endpoints/system-role/system-role';
+import { getMenuTypeConfig } from "@/components/common/menu-type-badge";
 import { menuControllerFindTree } from '@/api/generated/endpoints/system-menu/system-menu';
 import type { RoleItemDto, MenuTreeNodeDto, CreateRoleDtoStatus } from '@/api/generated/models';
 
-const TYPE_ICON_MAP: Record<string, typeof Folder> = {
-  DIRECTORY: Folder,
-  MENU: FileText,
-  BUTTON: MousePointer,
-};
 
-const TYPE_COLOR_MAP: Record<string, string> = {
-  DIRECTORY: 'text-blue-500',
-  MENU: 'text-green-500',
-  BUTTON: 'text-orange-500',
-};
 
 export default function RolePage() {
   const [page, setPage] = useState(1);
@@ -466,8 +457,9 @@ function MenuTreeItem({
   const [expanded, setExpanded] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
   const isSelected = selectedIds.has(item.id);
-  const Icon = TYPE_ICON_MAP[item.type] || FileText;
-  const colorClass = TYPE_COLOR_MAP[item.type] || '';
+  const typeConfig = getMenuTypeConfig(item.type);
+  const Icon = typeConfig.icon;
+  const colorClass = typeConfig.iconColor;
 
   return (
     <div>
