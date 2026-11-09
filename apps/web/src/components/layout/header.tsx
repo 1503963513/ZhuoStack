@@ -5,13 +5,13 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useProfile } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useTheme } from 'next-themes';
-import { Moon, Sun, LogOut, User } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { useLogout } from '@/hooks/use-auth';
 import { useConfirm } from '@/hooks/use-confirm';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
 import { fileUrl } from '@/lib/utils';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { NotificationDrawer } from '@/components/layout/notification-drawer';
 
@@ -37,7 +37,6 @@ function GithubIcon({ className = 'h-5 w-5' }: { className?: string }) {
 export function Header() {
   const user = useAuthStore((s) => s.user);
   const { data: profileData } = useProfile();
-  const { setTheme, theme } = useTheme();
   const logout = useLogout();
   const { confirm, ConfirmDialog } = useConfirm();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -85,7 +84,7 @@ export function Header() {
   return (
     <>
     <header className="sticky top-0 z-35 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* 功能操作区：GitHub 仓库、日夜模式切换、通知提醒 */}
+      {/* 功能操作区：GitHub 仓库、显示模式切换（日间/夜间/跟随系统）、通知提醒 */}
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
@@ -102,15 +101,7 @@ export function Header() {
           </a>
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        >
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">切换主题</span>
-        </Button>
+        <ThemeToggle />
 
         <NotificationBell />
       </div>
