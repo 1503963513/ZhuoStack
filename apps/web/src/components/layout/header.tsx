@@ -12,8 +12,10 @@ import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
 import { fileUrl } from '@/lib/utils';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { LanguageToggle } from '@/components/layout/language-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { NotificationDrawer } from '@/components/layout/notification-drawer';
+import { useI18n } from '@/hooks/use-i18n';
 
 function GithubIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
@@ -39,11 +41,12 @@ export function Header() {
   const { data: profileData } = useProfile();
   const logout = useLogout();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
-    const ok = await confirm({ description: '确定要退出登录吗？', variant: 'destructive' });
+    const ok = await confirm({ description: t('common.logoutConfirm', '确定要退出登录吗？'), variant: 'destructive' });
     if (ok) logout();
   };
 
@@ -84,7 +87,7 @@ export function Header() {
   return (
     <>
     <header className="sticky top-0 z-35 flex h-16 items-center justify-end border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* 功能操作区：GitHub 仓库、显示模式切换（日间/夜间/跟随系统）、通知提醒 */}
+      {/* 功能操作区：GitHub 仓库、语言切换、显示模式切换、通知提醒 */}
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
@@ -100,6 +103,8 @@ export function Header() {
             <GithubIcon className="h-5 w-5" />
           </a>
         </Button>
+
+        <LanguageToggle />
 
         <ThemeToggle />
 
@@ -137,7 +142,7 @@ export function Header() {
               onClick={() => setMenuOpen(false)}
             >
               <User className="mr-2 h-4 w-4" />
-              个人资料
+              {t('common.profile', '个人资料')}
             </Link>
             <div className="-mx-1 my-1 h-px bg-muted" />
             <button
@@ -145,7 +150,7 @@ export function Header() {
               className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground text-destructive"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              退出登录
+              {t('common.logout', '退出登录')}
             </button>
           </div>
         )}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTabsStore, type PageTabItem } from '@/stores/tabs-store';
+import { useI18n } from '@/hooks/use-i18n';
 import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
 import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ export function PageTabs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t, locale } = useI18n();
 
   const {
     tabs,
@@ -76,33 +78,48 @@ export function PageTabs() {
     return map;
   }, [menuResponse]);
 
-  /** 动态解析标签标题 */
+  /** 动态解析标签标题并应用国际化 */
   const resolveTitle = useCallback(
     (targetPath: string, targetParams?: URLSearchParams | null): string => {
-      // 1. 优先从动态菜单树中匹配
+      // 1. 优先尝试从国际化字典解析路径
+      const i18nTitle = t(`menu.${targetPath}`, '');
+      if (i18nTitle) {
+        if (targetPath === '/monitor/jobs/logs' && targetParams) {
+          const jobName = targetParams.get('jobName');
+          if (jobName) return `${i18nTitle} (${jobName})`;
+        }
+        return i18nTitle;
+      }
+
+      // 2. 从动态菜单树中匹配
       let title = menuTitleMap.get(targetPath);
 
-      // 2. 匹配兜底特殊静态页面（如个人资料）
+      // 3. 匹配兜底特殊静态页面（如个人资料）
       if (!title) {
         title = FALLBACK_STATIC_TITLES[targetPath];
       }
 
-      // 3. 针对带有动态参数的子页面定制化追加
+      if (title) {
+        const translated = t(`menu.${title}`, '');
+        if (translated) title = translated;
+      }
+
+      // 4. 针对带有动态参数的子页面定制化追加
       if (targetPath === '/monitor/jobs/logs' && targetParams) {
         const jobName = targetParams.get('jobName');
         if (jobName) return `${title || '调度日志'} (${jobName})`;
       }
 
-      // 4. 若未匹配到，则美化路径末段作为兜底名称（例如 /system/my-tool -> My Tool）
+      // 5. 若未匹配到，则美化路径末段作为兜底名称（例如 /system/my-tool -> My Tool）
       if (!title) {
         const segments = targetPath.split('/').filter(Boolean);
         const last = segments[segments.length - 1];
-        title = last ? last.charAt(0).toUpperCase() + last.slice(1) : '新标签页';
+        title = last ? last.charAt(0).toUpperCase() + last.slice(1) : t('common.loading', '新标签页');
       }
 
       return title;
     },
-    [menuTitleMap],
+    [menuTitleMap, t],
   );
 
   // 鼠标悬停标签时提前预取该页面基础路由资源
@@ -115,7 +132,7 @@ export function PageTabs() {
     [router],
   );
 
-  // 1. 路由变化时自动记录历史标签
+  // 1. 路由变化或语言变化时自动记录/更新当前标签
   useEffect(() => {
     if (!pathname || pathname === '/login' || pathname === '/register') return;
 
@@ -132,17 +149,17 @@ export function PageTabs() {
     });
   }, [pathname, searchParams, addTab, resolveTitle]);
 
-  // 2. 当菜单树接口异步加载完成时，同步刷新已存在标签的标题（使后台修改的菜单名称即时生效）
+  // 2. 菜单树加载完成、后台菜单更名或语言切换时，同步刷新已打开标签
   useEffect(() => {
-    if (menuTitleMap.size === 0) return;
-
     tabs.forEach((tab) => {
-      const dynamicTitle = menuTitleMap.get(tab.path);
-      if (dynamicTitle && dynamicTitle !== tab.title && !tab.fullPath.includes('?')) {
-        updateTabTitle(tab.id, dynamicTitle);
+      const queryIndex = tab.fullPath.indexOf('?');
+      const query = queryIndex >= 0 ? tab.fullPath.slice(queryIndex + 1) : '';
+      const translated = resolveTitle(tab.path, new URLSearchParams(query));
+      if (translated && translated !== tab.title) {
+        updateTabTitle(tab.id, translated);
       }
     });
-  }, [menuTitleMap, tabs, updateTabTitle]);
+  }, [locale, menuTitleMap, resolveTitle, tabs, updateTabTitle]);
 
   // 3. 激活标签变化时自动将该标签滚动至可视区域
   useEffect(() => {
@@ -224,7 +241,7 @@ export function PageTabs() {
                     closeTab(tab.id, handleNavigate);
                   }}
                   className="rounded-xs p-0.5 opacity-60 hover:opacity-100 hover:bg-background/80 transition-opacity"
-                  title="关闭标签"
+                  title={t('tabs.closeTab', '关闭标签')}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -239,8 +256,8 @@ export function PageTabs() {
         <DropdownMenu>
           <DropdownMenuTrigger
             className="flex h-7 w-7 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-            title="标签页操作"
-            aria-label="标签页操作"
+            title={t('tabs.actions', '标签页操作')}
+            aria-label={t('tabs.actions', '标签页操作')}
           >
             <MoreVertical className="h-3.5 w-3.5" />
           </DropdownMenuTrigger>
@@ -248,7 +265,7 @@ export function PageTabs() {
           <DropdownMenuContent align="end" className="w-36">
             <DropdownMenuItem onClick={handleRefresh} className="cursor-pointer">
               <RotateCw className="mr-2 h-3.5 w-3.5" />
-              刷新当前页
+              {t('tabs.refreshCurrent', '刷新当前页')}
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -258,7 +275,7 @@ export function PageTabs() {
               className="cursor-pointer"
             >
               <MinusCircle className="mr-2 h-3.5 w-3.5" />
-              关闭其他标签
+              {t('tabs.closeOthers', '关闭其他标签')}
             </DropdownMenuItem>
 
             <DropdownMenuItem
@@ -266,7 +283,7 @@ export function PageTabs() {
               className="cursor-pointer"
             >
               <ArrowRightToLine className="mr-2 h-3.5 w-3.5" />
-              关闭右侧标签
+              {t('tabs.closeRight', '关闭右侧标签')}
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -276,7 +293,7 @@ export function PageTabs() {
               className="cursor-pointer text-destructive focus:text-destructive"
             >
               <XCircle className="mr-2 h-3.5 w-3.5" />
-              关闭全部标签
+              {t('tabs.closeAll', '关闭全部标签')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

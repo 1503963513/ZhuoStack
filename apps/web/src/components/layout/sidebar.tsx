@@ -6,6 +6,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useSystemConfig } from '@/hooks/use-system-config';
+import { useI18n } from '@/hooks/use-i18n';
 import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
 import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 import { getDynamicIcon } from '@/components/common/dynamic-icon';
@@ -21,6 +22,7 @@ function isPathActive(currentPath: string, menuPath: string | null | undefined):
 
 export function Sidebar() {
   const { appName } = useSystemConfig();
+  const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -75,6 +77,15 @@ export function Sidebar() {
     }));
   };
 
+  /** 获取国际化菜单名称：优先通过 path 映射，再通过数据库名称映射，最后兜底原名 */
+  const getMenuName = (item: { name: string; path?: string | null }) => {
+    if (item.path) {
+      const translatedByPath = t(`menu.${item.path}`, '');
+      if (translatedByPath) return translatedByPath;
+    }
+    return t(`menu.${item.name}`, item.name);
+  };
+
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
@@ -89,6 +100,7 @@ export function Sidebar() {
             const children = item.children || [];
             const hasActiveChild = children.some((c) => isPathActive(pathname, c.path));
             const isOpen = openGroups[item.id] ?? hasActiveChild;
+            const displayName = getMenuName(item);
 
             return (
               <div key={item.id} className="pt-2">
@@ -104,7 +116,7 @@ export function Sidebar() {
                 >
                   <div className="flex items-center gap-3">
                     <GroupIcon className="h-4 w-4" />
-                    <span>{item.name}</span>
+                    <span>{displayName}</span>
                   </div>
                   <ChevronDown
                     className={cn(
@@ -119,6 +131,7 @@ export function Sidebar() {
                     {children.map((child) => {
                       const ChildIcon = getDynamicIcon(child.icon);
                       const isActive = isPathActive(pathname, child.path);
+                      const childDisplayName = getMenuName(child);
 
                       return (
                         <Link
@@ -134,7 +147,7 @@ export function Sidebar() {
                           )}
                         >
                           <ChildIcon className="h-3.5 w-3.5" />
-                          {child.name}
+                          {childDisplayName}
                         </Link>
                       );
                     })}
@@ -147,6 +160,7 @@ export function Sidebar() {
           // 2. 如果是顶级单项菜单（MENU，如仪表盘、个人中心等），按其自身 sort 权重直接渲染为单项链接
           const ItemIcon = getDynamicIcon(item.icon);
           const isActive = isPathActive(pathname, item.path);
+          const displayName = getMenuName(item);
 
           return (
             <Link
@@ -162,7 +176,7 @@ export function Sidebar() {
               )}
             >
               <ItemIcon className="h-4 w-4" />
-              {item.name}
+              {displayName}
             </Link>
           );
         })}
