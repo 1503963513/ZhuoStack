@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useTabsStore, type PageTabItem } from '@/stores/tabs-store';
+import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
+import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 import { cn } from '@/lib/utils';
 import {
   X,
@@ -22,40 +25,11 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
-// 路由路径到标签标题的中文映射表
-const ROUTE_TITLE_MAP: Record<string, string> = {
-  '/dashboard': '仪表盘',
+// 极少数不在左侧菜单树中的特殊系统独立页面兜底映射
+const FALLBACK_STATIC_TITLES: Record<string, string> = {
   '/profile': '个人资料',
-  '/notifications': '通知中心',
-  '/system/user': '用户管理',
-  '/system/role': '角色管理',
-  '/system/dept': '部门管理',
-  '/system/menu': '菜单管理',
-  '/system/dict': '字典管理',
-  '/system/post': '岗位管理',
-  '/system/file': '文件管理',
-  '/system/login-log': '登录日志',
-  '/system/oper-log': '操作日志',
-  '/monitor/cache': '缓存监控',
-  '/monitor/online': '在线用户',
-  '/monitor/jobs': '定时任务',
-  '/monitor/jobs/logs': '调度日志',
-  '/monitor/server': '服务监控',
-  '/monitor/swagger': 'API 文档',
+  '/dashboard': '仪表盘',
 };
-
-/** 根据 pathname 与 searchParams 动态解析标签标题 */
-function resolveTabTitle(pathname: string, searchParams: URLSearchParams): string {
-  const baseTitle = ROUTE_TITLE_MAP[pathname] || '新标签页';
-
-  // 针对带有特殊业务参数的页面动态追加标题
-  if (pathname === '/monitor/jobs/logs') {
-    const jobName = searchParams.get('jobName');
-    if (jobName) return `调度日志 (${jobName})`;
-  }
-
-  return baseTitle;
-}
 
 export function PageTabs() {
   const pathname = usePathname();
@@ -70,11 +44,68 @@ export function PageTabs() {
     closeOthers,
     closeRight,
     closeAll,
+    updateTabTitle,
   } = useTabsStore();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 鼠标悬停标签时提前预取该页面基础路由资源（避免携带 query 参数产生非预期的预取键异常）
+  // 从 React Query 缓存中直接读取用户菜单树（命中与 Sidebar 相同的缓存，无额外网络请求）
+  const { data: menuResponse } = useQuery({
+    queryKey: ['user-menus'],
+    queryFn: () => authControllerGetUserMenus(),
+  });
+
+  // 递归解析菜单树构建动态路由标题映射 Map<path, name>
+  const menuTitleMap = useMemo(() => {
+    const map = new Map<string, string>();
+
+    const flatten = (items: UserMenuTreeNodeDto[]) => {
+      for (const item of items) {
+        if (item.path && item.name) {
+          map.set(item.path, item.name);
+        }
+        if (item.children?.length) {
+          flatten(item.children);
+        }
+      }
+    };
+
+    if (menuResponse?.data) {
+      flatten(menuResponse.data);
+    }
+    return map;
+  }, [menuResponse]);
+
+  /** 动态解析标签标题 */
+  const resolveTitle = useCallback(
+    (targetPath: string, targetParams?: URLSearchParams | null): string => {
+      // 1. 优先从动态菜单树中匹配
+      let title = menuTitleMap.get(targetPath);
+
+      // 2. 匹配兜底特殊静态页面（如个人资料）
+      if (!title) {
+        title = FALLBACK_STATIC_TITLES[targetPath];
+      }
+
+      // 3. 针对带有动态参数的子页面定制化追加
+      if (targetPath === '/monitor/jobs/logs' && targetParams) {
+        const jobName = targetParams.get('jobName');
+        if (jobName) return `${title || '调度日志'} (${jobName})`;
+      }
+
+      // 4. 若未匹配到，则美化路径末段作为兜底名称（例如 /system/my-tool -> My Tool）
+      if (!title) {
+        const segments = targetPath.split('/').filter(Boolean);
+        const last = segments[segments.length - 1];
+        title = last ? last.charAt(0).toUpperCase() + last.slice(1) : '新标签页';
+      }
+
+      return title;
+    },
+    [menuTitleMap],
+  );
+
+  // 鼠标悬停标签时提前预取该页面基础路由资源
   const handlePrefetch = useCallback(
     (path: string) => {
       if (path && path.startsWith('/')) {
@@ -86,12 +117,11 @@ export function PageTabs() {
 
   // 1. 路由变化时自动记录历史标签
   useEffect(() => {
-    // 排除公开登录注册页
     if (!pathname || pathname === '/login' || pathname === '/register') return;
 
     const queryString = searchParams?.toString();
     const fullPath = queryString ? `${pathname}?${queryString}` : pathname;
-    const title = resolveTabTitle(pathname, searchParams);
+    const title = resolveTitle(pathname, searchParams);
 
     addTab({
       id: fullPath,
@@ -100,9 +130,21 @@ export function PageTabs() {
       fullPath,
       icon: pathname === '/dashboard' ? 'LayoutDashboard' : undefined,
     });
-  }, [pathname, searchParams, addTab]);
+  }, [pathname, searchParams, addTab, resolveTitle]);
 
-  // 2. 激活标签变化时自动将该标签滚动至可视区域
+  // 2. 当菜单树接口异步加载完成时，同步刷新已存在标签的标题（使后台修改的菜单名称即时生效）
+  useEffect(() => {
+    if (menuTitleMap.size === 0) return;
+
+    tabs.forEach((tab) => {
+      const dynamicTitle = menuTitleMap.get(tab.path);
+      if (dynamicTitle && dynamicTitle !== tab.title && !tab.fullPath.includes('?')) {
+        updateTabTitle(tab.id, dynamicTitle);
+      }
+    });
+  }, [menuTitleMap, tabs, updateTabTitle]);
+
+  // 3. 激活标签变化时自动将该标签滚动至可视区域
   useEffect(() => {
     if (!scrollContainerRef.current) return;
     const activeEl = scrollContainerRef.current.querySelector(
@@ -151,7 +193,6 @@ export function PageTabs() {
               data-tab-id={tab.id}
               onMouseEnter={() => handlePrefetch(tab.path)}
               onAuxClick={(e) => {
-                // 鼠标中键快捷关闭标签
                 if (e.button === 1 && tab.closable) {
                   e.preventDefault();
                   closeTab(tab.id, handleNavigate);
@@ -175,7 +216,6 @@ export function PageTabs() {
                 <span className="max-w-[130px] truncate">{tab.title}</span>
               </Link>
 
-              {/* 关闭小叉图标（不可关闭的常驻项如仪表盘不显示） */}
               {tab.closable && (
                 <button
                   type="button"
