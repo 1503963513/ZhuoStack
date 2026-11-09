@@ -4347,6 +4347,481 @@
         ]
       }
     },
+    "/api/system/config/public": {
+      "get": {
+        "operationId": "ConfigController_getPublicConfigs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PublicConfigsResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "获取公开系统参数（免登录）",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/api/system/config/key/{key}": {
+      "get": {
+        "operationId": "ConfigController_getValueByKey",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "配置键名",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ConfigValueResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "根据键名获取配置值",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/api/system/config": {
+      "get": {
+        "operationId": "ConfigController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "页码",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "每页数量，最大 100",
+            "schema": {
+              "maximum": 100,
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "搜索（配置名称/键名）",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group",
+            "required": false,
+            "in": "query",
+            "description": "配置分组",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PaginatedDataDto"
+                            },
+                            {
+                              "properties": {
+                                "data": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/ConfigItemDto"
+                                  }
+                                },
+                                "pagination": {
+                                  "$ref": "#/components/schemas/PaginationMetaDto"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "分页查询参数列表",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "post": {
+        "operationId": "ConfigController_create",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ConfigItemDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "创建参数",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
+    "/api/system/config/{id}": {
+      "get": {
+        "operationId": "ConfigController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "配置ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ConfigItemDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "配置不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取参数详情",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "put": {
+        "operationId": "ConfigController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "配置ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ConfigItemDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "配置不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "修改参数",
+        "tags": [
+          "system-config"
+        ]
+      },
+      "delete": {
+        "operationId": "ConfigController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "配置ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "配置不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "删除参数",
+        "tags": [
+          "system-config"
+        ]
+      }
+    },
     "/api/monitor/cache": {
       "get": {
         "operationId": "MonitorController_getCacheInfo",
@@ -8329,6 +8804,204 @@
           "originalName",
           "fileSize"
         ]
+      },
+      "PublicConfigsResponseDto": {
+        "type": "object",
+        "properties": {
+          "configs": {
+            "type": "object",
+            "description": "公开键值字典映射",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "sys.app.name": "ZhuoStack",
+              "sys.app.copyright": "© 2026"
+            }
+          }
+        },
+        "required": [
+          "configs"
+        ]
+      },
+      "ConfigValueResponseDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "参数值",
+            "nullable": true
+          }
+        }
+      },
+      "ConfigItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "配置ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "配置名称"
+          },
+          "key": {
+            "type": "string",
+            "description": "配置键名"
+          },
+          "value": {
+            "type": "string",
+            "description": "配置键值"
+          },
+          "group": {
+            "type": "string",
+            "description": "配置分组"
+          },
+          "type": {
+            "type": "string",
+            "description": "数据类型"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是否前端公开读取"
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "更新时间"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key",
+          "value",
+          "group",
+          "type",
+          "isPublic",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateConfigDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "配置名称",
+            "example": "系统名称"
+          },
+          "key": {
+            "type": "string",
+            "description": "配置键名",
+            "example": "sys.app.name"
+          },
+          "value": {
+            "type": "string",
+            "description": "配置键值",
+            "example": "ZhuoStack"
+          },
+          "group": {
+            "type": "string",
+            "description": "配置分组",
+            "default": "basic"
+          },
+          "type": {
+            "type": "string",
+            "description": "数据类型",
+            "default": "string"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是否前端公开读取",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "default": "ACTIVE"
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注"
+          }
+        },
+        "required": [
+          "name",
+          "key",
+          "value"
+        ]
+      },
+      "UpdateConfigDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "配置名称",
+            "example": "系统名称"
+          },
+          "key": {
+            "type": "string",
+            "description": "配置键名",
+            "example": "sys.app.name"
+          },
+          "value": {
+            "type": "string",
+            "description": "配置键值",
+            "example": "ZhuoStack"
+          },
+          "group": {
+            "type": "string",
+            "description": "配置分组",
+            "default": "basic"
+          },
+          "type": {
+            "type": "string",
+            "description": "数据类型",
+            "default": "string"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是否前端公开读取",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ],
+            "default": "ACTIVE"
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注"
+          }
+        }
       },
       "CacheKeyDetailDto": {
         "type": "object",

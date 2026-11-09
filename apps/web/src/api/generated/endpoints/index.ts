@@ -2,6 +2,7 @@ export * from './ai/ai';
 export * from './auth/auth';
 export * from './health/health';
 export * from './notification/notification';
+export * from './system-config/system-config';
 export * from './system-dept/system-dept';
 export * from './system-dict/system-dict';
 export * from './system-file/system-file';

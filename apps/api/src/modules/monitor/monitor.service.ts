@@ -16,6 +16,7 @@ const ALLOWED_KEY_PREFIXES = [
   'token:blacklist:',
   'cache:',
   'notification:',
+  'sys:config:',
 ];
 
 // 禁止删除的安全键前缀（优先级高于 ALLOWED_KEY_PREFIXES）

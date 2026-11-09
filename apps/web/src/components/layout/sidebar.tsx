@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { APP_NAME } from '@/lib/constants';
+import { useSystemConfig } from '@/hooks/use-system-config';
 import { authControllerGetUserMenus } from '@/api/generated/endpoints/auth/auth';
 import type { UserMenuTreeNodeDto } from '@/api/generated/models';
 import { getDynamicIcon } from '@/components/common/dynamic-icon';
@@ -20,6 +20,7 @@ function isPathActive(currentPath: string, menuPath: string | null | undefined):
 }
 
 export function Sidebar() {
+  const { appName } = useSystemConfig();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -77,7 +78,7 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-lg font-bold">{APP_NAME}</h1>
+        <h1 className="text-lg font-bold">{appName}</h1>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">

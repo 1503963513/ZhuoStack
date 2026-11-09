@@ -1,0 +1,16 @@
+model SysConfig {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  key       String   @unique(length: 100)
+  value     String   @db.Text
+  group     String   @default("basic") @db.VarChar(50)
+  type      String   @default("string") @db.VarChar(20)
+  isPublic  Boolean  @default(false)
+  status    Status   @default(ACTIVE)
+  remark    String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+  @@map("sys_config")
+}

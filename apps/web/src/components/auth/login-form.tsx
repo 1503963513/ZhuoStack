@@ -21,8 +21,11 @@ import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
 import { useQuery } from '@tanstack/react-query';
 import { authControllerGetCaptcha } from '@/api/generated/endpoints/auth/auth';
+import { useSystemConfig } from '@/hooks/use-system-config';
 
 export function LoginForm() {
+  const { getBoolean, isLoaded } = useSystemConfig();
+  const registerEnabled = getBoolean('sys.security.register_enabled', false);
   const {
     register,
     handleSubmit,
@@ -112,12 +115,14 @@ export function LoginForm() {
           <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
             {loginMutation.isPending ? '登录中...' : '登录'}
           </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            还没有账号？{' '}
-            <Link href={ROUTES.REGISTER} className="text-primary hover:underline">
-              注册
-            </Link>
-          </p>
+          {isLoaded && registerEnabled && (
+            <p className="text-sm text-muted-foreground text-center">
+              还没有账号？{' '}
+              <Link href={ROUTES.REGISTER} className="text-primary hover:underline">
+                注册
+              </Link>
+            </p>
+          )}
         </CardFooter>
       </form>
     </Card>
