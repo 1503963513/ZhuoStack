@@ -134,6 +134,16 @@ export class UpdateThrottleRuleDto {
   @IsString()
   name?: string;
 
+  @ApiPropertyOptional({ description: '路由路径' })
+  @IsOptional()
+  @IsString()
+  path?: string;
+
+  @ApiPropertyOptional({ description: 'HTTP 方法' })
+  @IsOptional()
+  @IsString()
+  method?: string;
+
   @ApiPropertyOptional({ description: '限流阈值上限（次）' })
   @IsOptional()
   @Type(() => Number)

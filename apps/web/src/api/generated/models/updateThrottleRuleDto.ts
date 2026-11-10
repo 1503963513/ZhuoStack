@@ -10,6 +10,10 @@ import type { UpdateThrottleRuleDtoStatus } from './updateThrottleRuleDtoStatus'
 export interface UpdateThrottleRuleDto {
   /** 规则名称 */
   name?: string;
+  /** 路由路径 */
+  path?: string;
+  /** HTTP 方法 */
+  method?: string;
   /** 限流阈值上限（次） */
   limit?: number;
   /** 统计周期秒数 */

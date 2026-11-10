@@ -10094,6 +10094,14 @@
             "type": "string",
             "description": "规则名称"
           },
+          "path": {
+            "type": "string",
+            "description": "路由路径"
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP 方法"
+          },
           "limit": {
             "type": "number",
             "description": "限流阈值上限（次）"
