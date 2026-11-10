@@ -32,13 +32,14 @@ export class RequestLoggerInterceptor implements NestInterceptor {
     const req = http.getRequest<FastifyRequestWithMeta>();
     const reply = http.getResponse<FastifyReplyWithStatus>();
 
-    // 静态资源、健康检查探针以及监控日志自身轮询请求跳过，避免自放大刷屏
+    // 静态资源、健康检查、长连接推送(SSE)及监控自轮询请求跳过，避免日志刷屏
     const pathname = req.url.split('?')[0];
     if (
       pathname === '/favicon.ico' ||
       pathname.startsWith('/health') ||
       pathname === '/api/monitor/logs/recent' ||
-      pathname === '/api/monitor/logs/config'
+      pathname === '/api/monitor/logs/config' ||
+      pathname === '/api/notifications/stream'
     ) {
       return next.handle();
     }
