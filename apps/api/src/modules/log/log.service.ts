@@ -61,9 +61,9 @@ export class LogService {
   /**
    * 清空操作日志（保留最近 7 天，分批循环删除直到清完）
    */
-  async clearOperLogs() {
+  async clearOperLogs(retentionDays = LOG_RETENTION_DAYS) {
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
     let totalDeleted = 0;
     let hasMore = true;
@@ -87,9 +87,9 @@ export class LogService {
     }
 
     if (totalDeleted === 0) {
-      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+      return { message: `没有超过 ${retentionDays} 天的操作日志可清除` };
     }
-    return { message: `已清除 ${totalDeleted} 条超过 ${LOG_RETENTION_DAYS} 天的操作日志` };
+    return { message: `已清除 ${totalDeleted} 条超过 ${retentionDays} 天的操作日志` };
   }
 
   // ========== 登录日志 ==========
@@ -151,9 +151,9 @@ export class LogService {
   /**
    * 清空登录日志（保留最近 7 天，分批循环删除直到清完）
    */
-  async clearLoginLogs() {
+  async clearLoginLogs(retentionDays = LOG_RETENTION_DAYS) {
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - LOG_RETENTION_DAYS);
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
     let totalDeleted = 0;
     let hasMore = true;
@@ -177,8 +177,8 @@ export class LogService {
     }
 
     if (totalDeleted === 0) {
-      return { message: `没有超过 ${LOG_RETENTION_DAYS} 天的日志可清除` };
+      return { message: `没有超过 ${retentionDays} 天的登录日志可清除` };
     }
-    return { message: `已清除 ${totalDeleted} 条超过 ${LOG_RETENTION_DAYS} 天的登录日志` };
+    return { message: `已清除 ${totalDeleted} 条超过 ${retentionDays} 天的登录日志` };
   }
 }

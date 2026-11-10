@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../database/redis.service';
 import { LogService } from '../log/log.service';
+import { SystemLogService } from './log-runtime/system-log.service';
 
 /** 健康检查结果 */
 export interface HealthCheckResult {
@@ -28,6 +29,7 @@ export class SystemJobsService {
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly logService: LogService,
+    private readonly systemLogService?: SystemLogService,
   ) {}
 
   /** 记录定时任务执行日志 */
@@ -264,13 +266,14 @@ export class SystemJobsService {
   @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: 'log-cleanup' })
   async handleLogCleanup() {
     const start = Date.now();
+    const retentionDays = this.systemLogService?.getConfig().dbRetentionDays || 7;
     let isSuccess = true;
     let errorDetail: string | undefined;
 
     try {
       // 操作日志
       try {
-        const operResult = await this.logService.clearOperLogs();
+        const operResult = await this.logService.clearOperLogs(retentionDays);
         this.logger.log(`操作日志清理: ${operResult.message}`);
       } catch (error) {
         isSuccess = false;
@@ -280,7 +283,7 @@ export class SystemJobsService {
 
       // 登录日志
       try {
-        const loginResult = await this.logService.clearLoginLogs();
+        const loginResult = await this.logService.clearLoginLogs(retentionDays);
         this.logger.log(`登录日志清理: ${loginResult.message}`);
       } catch (error) {
         isSuccess = false;
@@ -290,7 +293,7 @@ export class SystemJobsService {
     } finally {
       await this.recordJobLog({
         jobName: 'log-cleanup',
-        description: '定期清理过期审计日志（保留最近 7 天）',
+        description: `定期清理过期审计日志（动态保留最近 ${retentionDays} 天）`,
         cronExpression: CronExpression.EVERY_DAY_AT_3AM,
         status: isSuccess ? 1 : 0,
         executionTime: Date.now() - start,

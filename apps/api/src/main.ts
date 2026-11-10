@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { AppLoggerService } from './modules/monitor/log-runtime/app-logger.service';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
 import fastifyCookie from '@fastify/cookie';
@@ -116,8 +117,8 @@ async function bootstrap() {
     { bufferLogs: true },
   );
 
-  // Use NestJS built-in logger
-  app.useLogger(app.get(Logger));
+  // Use custom AppLogger bridging console & SystemLogService
+  app.useLogger(app.get(AppLoggerService));
 
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
     .split(',')
@@ -246,6 +247,7 @@ async function bootstrap() {
       'x-request-id',
       'Accept',
       'Origin',
+      'x-client-app',
     ],
     exposedHeaders: ['x-request-id'],
     credentials: true,

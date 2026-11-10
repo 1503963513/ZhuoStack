@@ -4822,6 +4822,57 @@
         ]
       }
     },
+    "/api/system/alert/test": {
+      "post": {
+        "operationId": "AlertController_sendTestAlert",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "测试结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "测试告警机器人连通性",
+        "tags": [
+          "system-alert"
+        ]
+      }
+    },
     "/api/monitor/cache": {
       "get": {
         "operationId": "MonitorController_getCacheInfo",
@@ -5645,6 +5696,271 @@
           }
         ],
         "summary": "获取最近一次健康检查结果",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/logs/recent": {
+      "get": {
+        "operationId": "MonitorController_getRecentLogs",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "windowMinutes",
+            "required": false,
+            "in": "query",
+            "description": "查询多长时间以内的日志（单位：分钟），默认 30 分钟",
+            "schema": {
+              "default": 30,
+              "type": "number"
+            }
+          },
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "description": "日志级别过滤",
+            "schema": {
+              "default": "all",
+              "type": "string",
+              "enum": [
+                "all",
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ]
+            }
+          },
+          {
+            "name": "keyword",
+            "required": false,
+            "in": "query",
+            "description": "关键词搜索（匹配消息、上下文或 RequestID）",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caller",
+            "required": false,
+            "in": "query",
+            "description": "调用方类型过滤",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "返回的最大条目数限制",
+            "schema": {
+              "default": 200,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SystemLogsResultDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取系统运行日志（默认近 30 分钟）",
+        "tags": [
+          "system-monitor"
+        ]
+      },
+      "delete": {
+        "operationId": "MonitorController_clearRecentLogs",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "清理成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "清空系统运行日志缓冲区",
+        "tags": [
+          "system-monitor"
+        ]
+      }
+    },
+    "/api/monitor/logs/config": {
+      "get": {
+        "operationId": "MonitorController_getLogConfig",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RuntimeLogConfigDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取当前运行时日志配置",
+        "tags": [
+          "system-monitor"
+        ]
+      },
+      "post": {
+        "operationId": "MonitorController_updateLogConfig",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRuntimeLogConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "配置已生效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RuntimeLogConfigDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "动态更新运行时日志策略（立即生效）",
         "tags": [
           "system-monitor"
         ]
@@ -9324,6 +9640,195 @@
           "cpuModel",
           "loadAverage"
         ]
+      },
+      "SystemLogEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "日志条目 ID",
+            "example": "log_c8fa213e9a"
+          },
+          "timestamp": {
+            "type": "number",
+            "description": "毫秒时间戳",
+            "example": 1731234567890
+          },
+          "level": {
+            "type": "string",
+            "description": "日志级别",
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ],
+            "example": "info"
+          },
+          "context": {
+            "type": "string",
+            "description": "上下文/模块名",
+            "example": "AuthService"
+          },
+          "message": {
+            "type": "string",
+            "description": "日志消息正文",
+            "example": "用户登录成功: admin@example.com"
+          },
+          "caller": {
+            "type": "string",
+            "description": "调用方标识",
+            "nullable": true,
+            "example": "web-admin"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "全链路请求关联 ID",
+            "nullable": true,
+            "example": "req_123456"
+          },
+          "stack": {
+            "type": "string",
+            "description": "异常堆栈跟踪",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "timestamp",
+          "level",
+          "context",
+          "message"
+        ]
+      },
+      "SystemLogsResultDto": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "description": "日志条目列表",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemLogEntryDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "符合条件的日志条数",
+            "example": 42
+          }
+        },
+        "required": [
+          "list",
+          "total"
+        ]
+      },
+      "RuntimeLogConfigDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "description": "全局生效的最低日志级别",
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ],
+            "example": "info"
+          },
+          "bufferSize": {
+            "type": "number",
+            "description": "内存环形缓冲区最大容量条数",
+            "example": 2000
+          },
+          "sampleRate": {
+            "type": "number",
+            "description": "请求日志采样百分比 (1-100)",
+            "example": 100
+          },
+          "trackCallers": {
+            "type": "boolean",
+            "description": "是否区分并追踪调用方 Header/Client",
+            "example": true
+          },
+          "stackThreshold": {
+            "type": "string",
+            "description": "异常堆栈输出阈值",
+            "enum": [
+              "error",
+              "warn",
+              "never"
+            ],
+            "example": "error"
+          },
+          "retentionHours": {
+            "type": "number",
+            "description": "环形热点日志保留小时数",
+            "example": 24
+          },
+          "dbRetentionDays": {
+            "type": "number",
+            "description": "持久化数据库日志（操作/登录日志）保留天数",
+            "example": 7
+          }
+        },
+        "required": [
+          "level",
+          "bufferSize",
+          "sampleRate",
+          "trackCallers",
+          "stackThreshold",
+          "retentionHours",
+          "dbRetentionDays"
+        ]
+      },
+      "UpdateRuntimeLogConfigDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "description": "全局最低日志级别",
+            "enum": [
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ]
+          },
+          "bufferSize": {
+            "type": "number",
+            "description": "内存缓冲区最大容量条数",
+            "example": 2000
+          },
+          "sampleRate": {
+            "type": "number",
+            "description": "请求采样百分比 (1-100)",
+            "example": 100
+          },
+          "trackCallers": {
+            "type": "boolean",
+            "description": "是否追踪调用方"
+          },
+          "stackThreshold": {
+            "type": "string",
+            "description": "堆栈输出阈值",
+            "enum": [
+              "error",
+              "warn",
+              "never"
+            ]
+          },
+          "retentionHours": {
+            "type": "number",
+            "description": "保留小时数",
+            "example": 24
+          },
+          "dbRetentionDays": {
+            "type": "number",
+            "description": "数据库持久化日志保留天数",
+            "example": 7
+          }
+        }
       },
       "NotificationItemDto": {
         "type": "object",

@@ -64,7 +64,7 @@ async function refreshAccessToken(): Promise<void> {
 function createApiClient(): AxiosInstance {
   const client = axios.create({
     baseURL: BASE_URL,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-client-app': 'web-admin' },
     timeout: 10000,
     withCredentials: true,
     withXSRFToken: true,

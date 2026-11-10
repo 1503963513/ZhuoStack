@@ -15,6 +15,7 @@ import { LogModule } from './modules/log/log.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
+import { RequestLoggerInterceptor } from './common/interceptors/request-logger.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -85,6 +86,8 @@ const apiEnvFile = `.env.${nodeEnv}`;
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     // Global operation log
     { provide: APP_INTERCEPTOR, useClass: OperLogInterceptor },
+    // Global request stream log
+    { provide: APP_INTERCEPTOR, useClass: RequestLoggerInterceptor },
     // Global exception filter
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],

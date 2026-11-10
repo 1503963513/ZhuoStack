@@ -17,6 +17,8 @@ const ALLOWED_KEY_PREFIXES = [
   'cache:',
   'notification:',
   'sys:config:',
+  'alert:',
+  'log:runtime:',
 ];
 
 // 禁止删除的安全键前缀（优先级高于 ALLOWED_KEY_PREFIXES）

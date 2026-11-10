@@ -27,6 +27,7 @@ import type {
 import type {
   MonitorControllerClearAllCache200,
   MonitorControllerClearJobLogs200,
+  MonitorControllerClearRecentLogs200,
   MonitorControllerDeleteCacheKey200,
   MonitorControllerFindJobLogs200,
   MonitorControllerFindJobLogsParams,
@@ -34,12 +35,17 @@ import type {
   MonitorControllerGetCacheValue200,
   MonitorControllerGetHealthCheck200,
   MonitorControllerGetJobs200,
+  MonitorControllerGetLogConfig200,
   MonitorControllerGetOnlineUsers200,
+  MonitorControllerGetRecentLogs200,
+  MonitorControllerGetRecentLogsParams,
   MonitorControllerGetServerInfo200,
   MonitorControllerKickUser200,
   MonitorControllerRunJob200,
   MonitorControllerStartJob200,
-  MonitorControllerStopJob200
+  MonitorControllerStopJob200,
+  MonitorControllerUpdateLogConfig200,
+  UpdateRuntimeLogConfigDto
 } from '../../models';
 
 import { customInstance } from '../../../../lib/api-mutator';
@@ -1164,3 +1170,320 @@ export const useMonitorControllerGetHealthCheck = <TError = unknown,
       > => {
       return useMutation(getMonitorControllerGetHealthCheckMutationOptions(options), queryClient);
     }
+    /**
+ * @summary 获取系统运行日志（默认近 30 分钟）
+ */
+export const monitorControllerGetRecentLogs = (
+    params?: MonitorControllerGetRecentLogsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerGetRecentLogs200>(
+      {url: `/api/monitor/logs/recent`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerGetRecentLogsMutationKey = () => ['monitorControllerGetRecentLogs'] as const;
+
+export const getMonitorControllerGetRecentLogsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetRecentLogs>>, TError,MonitorControllerGetRecentLogsMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetRecentLogs>>, TError,MonitorControllerGetRecentLogsMutationVariables, TContext> => {
+
+const mutationKey = getMonitorControllerGetRecentLogsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof monitorControllerGetRecentLogs>>, MonitorControllerGetRecentLogsMutationVariables> = (props) => {
+          const {params} = props ?? {};
+
+          return  monitorControllerGetRecentLogs(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MonitorControllerGetRecentLogsMutationResult = NonNullable<Awaited<ReturnType<typeof monitorControllerGetRecentLogs>>>
+
+    export type MonitorControllerGetRecentLogsMutationError = unknown
+    export type MonitorControllerGetRecentLogsMutationVariables = {params?: MonitorControllerGetRecentLogsParams}
+
+    /**
+ * @summary 获取系统运行日志（默认近 30 分钟）
+ */
+export const useMonitorControllerGetRecentLogs = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetRecentLogs>>, TError,MonitorControllerGetRecentLogsMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof monitorControllerGetRecentLogs>>,
+        TError,
+        MonitorControllerGetRecentLogsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMonitorControllerGetRecentLogsMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary 清空系统运行日志缓冲区
+ */
+export const monitorControllerClearRecentLogs = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerClearRecentLogs200>(
+      {url: `/api/monitor/logs/recent`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerClearRecentLogsQueryKey = () => {
+    return [
+    'DELETE', `/api/monitor/logs/recent`
+    ] as const;
+    }
+
+
+export const getMonitorControllerClearRecentLogsQueryOptions = <TData = Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMonitorControllerClearRecentLogsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>> = ({ signal }) => monitorControllerClearRecentLogs(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MonitorControllerClearRecentLogsQueryResult = NonNullable<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>>
+export type MonitorControllerClearRecentLogsQueryError = unknown
+
+
+export function useMonitorControllerClearRecentLogs<TData = Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>,
+          TError,
+          Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMonitorControllerClearRecentLogs<TData = Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>,
+          TError,
+          Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMonitorControllerClearRecentLogs<TData = Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary 清空系统运行日志缓冲区
+ */
+
+export function useMonitorControllerClearRecentLogs<TData = Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerClearRecentLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMonitorControllerClearRecentLogsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary 获取当前运行时日志配置
+ */
+export const monitorControllerGetLogConfig = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerGetLogConfig200>(
+      {url: `/api/monitor/logs/config`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerGetLogConfigMutationKey = () => ['monitorControllerGetLogConfig'] as const;
+
+export const getMonitorControllerGetLogConfigMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetLogConfig>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetLogConfig>>, TError,void, TContext> => {
+
+const mutationKey = getMonitorControllerGetLogConfigMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof monitorControllerGetLogConfig>>, void> = () => {
+
+
+          return  monitorControllerGetLogConfig(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MonitorControllerGetLogConfigMutationResult = NonNullable<Awaited<ReturnType<typeof monitorControllerGetLogConfig>>>
+
+    export type MonitorControllerGetLogConfigMutationError = unknown
+
+
+    /**
+ * @summary 获取当前运行时日志配置
+ */
+export const useMonitorControllerGetLogConfig = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof monitorControllerGetLogConfig>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof monitorControllerGetLogConfig>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMonitorControllerGetLogConfigMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary 动态更新运行时日志策略（立即生效）
+ */
+export const monitorControllerUpdateLogConfig = (
+    updateRuntimeLogConfigDto: UpdateRuntimeLogConfigDto,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<MonitorControllerUpdateLogConfig200>(
+      {url: `/api/monitor/logs/config`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: updateRuntimeLogConfigDto, signal
+    },
+      options);
+    }
+
+
+
+
+export const getMonitorControllerUpdateLogConfigQueryKey = (updateRuntimeLogConfigDto?: UpdateRuntimeLogConfigDto,) => {
+    return [
+    'POST', `/api/monitor/logs/config`, updateRuntimeLogConfigDto
+    ] as const;
+    }
+
+
+export const getMonitorControllerUpdateLogConfigQueryOptions = <TData = Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError = unknown>(updateRuntimeLogConfigDto: UpdateRuntimeLogConfigDto, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMonitorControllerUpdateLogConfigQueryKey(updateRuntimeLogConfigDto);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>> = ({ signal }) => monitorControllerUpdateLogConfig(updateRuntimeLogConfigDto, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MonitorControllerUpdateLogConfigQueryResult = NonNullable<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>>
+export type MonitorControllerUpdateLogConfigQueryError = unknown
+
+
+export function useMonitorControllerUpdateLogConfig<TData = Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError = unknown>(
+ updateRuntimeLogConfigDto: UpdateRuntimeLogConfigDto, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>,
+          TError,
+          Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMonitorControllerUpdateLogConfig<TData = Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError = unknown>(
+ updateRuntimeLogConfigDto: UpdateRuntimeLogConfigDto, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>,
+          TError,
+          Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMonitorControllerUpdateLogConfig<TData = Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError = unknown>(
+ updateRuntimeLogConfigDto: UpdateRuntimeLogConfigDto, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary 动态更新运行时日志策略（立即生效）
+ */
+
+export function useMonitorControllerUpdateLogConfig<TData = Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError = unknown>(
+ updateRuntimeLogConfigDto: UpdateRuntimeLogConfigDto, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof monitorControllerUpdateLogConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMonitorControllerUpdateLogConfigQueryOptions(updateRuntimeLogConfigDto,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+

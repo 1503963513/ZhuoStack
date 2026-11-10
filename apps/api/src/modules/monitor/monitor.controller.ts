@@ -1,4 +1,11 @@
-import { Controller, Get, Delete, Post, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  QuerySystemLogsDto,
+  RuntimeLogConfigDto,
+  UpdateRuntimeLogConfigDto,
+  SystemLogsResultDto,
+} from "./dto";
+import { SystemLogService } from "./log-runtime/system-log.service";
+import { Controller, Get, Body, Delete, Post, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { MonitorService } from './monitor.service';
 import { SystemJobsService } from './system-jobs.service';
@@ -28,6 +35,7 @@ export class MonitorController {
   constructor(
     private readonly monitorService: MonitorService,
     private readonly systemJobsService: SystemJobsService,
+    private readonly systemLogService: SystemLogService,
   ) {}
 
   // ========== 缓存监控 ==========
@@ -156,5 +164,39 @@ export class MonitorController {
   @ApiResultResponse(undefined, { description: '获取成功' })
   getHealthCheck() {
     return this.systemJobsService.getLastHealthCheck();
+  }
+
+  // ========== 系统运行日志与动态配置 ==========
+
+  @Get("logs/recent")
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: "获取系统运行日志（默认近 30 分钟）" })
+  @ApiResultResponse(SystemLogsResultDto, { description: "获取成功" })
+  getRecentLogs(@Query() query: QuerySystemLogsDto) {
+    return this.systemLogService.findLogs(query);
+  }
+
+  @Delete("logs/recent")
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: "清空系统运行日志缓冲区" })
+  @ApiResultResponse(SimpleMessageResponseDto, { description: "清理成功" })
+  clearRecentLogs() {
+    return this.systemLogService.clearLogs();
+  }
+
+  @Get("logs/config")
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: "获取当前运行时日志配置" })
+  @ApiResultResponse(RuntimeLogConfigDto, { description: "获取成功" })
+  getLogConfig() {
+    return this.systemLogService.getConfig();
+  }
+
+  @Post("logs/config")
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: "动态更新运行时日志策略（立即生效）" })
+  @ApiResultResponse(RuntimeLogConfigDto, { description: "配置已生效" })
+  updateLogConfig(@Body() dto: UpdateRuntimeLogConfigDto) {
+    return this.systemLogService.updateConfig(dto);
   }
 }
