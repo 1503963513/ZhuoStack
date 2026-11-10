@@ -200,6 +200,6 @@ interface DynamicIconProps extends Omit<LucideProps, "name"> {
  * 通用动态图标渲染组件
  */
 export function DynamicIcon({ name, fallback = FileText, ...props }: DynamicIconProps) {
-  const IconComponent = getDynamicIcon(name, fallback);
+  const IconComponent = (name && GLOBAL_ICON_MAP[name]) ? GLOBAL_ICON_MAP[name] : fallback;
   return <IconComponent {...props} />;
 }

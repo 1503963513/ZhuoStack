@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -128,27 +128,29 @@ export default function ConfigPage() {
     enabled: activeTab === 'advanced',
   });
 
-  const allConfigsList = allConfigResponse?.data?.data || [];
   const configMap = useMemo(() => {
+    const list = allConfigResponse?.data?.data || [];
     const map = new Map<string, ConfigItemDto>();
-    for (const item of allConfigsList) {
+    for (const item of list) {
       map.set(item.key, item);
     }
     return map;
-  }, [allConfigsList]);
+  }, [allConfigResponse?.data?.data]);
 
   // 本地表单草稿状态（用于常规、安全、告警三大卡片）
   const [cardForm, setCardForm] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (configMap.size > 0) {
-      const draft: Record<string, string> = {};
-      configMap.forEach((v, k) => {
-        draft[k] = v.value;
-      });
-      setCardForm(draft);
-    }
-  }, [configMap]);
+  // 记录上一次同步的数据版本，避免在 effect 里无条件同步 setState
+  const [syncedCount, setSyncedCount] = useState(0);
+
+  if (configMap.size > 0 && syncedCount !== configMap.size) {
+    const draft: Record<string, string> = {};
+    configMap.forEach((v, k) => {
+      draft[k] = v.value;
+    });
+    setCardForm(draft);
+    setSyncedCount(configMap.size);
+  }
 
   // 高级模式：弹窗表单状态
   const [formData, setFormData] = useState<CreateConfigDto>({

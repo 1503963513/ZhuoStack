@@ -30,10 +30,7 @@ import {
   Trash2,
   ChevronRight,
   ChevronDown,
-  Folder,
-  FileText,
-  MousePointer,
-  RefreshCw,
+        RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PermissionButton } from '@/components/common/permission-button';

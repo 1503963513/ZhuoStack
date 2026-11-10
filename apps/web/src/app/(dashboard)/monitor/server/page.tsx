@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/common/page-header';
 import { Loading } from '@/components/common/loading';
@@ -33,14 +33,12 @@ import {
   MemoryStick,
   Clock,
   Terminal,
-  Settings,
   Trash2,
   Search,
   Activity,
   SlidersHorizontal,
   ChevronDown,
   ChevronRight,
-  Layers,
   Download,
   Copy,
   Check,
@@ -54,7 +52,6 @@ import {
   monitorControllerUpdateLogConfig,
 } from '@/api/generated/endpoints/system-monitor/system-monitor';
 import type {
-  SystemLogEntryDto,
   UpdateRuntimeLogConfigDto,
   MonitorControllerGetRecentLogsLevel,
 } from '@/api/generated/models';
@@ -122,7 +119,7 @@ export default function ServerPage() {
     refetchInterval: activeTab === 'logs' && autoPoll ? 4000 : false,
   });
 
-  const logsList: SystemLogEntryDto[] = logsResponse?.data?.list || [];
+  const logsList = useMemo(() => logsResponse?.data?.list || [], [logsResponse?.data?.list]);
   // 日志级别统计
   const logStats = useMemo(() => {
     let error = 0;

@@ -17,7 +17,8 @@ export function ThemeToggle() {
 
   // 避免在服务端渲染时产生 hydration 差异
   useEffect(() => {
-    setMounted(true);
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   return (

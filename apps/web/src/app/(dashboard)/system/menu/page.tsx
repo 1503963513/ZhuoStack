@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Folder, FileText, MousePointer, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import { IconPicker } from '@/components/common/icon-picker';
 import { TreeTable } from '@/components/common/tree-table';
 import { cn } from '@/lib/utils';

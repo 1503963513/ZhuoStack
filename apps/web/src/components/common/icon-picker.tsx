@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { GLOBAL_ICON_MAP, getDynamicIcon } from './dynamic-icon';
+import { GLOBAL_ICON_MAP } from './dynamic-icon';
 import { cn } from '@/lib/utils';
 
 // 从全局图标映射表构造列表，保证与系统所有图标消费方 100% 同步
@@ -26,7 +26,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
     item.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const SelectedIcon = value ? getDynamicIcon(value) : null;
+  const SelectedIcon = (value && GLOBAL_ICON_MAP[value]) ? GLOBAL_ICON_MAP[value] : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
