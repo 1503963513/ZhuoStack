@@ -4873,6 +4873,536 @@
         ]
       }
     },
+    "/api/system/security/stats": {
+      "get": {
+        "operationId": "SecurityController_getStats",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SecurityStatsDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取安全防护核心统计指标",
+        "tags": [
+          "system-security"
+        ]
+      }
+    },
+    "/api/system/security/ip": {
+      "get": {
+        "operationId": "SecurityController_findIpRules",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "页码",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "每页条数",
+            "schema": {
+              "default": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "IP 或原因模糊搜索",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "类型筛选: BLACKLIST | WHITELIST",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "状态筛选",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "INACTIVE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PaginatedDataDto"
+                            },
+                            {
+                              "properties": {
+                                "data": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/IpRuleItemDto"
+                                  }
+                                },
+                                "pagination": {
+                                  "$ref": "#/components/schemas/PaginationMetaDto"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "分页查询 IP 规则列表",
+        "tags": [
+          "system-security"
+        ]
+      },
+      "post": {
+        "operationId": "SecurityController_createIpRule",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIpRuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "添加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/IpRuleItemDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "添加 IP 黑名单/白名单",
+        "tags": [
+          "system-security"
+        ]
+      }
+    },
+    "/api/system/security/ip/{id}": {
+      "delete": {
+        "operationId": "SecurityController_removeIpRule",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "规则 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "删除/解封指定 IP 规则",
+        "tags": [
+          "system-security"
+        ]
+      }
+    },
+    "/api/system/security/throttle": {
+      "get": {
+        "operationId": "SecurityController_findAllThrottleRules",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ThrottleRuleItemDto"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "获取所有接口限流规则",
+        "tags": [
+          "system-security"
+        ]
+      },
+      "post": {
+        "operationId": "SecurityController_createThrottleRule",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateThrottleRuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ThrottleRuleItemDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "新建接口限流规则",
+        "tags": [
+          "system-security"
+        ]
+      }
+    },
+    "/api/system/security/throttle/{id}": {
+      "put": {
+        "operationId": "SecurityController_updateThrottleRule",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "规则 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateThrottleRuleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ThrottleRuleItemDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "修改接口限流规则",
+        "tags": [
+          "system-security"
+        ]
+      },
+      "delete": {
+        "operationId": "SecurityController_removeThrottleRule",
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "description": "浏览器 Cookie 认证下的写请求必须携带，值需与 csrf_token Cookie 一致",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "规则 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponseDto"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SimpleMessageResponseDto"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "删除接口限流规则",
+        "tags": [
+          "system-security"
+        ]
+      }
+    },
     "/api/monitor/cache": {
       "get": {
         "operationId": "MonitorController_getCacheInfo",
@@ -9316,6 +9846,281 @@
           "remark": {
             "type": "string",
             "description": "备注"
+          }
+        }
+      },
+      "SecurityStatsDto": {
+        "type": "object",
+        "properties": {
+          "blackIpCount": {
+            "type": "number",
+            "description": "黑名单 IP 数量",
+            "example": 12
+          },
+          "whiteIpCount": {
+            "type": "number",
+            "description": "白名单 IP 数量",
+            "example": 3
+          },
+          "activeThrottleRuleCount": {
+            "type": "number",
+            "description": "活跃限流规则数量",
+            "example": 6
+          },
+          "todayBlockedCount": {
+            "type": "number",
+            "description": "今日拦截请求总次数",
+            "example": 88
+          }
+        },
+        "required": [
+          "blackIpCount",
+          "whiteIpCount",
+          "activeThrottleRuleCount",
+          "todayBlockedCount"
+        ]
+      },
+      "IpRuleItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "规则 ID"
+          },
+          "ip": {
+            "type": "string",
+            "description": "IP 地址"
+          },
+          "type": {
+            "type": "string",
+            "description": "规则类型"
+          },
+          "reason": {
+            "type": "string",
+            "description": "原因备注",
+            "nullable": true
+          },
+          "expiredAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "过期时间",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "更新时间"
+          }
+        },
+        "required": [
+          "id",
+          "ip",
+          "type",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateIpRuleDto": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "IP 地址或 CIDR 网段",
+            "example": "192.168.1.100"
+          },
+          "type": {
+            "type": "string",
+            "description": "规则类型: BLACKLIST | WHITELIST",
+            "example": "BLACKLIST"
+          },
+          "reason": {
+            "type": "string",
+            "description": "封禁/加白原因",
+            "example": "异常高频扫描接口"
+          },
+          "expireMinutes": {
+            "type": "number",
+            "description": "封禁持续分钟数（留空或0表示永久）",
+            "example": 60
+          }
+        },
+        "required": [
+          "ip",
+          "type"
+        ]
+      },
+      "ThrottleRuleItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "规则 ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "规则名称"
+          },
+          "path": {
+            "type": "string",
+            "description": "路由路径"
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP 方法"
+          },
+          "limit": {
+            "type": "number",
+            "description": "限流阈值上限"
+          },
+          "ttl": {
+            "type": "number",
+            "description": "统计周期秒数"
+          },
+          "dimension": {
+            "type": "string",
+            "description": "限流维度"
+          },
+          "autoBlock": {
+            "type": "boolean",
+            "description": "超限是否自动拉黑"
+          },
+          "blockMinutes": {
+            "type": "number",
+            "description": "自动拉黑分钟数"
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "创建时间"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "更新时间"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "path",
+          "method",
+          "limit",
+          "ttl",
+          "dimension",
+          "autoBlock",
+          "blockMinutes",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateThrottleRuleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "规则名称",
+            "example": "登录接口防爆破"
+          },
+          "path": {
+            "type": "string",
+            "description": "路由路径",
+            "example": "/api/auth/login"
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP 方法",
+            "default": "ALL"
+          },
+          "limit": {
+            "type": "number",
+            "description": "限流阈值上限（次）",
+            "example": 5
+          },
+          "ttl": {
+            "type": "number",
+            "description": "统计周期秒数",
+            "example": 60
+          },
+          "dimension": {
+            "type": "string",
+            "description": "限流维度: IP | USER | IP_AND_USER",
+            "default": "IP"
+          },
+          "autoBlock": {
+            "type": "boolean",
+            "description": "超限是否自动临时拉入黑名单",
+            "default": false
+          },
+          "blockMinutes": {
+            "type": "number",
+            "description": "自动拉黑分钟数",
+            "default": 15
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "limit",
+          "ttl"
+        ]
+      },
+      "UpdateThrottleRuleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "规则名称"
+          },
+          "limit": {
+            "type": "number",
+            "description": "限流阈值上限（次）"
+          },
+          "ttl": {
+            "type": "number",
+            "description": "统计周期秒数"
+          },
+          "dimension": {
+            "type": "string",
+            "description": "限流维度"
+          },
+          "autoBlock": {
+            "type": "boolean",
+            "description": "超限是否自动拉黑"
+          },
+          "blockMinutes": {
+            "type": "number",
+            "description": "自动拉黑分钟数"
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
           }
         }
       },

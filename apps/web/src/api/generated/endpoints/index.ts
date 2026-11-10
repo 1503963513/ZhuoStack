@@ -12,4 +12,5 @@ export * from './system-menu/system-menu';
 export * from './system-monitor/system-monitor';
 export * from './system-post/system-post';
 export * from './system-role/system-role';
+export * from './system-security/system-security';
 export * from './user/user';

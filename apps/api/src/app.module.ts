@@ -1,6 +1,6 @@
 import { Module, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './database/prisma.module';
 import { RedisModule } from './database/redis.module';
@@ -19,6 +19,7 @@ import { RequestLoggerInterceptor } from './common/interceptors/request-logger.i
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
+import { SecurityThrottleGuard } from './common/guards/security-throttle.guard';
 import { RedisThrottlerStorage } from './common/throttling/redis-throttler.storage';
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 
@@ -76,8 +77,8 @@ const apiEnvFile = `.env.${nodeEnv}`;
   ],
   providers: [
     Logger,
-    // Global rate limiting
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Global dynamic rate limiting & IP firewall
+    { provide: APP_GUARD, useClass: SecurityThrottleGuard },
     // 默认拒绝匿名访问，仅 @Public() 路由例外
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // 菜单/按钮级权限校验，默认对未声明权限的接口放行

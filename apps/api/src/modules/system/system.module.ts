@@ -7,6 +7,7 @@ import { DictModule } from './dict/dict.module';
 import { FileModule } from './file/file.module';
 import { SysConfigModule } from './config/config.module';
 import { AlertModule } from './alert/alert.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AlertModule } from './alert/alert.module';
     FileModule,
     SysConfigModule,
     AlertModule,
+    SecurityModule,
   ],
   exports: [
     DeptModule,
@@ -27,6 +29,7 @@ import { AlertModule } from './alert/alert.module';
     DictModule,
     FileModule,
     SysConfigModule,
+    SecurityModule,
   ],
 })
 export class SystemModule {}
