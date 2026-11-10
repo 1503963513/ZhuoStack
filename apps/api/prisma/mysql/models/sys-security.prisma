@@ -1,6 +1,6 @@
 model SysIpRule {
   id        String    @id @default(cuid())
-  ip        String    @unique(length: 100) @db.VarChar(100)
+  ip        String    @unique(length: 100)
   type      String    @default("BLACKLIST") @db.VarChar(20)
   reason    String?   @db.VarChar(255)
   expiredAt DateTime?

@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE `sys_ip_rules` (
     `id` VARCHAR(191) NOT NULL,
-    `ip` VARCHAR(100) NOT NULL,
+    `ip` VARCHAR(191) NOT NULL,
     `type` VARCHAR(20) NOT NULL DEFAULT 'BLACKLIST',
     `reason` VARCHAR(255) NULL,
     `expiredAt` DATETIME(3) NULL,
@@ -9,7 +9,7 @@ CREATE TABLE `sys_ip_rules` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    UNIQUE INDEX `sys_ip_rules_ip_key`(`ip`),
+    UNIQUE INDEX `sys_ip_rules_ip_key`(`ip`(100)),
     INDEX `sys_ip_rules_type_status_idx`(`type`, `status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
