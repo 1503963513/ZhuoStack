@@ -57,7 +57,20 @@ import type {
   CreateThrottleRuleDto,
   UpdateThrottleRuleDto,
 } from '@/api/generated/models';
-import { cn } from '@/lib/utils';
+import { cn, formatDuration } from '@/lib/utils';
+
+
+const QUICK_TTL_OPTIONS = [
+  { label: '10秒', seconds: 10 },
+  { label: '1分钟', seconds: 60 },
+  { label: '5分钟', seconds: 300 },
+  { label: '10分钟', seconds: 600 },
+  { label: '20分钟', seconds: 1200 },
+  { label: '30分钟', seconds: 1800 },
+  { label: '1小时', seconds: 3600 },
+  { label: '2小时', seconds: 7200 },
+  { label: '1天', seconds: 86400 },
+];
 
 export default function SecurityPage() {
   const [activeTab, setActiveTab] = useState<'throttle' | 'ip'>('throttle');
@@ -482,7 +495,9 @@ export default function SecurityPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">统计周期:</span>
-                        <span className="font-semibold text-foreground">{rule.ttl} 秒</span>
+                        <span className="font-semibold text-foreground">
+                          {rule.ttl} 秒 ({formatDuration(rule.ttl)})
+                        </span>
                       </div>
                     </div>
 
@@ -630,17 +645,42 @@ export default function SecurityPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="throttle-ttl">统计周期 (秒) *</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="throttle-ttl">统计周期 (秒) *</Label>
+                  {throttleForm.ttl > 0 && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      ≈ {formatDuration(throttleForm.ttl)}
+                    </span>
+                  )}
+                </div>
                 <Input
                   id="throttle-ttl"
                   type="number"
                   min={1}
                   required
+                  placeholder="请输入秒数，或点选下方快捷选项"
                   value={throttleForm.ttl}
                   onChange={(e) =>
                     setThrottleForm({ ...throttleForm, ttl: parseInt(e.target.value, 10) || 1 })
                   }
                 />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {QUICK_TTL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.seconds}
+                      type="button"
+                      onClick={() => setThrottleForm({ ...throttleForm, ttl: opt.seconds })}
+                      className={cn(
+                        'px-2 py-0.5 rounded text-xs border transition-colors',
+                        throttleForm.ttl === opt.seconds
+                          ? 'bg-primary text-primary-foreground border-primary font-medium'
+                          : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border-transparent',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
