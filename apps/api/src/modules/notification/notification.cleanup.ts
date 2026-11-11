@@ -31,7 +31,7 @@ export class NotificationCleanupService {
   }
 
   /** 每天凌晨 3:17 执行清理 */
-  @Cron('17 3 * * *')
+  @Cron('17 3 * * *', { name: 'notification-cleanup' })
   async cleanupExpiredNotifications(): Promise<void> {
     this.logger.log('开始清理过期通知...');
 

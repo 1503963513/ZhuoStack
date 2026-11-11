@@ -403,6 +403,7 @@ export class MonitorService {
       'cache-cleanup': '定期清理过期缓存数据',
       'online-cleanup': '清理过期的在线用户记录',
       'log-cleanup': '每天凌晨清理 7 天前的操作日志和登录日志',
+      'notification-cleanup': '每天凌晨清理过期历史通知与公告',
     };
     return descriptions[name] || '自定义定时任务';
   }
