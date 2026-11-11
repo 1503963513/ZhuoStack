@@ -1,6 +1,6 @@
 # ZhuoStack
 
-面向生产环境的 NestJS + Next.js 全栈中后台开发脚手架，采用 pnpm Monorepo + Turborepo 组织，内置双数据库迁移、RBAC、Redis、多云文件存储和 Docker/PM2 部署能力。
+面向生产环境的企业级 NestJS + Next.js 全栈中后台开发脚手架，采用 pnpm Monorepo + Turborepo 架构组织。内置双数据库迁移同步、RBAC 细粒度权限、Redis 会话与缓存治理、多云对象存储、实时通知中心、全局动态参数配置、服务监控与实时日志控制台、接口限流与 IP 安全防火墙、前端 i18n 多语言体系，以及全自动化 Docker/PM2 交互式部署能力。
 
 ## 快速开始
 
@@ -32,8 +32,8 @@ pnpm dev
 - API 健康检查：http://localhost:3100/health/liveness
 - Swagger：http://localhost:3100/api/docs
 
-管理员登录：`admin@example.com` / `admin123`。这些是本地演示账号，不要用于生产环境。
-普通用户账号为 `user1@example.com`、`user2@example.com`、`user3@example.com`，密码均为 `password123`。
+管理员登录：`admin@example.com` / `Admin@123456`。这些是本地演示账号，不要用于生产环境。
+普通用户账号为 `user1@example.com`、`user2@example.com`、`user3@example.com`，密码均为 `Password@123`。
 
 生产环境必须使用 TLS；前端还会使用临时 RSA-OAEP 公钥加密密码。RSA 不能替代 TLS。
 
@@ -96,6 +96,27 @@ pnpm dev
 | 认证      | JWT (passport-jwt)      |
 | 密码哈希  | bcryptjs                |
 | API 文档  | Swagger                 |
+
+## 核心功能与特性
+
+- 🛡️ **安全防护与流量防火墙 (`/system/security`)**
+  - **IP 黑白名单**：支持单个 IP 或 CIDR 网段拦截与特权放行，支持设定封禁倒计时与原因备注。
+  - **动态多维限流防刷**：内置 5 大关键敏感路由防爆破策略（登录防爆破、注册防刷、密码频控、文件上传防护、全局兜底），支持按 IP、User 或联合维度统计，支持后台可视化增删改查、秒级周期快捷选项与超限自动临时拉黑。
+  - **传输安全与凭据保护**：前端密码提交前经 RSA-OAEP 非对称加密；服务端 Cookie 认证下发双提交 CSRF 保护；支持基于 Redis 的 JWT 双 Token 自动轮换与单设备登录强制互踢。
+- ⚙️ **系统参数设置中心 (`/system/config`)**
+  - 动态管理系统名称、版权声明、默认外观主题、自主注册开关、图形验证码开关与初始密码，修改即刻生效，无需重新打包构建。
+- 📊 **服务监控与实时日志流水 (`/monitor/server`)**
+  - **实时运行日志终端**：采用内存环形缓冲区 + Redis ZSET 时序流，支持近 30 分钟日志倒序查看、多级别筛选、关键词黄色高亮搜索、错误概览呼吸灯统计条，以及一键导出 `.log` 文本文件和复制全部日志。
+  - **动态日志策略热调控**：在线热更新最低日志级别、缓冲区容量、采样率、堆栈阈值与保留天数，无需重启 Node.js 进程。
+  - **群机器人异常告警**：支持企业微信、飞书卡片、钉钉机器人，内置 MD5 错误指纹 Redis 节流防轰炸降噪与连通性测试。
+- 🔔 **实时通知中心与系统公告 (`/notifications`)**
+  - 基于 SSE (Server-Sent Events) 长连接实现全员公告与个人系统通知的即时下发；提供未读消息红点徽标与顶部右侧快捷抽屉；内置定时生命周期自动清理任务。
+- 🌐 **多语言国际化体系 (i18n)**
+  - 基于 Zustand + 本地持久化，支持中英文即时无刷新切换，覆盖菜单、PageTabs 动态标题、认证表单与核心交互。
+- 🗄️ **双数据库无缝支持与架构一致性**
+  - 生产级 PostgreSQL 与 MySQL (8.0+) 双 Schema 支持，内置一致性断言校验器与自动化迁移部署脚本，杜绝跨库语法差异与字段漂移。
+- 🚀 **全栈自动化发布与交互式打包 (`pnpm release`)**
+  - 提供保姆级终端向导，自由组合打包范围（全栈 / 仅 API / 仅 Web）、目标数据库（PostgreSQL / MySQL）、离线镜像或裸机 PM2 自包含交付包。
 
 ## 架构概览
 

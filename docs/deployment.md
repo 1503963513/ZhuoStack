@@ -215,6 +215,15 @@ bash scripts/deploy.sh docker up
 
 首次启动会自动导入 `offline-images.tar`、创建 `.env.deploy`、生成 JWT 密钥并启动服务，全程不会拉取镜像。生成包前应确保构建机已拉取基础镜像；目标 CPU 架构通过 `TARGET_ARCH` 指定。
 
+## 默认凭据与初始密码合规说明
+
+- **本地演示管理员**：`admin@example.com` / `Admin@123456`（符合大小写字母 + 数字 + 特殊字符，长度 >= 8 的强密码规则）。
+- **演示测试账号**：`user1@example.com` ~ `user3@example.com` / `Password@123`。
+- **自定义种子密码**：开发与测试环境可在 `.env.development` 中通过 `SEED_ADMIN_EMAIL` 与 `SEED_ADMIN_PASSWORD` 覆盖默认值。
+- **生产环境重要准则**：
+  - 生产部署环境（`.env.deploy`）中 **默认关闭 `DB_SEED_ON_START=false`**，严禁在生产开启以避免冲刷已有业务数据。
+  - 生产环境下管理员在后台创建新用户时的初始密码，可在「参数设置」(`/system/config`) 的 `sys.security.default_password` 中动态指定。
+
 ## 上线检查
 
 - 使用强数据库密码，并限制 `.env.deploy` / `apps/api/.env.production` 文件权限。

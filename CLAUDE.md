@@ -68,10 +68,12 @@ pnpm release
 - `HttpExceptionFilter`（`APP_FILTER`）— 捕获异常，打印包含 `[requestId]` 的堆栈，返回 `{ code, <状态码>, data: null, message, requestId }`
 - `ValidationPipe` — `whitelist: true`、`forbidNonWhitelisted: true`、`transform: true`（含隐式类型转换）
 - 深度探针：`/health`（就绪检查，探测 DB+Redis 延迟）、`/health/liveness`（存活检查）。排障详见 `docs/troubleshooting.md`。
+- `SecurityThrottleGuard`（`APP_GUARD`）— 动态多维滑动窗口限流与 IP 黑白名单防火墙，超限自动下发 429 与 Retry-After
+- `RequestLoggerInterceptor`（`APP_INTERCEPTOR`）— 运行日志流拦截器，自动采集请求端 Caller 与耗时注入内存环形缓冲与 Redis ZSET，并排除长连接与监控自轮询
 
 **路由前缀**：`app.setGlobalPrefix('api', { exclude: ['health'] })` — 健康检查在 `/health`，其余均在 `/api/*`。
 
-**认证流程**：基于 JWT + HttpOnly Cookie 架构。登录/注册成功下发 HttpOnly `access_token` 和前端可读 `csrf_token`；对修改操作实施双提交 CSRF 防护（`x-csrf-token` 请求头）。每次请求由 `JwtStrategy` 结合 Redis 会话进行单设备活跃校验（Jti 验证）。密码传输前经 RSA-OAEP 加密，后端使用 `bcryptjs` 哈希存储。详见 `.claude/rules/invariants.md`。
+**认证流程**：基于 JWT + HttpOnly Cookie 架构（默认管理员账号 `admin@example.com` / `Admin@123456`，测试用户 `Password@123`）。登录/注册成功下发 HttpOnly `access_token` 和前端可读 `csrf_token`；对修改操作实施双提交 CSRF 防护（`x-csrf-token` 请求头）。每次请求由 `JwtStrategy` 结合 Redis 会话进行单设备活跃校验（Jti 验证）。密码传输前经 RSA-OAEP 加密，后端使用 `bcryptjs` 哈希存储。详见 `.claude/rules/invariants.md`。
 
 **AI 模块**（`modules/ai`）：使用 OpenAI SDK，支持自定义 `OPENAI_BASE_URL`。端点：`POST /api/ai/chat`、`SSE /api/ai/chat/stream`、`POST /api/ai/prompt`。均需认证。
 

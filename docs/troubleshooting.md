@@ -49,7 +49,9 @@ requestId = "req_8f1a2b3c4d5e"
 | **403** | `You do not have permission to access this resource`     | 当前登录用户角色（如 `USER`）无权访问带有 `@Roles(Role.ADMIN)` 保护的管理员接口。                                                                                                                                   |
 | **413** | `文件大小超过限制，请上传 50MB 以内的文件`               | 上传文件体积超过 `FILE_MAX_SIZE_MB` 限制或 Nginx `client_max_body_size` 限制。                                                                                                                                      |
 | **500** | `Internal server error`                                  | 未捕获的服务端异常。在日志中搜索对应的 `[req_xxxx]` 查看真实的错误堆栈。                                                                                                                                            |
-| **503** | `安全状态存储不可用，无法执行 GETDEL` / `Redis 连接失败` | 后端无法连接到 Redis，或 Redis 拒绝连接。<br>**解决**：检查 Redis 容器运行状态与 `REDIS_URL` 端口密码配置。                                                                                                         |
+| **403** | `当前 IP 受到系统安全访问限制` / `已被列入系统安全黑名单` | 客户端 IP 命中 IP 拦截规则或频繁违规被系统自动封禁。<br>**解决**：管理员可在后台「安全防护」(`/system/security`) 的「IP 封禁与黑白名单」中解封，或直接加入白名单特权放行。 |
+| **429** | `请求过于频繁，请在 x 秒后再试` | 请求频率突破了对应接口的滑动窗口限流阈值。<br>**解决**：查看响应头中的 `Retry-After` 等待重试；管理员可在「安全防护」(`/system/security`) 中动态调大该接口的允许频次上限。 |
+| **503** | `安全状态存储不可用，无法执行 GETDEL` / `Redis 连接失败` | 后端无法连接到 Redis，或 Redis 拒绝连接。<br>**解决**：检查 Redis 容器运行状态与 `REDIS_URL` 端口密码配置。 |
 
 ---
 
@@ -144,7 +146,25 @@ requestId = "req_8f1a2b3c4d5e"
 
 ---
 
-## 七、快速自检清单 (Production Pre-flight Checklist)
+---
+
+## 七、接口限流防刷与 IP 防火墙故障排查
+
+### 1. 为什么新增自定义 Header（如调用方标识）后，浏览器全部报 `CORS error`？
+- **根因**：浏览器发送非标准简单请求头（例如 `x-client-app`）时，会先触发 `OPTIONS` 预检请求（Preflight）。
+- **解决**：检查 Fastify 后端入口 `apps/api/src/main.ts` 中的 `enableCors.allowedHeaders` 配置列表，确保将该自定义请求头加入白名单。
+
+### 2. 正常办公 IP 误被系统限流或自动拉黑
+- **临时解封**：管理员登录后台访问 **「系统管理 -> 安全防护」**（`/system/security`），在 **IP 封禁与黑白名单** 中搜索该 IP 点击“移除”。
+- **特许加白**：点击“添加白名单”，输入办公室公网 IP 或内网网段，白名单 IP 会在第一道关卡直接特权放行，跳过后续所有频控限流计算。
+
+### 3. 本地开发启动提示 `Table sys_throttle_rules doesn't exist`
+- **根因**：本地数据库版本滞后，缺少最新的安全防护表迁移。
+- **解决**：运行 `pnpm db:migrate`（或 `pnpm db:deploy`）将最新迁移应用到本地数据库。
+
+---
+
+## 八、快速自检清单 (Production Pre-flight Checklist)
 
 上线前执行一次完整自检：
 

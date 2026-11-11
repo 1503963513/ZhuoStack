@@ -36,7 +36,9 @@
 
 ## 4. Redis 缓存键管理
 
-- **新增 Key 必须登记**：在 `apps/api/src/modules/monitor/monitor.service.ts` 中，纯缓存必须加入 `ALLOWED_KEY_PREFIXES`（支持一键清空），安全/状态键必须加入 `PROTECTED_KEY_PREFIXES`（禁止清空）。
+- **新增 Key 必须登记**：在 `apps/api/src/modules/monitor/monitor.service.ts` 中，纯缓存必须加入 `ALLOWED_KEY_PREFIXES`（如 `sys:config:`、`alert:`、`log:runtime:`、`security:`，支持一键清空），安全/状态键必须加入 `PROTECTED_KEY_PREFIXES`（如 `token:active:`、`online:user:` 等，禁止清空）。
+- **拦截器与长连接防刷死循环**：全局请求日志与限流拦截器中，严禁记录或重复捕获日志自轮询端点（`/api/monitor/logs/*`）与 SSE 长连接流（`/api/notifications/stream`），防止日志自放大产生刷屏与内存泄露。
+- **前端 i18n 强类型对齐**：新增页面或修改菜单路径时，必须同步在 `apps/web/src/locales/zh-CN/common.ts` 与 `en-US/common.ts` 的 `menu` 字典中登记中英文双语映射，保持类型严密推导。
 
 ---
 
