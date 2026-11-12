@@ -23,61 +23,137 @@ function createPrismaAdapter(): PrismaMariaDb | PrismaPg {
   throw new Error(`DB_TYPE must be postgres or mysql, received: ${configuredType}`);
 }
 
-const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
+const rootPrisma = new PrismaClient({ adapter: createPrismaAdapter() });
+let prisma = rootPrisma;
+const isAdminBootstrap = process.argv.includes('--bootstrap-admin');
+
+async function validateAdminBootstrap(): Promise<void> {
+  if (process.env.NODE_ENV !== 'production') {
+    throw new Error('管理员引导命令只允许在 NODE_ENV=production 下执行');
+  }
+  if (process.env.ADMIN_BOOTSTRAP_CONFIRM !== 'CREATE_FIRST_ADMIN') {
+    throw new Error('请设置 ADMIN_BOOTSTRAP_CONFIRM=CREATE_FIRST_ADMIN 明确确认初始化');
+  }
+
+  const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim();
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error('必须通过环境变量提供 BOOTSTRAP_ADMIN_EMAIL 和 BOOTSTRAP_ADMIN_PASSWORD');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('BOOTSTRAP_ADMIN_EMAIL 必须是有效邮箱地址');
+  }
+  if (password.length < 12) {
+    throw new Error('管理员密码至少需要 12 个字符');
+  }
+  if (email === 'admin@example.com' || password === 'Admin@123456') {
+    throw new Error('不能使用仓库中的演示管理员凭据');
+  }
+
+  const [users, menus, roles, dictionaries, departments, posts] = await Promise.all([
+    prisma.user.count(),
+    prisma.sysMenu.count(),
+    prisma.sysRole.count(),
+    prisma.sysDict.count(),
+    prisma.sysDept.count(),
+    prisma.sysPost.count(),
+  ]);
+  if (users + menus + roles + dictionaries + departments + posts > 0) {
+    throw new Error(
+      '数据库已有用户或系统基础数据，拒绝初始化。该命令只适用于已完成迁移的全新空库。',
+    );
+  }
+}
 
 async function main() {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !isAdminBootstrap) {
     throw new Error('生产环境禁止执行会清空业务数据的 Seed');
   }
-  if (process.env.SEED_ALLOW_DESTRUCTIVE !== 'true') {
+  if (!isAdminBootstrap && process.env.SEED_ALLOW_DESTRUCTIVE !== 'true') {
     throw new Error('Seed 会清空现有业务数据；请通过 pnpm db:seed/db:setup 执行并确认数据可丢弃');
   }
 
-  console.log('Seeding database...');
+  if (isAdminBootstrap) {
+    await rootPrisma.$transaction(
+      async (transaction) => {
+        prisma = transaction as unknown as PrismaClient;
+        await validateAdminBootstrap();
+        await seedData();
+      },
+      { isolationLevel: 'Serializable', maxWait: 10000, timeout: 30000 },
+    );
+    return;
+  }
 
-  // Clean existing data（仅限已显式确认的非生产环境）
-  await prisma.sysDictData.deleteMany({});
-  await prisma.sysDict.deleteMany({});
-  await prisma.sysMenu.deleteMany({});
-  await prisma.sysRole.deleteMany({});
-  await prisma.sysPost.deleteMany({});
-  await prisma.sysDept.deleteMany({});
-  await prisma.user.deleteMany({});
+  await seedData();
+}
 
-  // ========== 部门管理 ==========
-  console.log('Creating departments...');
-  const deptRoot = await prisma.sysDept.create({
-    data: { name: '总公司', sort: 0, status: Status.ACTIVE },
-  });
-  const deptTech = await prisma.sysDept.create({
-    data: { name: '技术部', parentId: deptRoot.id, sort: 1, status: Status.ACTIVE },
-  });
-  const deptProduct = await prisma.sysDept.create({
-    data: { name: '产品部', parentId: deptRoot.id, sort: 2, status: Status.ACTIVE },
-  });
-  const deptOps = await prisma.sysDept.create({
-    data: { name: '运维部', parentId: deptRoot.id, sort: 3, status: Status.ACTIVE },
-  });
-  const deptFrontend = await prisma.sysDept.create({
-    data: { name: '前端组', parentId: deptTech.id, sort: 1, status: Status.ACTIVE },
-  });
-  const deptBackend = await prisma.sysDept.create({
-    data: { name: '后端组', parentId: deptTech.id, sort: 2, status: Status.ACTIVE },
-  });
-  console.log('Departments created');
+async function seedData(): Promise<void> {
+  console.log(isAdminBootstrap ? 'Initializing production system and first administrator...' : 'Seeding database...');
 
-  // ========== 岗位管理 ==========
-  console.log('Creating posts...');
-  const postDev = await prisma.sysPost.create({
-    data: { name: '开发工程师', code: 'dev', sort: 1, status: Status.ACTIVE },
-  });
-  const postPm = await prisma.sysPost.create({
-    data: { name: '产品经理', code: 'pm', sort: 2, status: Status.ACTIVE },
-  });
-  const postOps = await prisma.sysPost.create({
-    data: { name: '运维工程师', code: 'ops', sort: 3, status: Status.ACTIVE },
-  });
-  console.log('Posts created');
+  if (!isAdminBootstrap) {
+    // Clean existing data（仅限已显式确认的非生产环境）
+    await prisma.sysDictData.deleteMany({});
+    await prisma.sysDict.deleteMany({});
+    await prisma.sysMenu.deleteMany({});
+    await prisma.sysRole.deleteMany({});
+    await prisma.sysPost.deleteMany({});
+    await prisma.sysDept.deleteMany({});
+    await prisma.user.deleteMany({});
+  }
+
+  let deptTechId: string | null = null;
+  let deptProductId: string | null = null;
+  let deptFrontendId: string | null = null;
+  let deptBackendId: string | null = null;
+  let postDevId: string | null = null;
+  let postPmId: string | null = null;
+
+  if (!isAdminBootstrap) {
+    // 示例组织架构仅用于开发和测试 seed。
+    console.log('Creating departments...');
+    const deptRoot = await prisma.sysDept.create({
+      data: { name: '总公司', sort: 0, status: Status.ACTIVE },
+    });
+    const deptTech = await prisma.sysDept.create({
+      data: { name: '技术部', parentId: deptRoot.id, sort: 1, status: Status.ACTIVE },
+    });
+    deptTechId = deptTech.id;
+    deptProductId = (
+      await prisma.sysDept.create({
+        data: { name: '产品部', parentId: deptRoot.id, sort: 2, status: Status.ACTIVE },
+      })
+    ).id;
+    await prisma.sysDept.create({
+      data: { name: '运维部', parentId: deptRoot.id, sort: 3, status: Status.ACTIVE },
+    });
+    deptFrontendId = (
+      await prisma.sysDept.create({
+        data: { name: '前端组', parentId: deptTech.id, sort: 1, status: Status.ACTIVE },
+      })
+    ).id;
+    deptBackendId = (
+      await prisma.sysDept.create({
+        data: { name: '后端组', parentId: deptTech.id, sort: 2, status: Status.ACTIVE },
+      })
+    ).id;
+
+    console.log('Creating posts...');
+    postDevId = (
+      await prisma.sysPost.create({
+        data: { name: '开发工程师', code: 'dev', sort: 1, status: Status.ACTIVE },
+      })
+    ).id;
+    postPmId = (
+      await prisma.sysPost.create({
+        data: { name: '产品经理', code: 'pm', sort: 2, status: Status.ACTIVE },
+      })
+    ).id;
+    await prisma.sysPost.create({
+      data: { name: '运维工程师', code: 'ops', sort: 3, status: Status.ACTIVE },
+    });
+    console.log('Development departments and posts created');
+  }
 
   // ========== 菜单管理（内置系统菜单） ==========
   console.log('Creating menus...');
@@ -764,9 +840,13 @@ async function main() {
   // ========== 用户管理 ==========
   console.log('Creating users...');
 
-  // Create admin user（仅用于本地示例数据，生产环境不会执行）
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
+  // Create the first administrator or development seed account.
+  const adminEmail = isAdminBootstrap
+    ? process.env.BOOTSTRAP_ADMIN_EMAIL!.trim()
+    : process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
+  const adminPassword = isAdminBootstrap
+    ? process.env.BOOTSTRAP_ADMIN_PASSWORD!
+    : process.env.SEED_ADMIN_PASSWORD || 'Admin@123456';
   const admin = await prisma.user.create({
     data: {
       email: adminEmail,
@@ -774,23 +854,33 @@ async function main() {
       password: await bcrypt.hash(adminPassword, 12),
       role: Role.ADMIN,
       avatar: null,
-      deptId: deptTech.id,
+      deptId: deptTechId,
       roles: { connect: [{ id: roleAdmin.id }] },
-      posts: { connect: [{ id: postDev.id }] },
+      ...(postDevId ? { posts: { connect: [{ id: postDevId }] } } : {}),
     },
   });
   console.log(`Created admin user: ${admin.email}`);
 
-  // Create test users
-  const testUsers = [
+  // Create test users only in development/test seed.
+  const testUsers = isAdminBootstrap ? [] : [
     {
       email: 'user1@example.com',
       name: 'Test User 1',
-      deptId: deptFrontend.id,
-      postId: postDev.id,
+      deptId: deptFrontendId!,
+      postId: postDevId!,
     },
-    { email: 'user2@example.com', name: 'Test User 2', deptId: deptBackend.id, postId: postDev.id },
-    { email: 'user3@example.com', name: 'Test User 3', deptId: deptProduct.id, postId: postPm.id },
+    {
+      email: 'user2@example.com',
+      name: 'Test User 2',
+      deptId: deptBackendId!,
+      postId: postDevId!,
+    },
+    {
+      email: 'user3@example.com',
+      name: 'Test User 3',
+      deptId: deptProductId!,
+      postId: postPmId!,
+    },
   ];
 
   for (const u of testUsers) {
@@ -810,7 +900,7 @@ async function main() {
   }
 
   console.log('Seeding completed!');
-  console.log(`Development admin: ${adminEmail} / ${adminPassword}`);
+  console.log(isAdminBootstrap ? `Initialized first administrator: ${adminEmail}` : `Development admin: ${adminEmail} / ${adminPassword}`);
 }
 
 main()
@@ -819,5 +909,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await rootPrisma.$disconnect();
   });

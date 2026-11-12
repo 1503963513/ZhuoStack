@@ -224,6 +224,38 @@ bash scripts/deploy.sh docker up
   - 生产部署环境（`.env.deploy`）中 **默认关闭 `DB_SEED_ON_START=false`**，严禁在生产开启以避免冲刷已有业务数据。
   - 生产环境下管理员在后台创建新用户时的初始密码，可在「参数设置」(`/system/config`) 的 `sys.security.default_password` 中动态指定。
 
+## 生产初始化、升级与回滚
+
+### 首次初始化
+
+生产环境默认不执行演示 seed，且 `pnpm db:seed` 会拒绝在 `NODE_ENV=production` 下运行。全新数据库完成迁移、API 已构建后，使用单独的 `pnpm admin:bootstrap` 初始化默认管理菜单和首个超级管理员。命令只接受空的系统基础表，不创建普通测试用户、示例部门或岗位；首个管理员初始不关联部门和岗位，后续可按实际组织架构在后台配置。该命令不会用于已有环境的提权或重置。
+
+通过安全的终端会话注入初始化变量，密码使用静默输入，避免出现在命令历史中：
+
+```bash
+export NODE_ENV=production
+export ADMIN_BOOTSTRAP_CONFIRM=CREATE_FIRST_ADMIN
+export BOOTSTRAP_ADMIN_EMAIL=your-admin@example.com
+read -s BOOTSTRAP_ADMIN_PASSWORD
+export BOOTSTRAP_ADMIN_PASSWORD
+pnpm admin:bootstrap
+unset ADMIN_BOOTSTRAP_CONFIRM BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD
+```
+
+命令从 `apps/api/.env.production` 读取数据库连接与 `DB_TYPE`。生产部署包需先包含编译后的 API；Docker 镜像已包含编译产物，可进入 API 容器后设置相同变量并执行 `node dist/prisma/seed.js --bootstrap-admin`。初始化成功后使用该账号登录，并清除所有临时凭据。若命令因非空数据拒绝执行，不要删除数据以绕过保护，应检查环境是否指向了预期的全新数据库。
+
+### 升级前后
+
+1. 确认目标版本、数据库类型和待执行迁移；检查该版本部署说明及配置变更。
+2. 备份数据库和本地上传目录（使用 OSS/COS 时确认对象存储备份策略），并确认备份可恢复。
+3. 保留当前应用版本和部署配置，先在测试环境应用同一版本及迁移。
+4. 生产执行 `pnpm db:deploy`，或使用部署脚本按 `DB_MIGRATE_ON_START` 配置应用已提交的迁移；随后发布应用并检查健康接口、登录、核心业务读写和日志。
+5. 记录迁移结果和应用版本。破坏性数据变更采用扩展、回填、切换、收缩的多版本流程。
+
+### 失败处理
+
+优先停止后续发布并定位失败环节。若迁移尚未执行，可回退应用版本；若迁移已经执行，不要直接假设旧版本仍兼容，也不要手工删除迁移记录。优先发布向前修复版本；只有在已验证恢复步骤且接受数据回退点之后，才从备份恢复数据库和相关文件。Prisma 迁移没有自动 down migration，数据库回滚原则见[Prisma 迁移规范](../apps/api/prisma/README.md#变更与回滚原则)。
+
 ## 上线检查
 
 - 使用强数据库密码，并限制 `.env.deploy` / `apps/api/.env.production` 文件权限。

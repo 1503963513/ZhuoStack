@@ -63,6 +63,8 @@ pnpm db:deploy --pg
 pnpm db:deploy --mysql
 ```
 
+首次生产部署完成迁移并构建 API 后，使用 `pnpm admin:bootstrap` 初始化默认管理菜单和首个超级管理员。该命令与破坏性开发 seed 分离，只能用于系统基础表为空的全新库，并通过事务创建基础数据；不会写入示例部门、岗位或普通测试用户，首个管理员初始不关联部门和岗位。详细凭据输入与限制见[部署指南](../../../docs/deployment.md#生产初始化升级与回滚)。
+
 Docker 由构建参数 `DB_TYPE` 固化 Prisma Client 和迁移目录，容器启动时在 `DB_MIGRATE_ON_START=true` 的情况下执行 `prisma migrate deploy`。生产环境禁止使用 `prisma db push` 代替迁移，也禁止执行会清空数据的 Seed。
 
 ### 从旧版 `db push` 部署升级

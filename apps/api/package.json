@@ -30,6 +30,7 @@
     "db:setup": "node prisma/db-cli.mjs setup",
     "db:studio": "node prisma/db-cli.mjs studio",
     "db:deploy": "node prisma/db-cli.mjs deploy",
+    "admin:bootstrap": "node --env-file-if-exists=.env.production prisma/bootstrap-admin.mjs",
     "db:verify": "node prisma/db-cli.mjs verify",
     "db:schema:check": "node prisma/verify-schema-parity.mjs",
     "db:baseline": "node prisma/db-cli.mjs baseline",

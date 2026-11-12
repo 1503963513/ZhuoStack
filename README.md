@@ -129,30 +129,30 @@ zhuostack/
 ├── apps/
 │   ├── api/                  # NestJS 后端
 │   │   ├── src/
-│   │   │   ├── common/       # 共享工具（装饰器、过滤器、守卫、拦截器）
-│   │   │   ├── config/       # 配置模块
-│   │   │   ├── database/     # Prisma 数据库层
-│   │   │   ├── modules/      # 业务模块（auth、user、health、ai）
-│   │   │   └── main.ts       # 应用入口
-│   │   └── prisma/           # Prisma Schema 文件
-│   │       ├── postgres/     # PostgreSQL Schema
-│   │       ├── mysql/        # MySQL Schema
-│   │       └── schema.active/ # 当前生效的 Schema（自动生成）
-│   └── web/                  # Next.js 前端
-│       └── src/
-│           ├── app/          # App Router 页面
-│           ├── components/   # UI 组件
-│           ├── hooks/        # 自定义 Hooks
-│           ├── lib/          # 工具函数和 API 客户端
-│           ├── schemas/      # Zod 验证 Schema
-│           ├── stores/       # Zustand 状态管理
-│           └── types/        # TypeScript 类型定义
-├── docker/                   # Docker 配置
-├── scripts/                  # 部署脚本
-├── pnpm-workspace.yaml
-├── turbo.json
-└── tsconfig.base.json
+│   │   ├── common/           # 全局装饰器、守卫、拦截器与过滤器
+│   │   ├── database/         # Prisma、Redis 接入
+│   │   └── modules/          # auth、user、system、monitor 等功能模块
+│   └── prisma/               # PostgreSQL/MySQL schema 与独立迁移历史
+├── apps/web/                 # Next.js 前端
+│   └── src/
+│       ├── app/              # App Router 页面
+│       ├── components/       # 共享 UI 与布局
+│       ├── api/generated/    # OpenAPI/Orval 生成，不手工编辑
+│       ├── locales/          # 中英文文案
+│       └── stores/           # Zustand 状态
+├── docs/                     # 使用、定制、部署与排障文档
+├── docker/                   # 容器、Nginx 配置
+└── scripts/                  # 部署、打包脚本
 ```
+
+## 从模板开始定制
+
+建议先完成本地初始化，再按需要调整品牌信息、演示数据和菜单权限。新增业务功能时，按项目现有约定维护后端模块、数据库双 Schema、菜单权限、前端页面和 API 契约。
+
+- [模板定制指南](docs/customization.md)：项目品牌、演示数据、菜单权限与生产初始化边界。
+- [新增业务模块示例](docs/module-development.md)：以部门管理模块为参照，说明从后端、数据库到前端和契约生成的开发顺序。
+- [Prisma 双数据库与迁移规范](apps/api/prisma/README.md)：双 Schema、迁移、生产部署与回滚原则。
+- [部署指南](docs/deployment.md)：生产初始化、发布升级与运维操作。
 
 ## 文件存储
 
@@ -267,6 +267,7 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 | `pnpm db:migrate`                       | 执行开发迁移（自适应当前 DB_TYPE，支持 --pg/--mysql） |
 | `pnpm db:generate`                      | 生成 Prisma Client（自适应当前 DB_TYPE）              |
 | `pnpm db:seed`                          | 填充种子数据（内置多数据库适配器）                    |
+| `pnpm admin:bootstrap`                  | 全新生产库初始化默认菜单和首个超级管理员             |
 | `pnpm db:studio`                        | 打开 Prisma Studio 可视化数据面板                     |
 | `pnpm db:deploy`                        | 生产环境部署迁移 (`migrate deploy`)                   |
 | `pnpm db:verify`                        | 空库验证迁移与漂移（CI 专用，支持 --pg/--mysql）      |
@@ -279,6 +280,7 @@ Docker 默认使用 PostgreSQL。把 `.env.deploy` 的 `DB_TYPE` 和 `DATABASE_U
 - Git 提交遵循**约定式提交**格式（`feat/fix/chore/docs...`）
 - 通过 **ESLint + Prettier** + lint-staged + husky 强制代码规范
 - 所有 API 响应遵循 `{ code, data, message }` 统一格式，全链路请求自动携带 `x-request-id`
+- 新增模块时遵循[模块开发示例](docs/module-development.md)；涉及数据库结构时同时遵循[Prisma 迁移规范](apps/api/prisma/README.md)
 - 详细排障指南见 [生产运维与排障文档 (Troubleshooting Runbook)](docs/troubleshooting.md)
 
 ## 持续集成与安全门禁

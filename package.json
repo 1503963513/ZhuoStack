@@ -27,6 +27,7 @@
     "db:setup": "pnpm --filter api db:setup",
     "db:studio": "pnpm --filter api db:studio",
     "db:deploy": "pnpm --filter api db:deploy",
+    "admin:bootstrap": "pnpm --filter api admin:bootstrap",
     "db:verify": "pnpm --filter api db:verify",
     "db:schema:check": "pnpm --filter api db:schema:check",
     "db:baseline": "pnpm --filter api db:baseline",
