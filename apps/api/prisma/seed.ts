@@ -27,6 +27,75 @@ const rootPrisma = new PrismaClient({ adapter: createPrismaAdapter() });
 let prisma = rootPrisma;
 const isAdminBootstrap = process.argv.includes('--bootstrap-admin');
 
+const DEFAULT_SYSTEM_CONFIGS = [
+  { name: '系统名称', key: 'sys.app.name', value: 'ZhuoStack', group: 'basic', type: 'string', isPublic: true },
+  { name: '版权声明', key: 'sys.app.copyright', value: '© 2026 ZhuoStack. All rights reserved.', group: 'basic', type: 'string', isPublic: true },
+  { name: '默认显示模式', key: 'sys.app.default_theme', value: 'system', group: 'basic', type: 'string', isPublic: true },
+  { name: '开放自主注册', key: 'sys.security.register_enabled', value: 'true', group: 'security', type: 'boolean', isPublic: true },
+  { name: '登录图形验证码', key: 'sys.security.captcha_enabled', value: 'false', group: 'security', type: 'boolean', isPublic: true },
+  { name: '单设备登录限制', key: 'sys.security.single_login', value: 'false', group: 'security', type: 'boolean', isPublic: false },
+  { name: '初始密码', key: 'sys.security.default_password', value: 'Admin@123456', group: 'security', type: 'string', isPublic: false },
+  { name: '异常告警总开关', key: 'sys.alert.enabled', value: 'false', group: 'system', type: 'boolean', isPublic: false },
+  { name: '告警推送平台', key: 'sys.alert.platform', value: 'wecom', group: 'system', type: 'string', isPublic: false },
+  { name: '机器人 Webhook 地址', key: 'sys.alert.webhook_url', value: '', group: 'system', type: 'string', isPublic: false },
+  { name: '告警最低触发状态码', key: 'sys.alert.min_status', value: '500', group: 'system', type: 'number', isPublic: false },
+  { name: '告警防轰炸节流秒数', key: 'sys.alert.throttle_seconds', value: '300', group: 'system', type: 'number', isPublic: false },
+  { name: '告警加签密钥', key: 'sys.alert.secret', value: '', group: 'system', type: 'string', isPublic: false },
+] as const;
+
+const DEFAULT_THROTTLE_RULES = [
+  {
+    name: '登录接口防暴力破解',
+    path: '/api/auth/login',
+    method: 'POST',
+    limit: 5,
+    ttl: 60,
+    dimension: 'IP',
+    autoBlock: true,
+    blockMinutes: 15,
+  },
+  {
+    name: '注册接口防刷',
+    path: '/api/auth/register',
+    method: 'POST',
+    limit: 3,
+    ttl: 60,
+    dimension: 'IP',
+    autoBlock: false,
+    blockMinutes: 15,
+  },
+  {
+    name: '用户修改密码频控',
+    path: '/api/user/password',
+    method: 'PUT',
+    limit: 5,
+    ttl: 60,
+    dimension: 'USER',
+    autoBlock: false,
+    blockMinutes: 15,
+  },
+  {
+    name: '文件上传高频防护',
+    path: '/api/system/file/upload',
+    method: 'POST',
+    limit: 10,
+    ttl: 60,
+    dimension: 'IP',
+    autoBlock: false,
+    blockMinutes: 15,
+  },
+  {
+    name: '全局接口频控兜底',
+    path: '/*',
+    method: 'ALL',
+    limit: 120,
+    ttl: 60,
+    dimension: 'IP',
+    autoBlock: false,
+    blockMinutes: 15,
+  },
+] as const;
+
 async function validateAdminBootstrap(): Promise<void> {
   if (process.env.NODE_ENV !== 'production') {
     throw new Error('管理员引导命令只允许在 NODE_ENV=production 下执行');
@@ -95,12 +164,23 @@ async function seedData(): Promise<void> {
     // Clean existing data（仅限已显式确认的非生产环境）
     await prisma.sysDictData.deleteMany({});
     await prisma.sysDict.deleteMany({});
+    await prisma.sysConfig.deleteMany({});
+    await prisma.sysIpRule.deleteMany({});
+    await prisma.sysThrottleRule.deleteMany({});
     await prisma.sysMenu.deleteMany({});
     await prisma.sysRole.deleteMany({});
     await prisma.sysPost.deleteMany({});
     await prisma.sysDept.deleteMany({});
     await prisma.user.deleteMany({});
   }
+
+  // ========== 系统参数与安全防护默认值 ==========
+  console.log('Creating system defaults...');
+  await prisma.sysConfig.createMany({ data: [...DEFAULT_SYSTEM_CONFIGS] });
+  await prisma.sysThrottleRule.createMany({
+    data: DEFAULT_THROTTLE_RULES.map((rule) => ({ ...rule, status: Status.ACTIVE })),
+  });
+  console.log(`System defaults created: configs=${DEFAULT_SYSTEM_CONFIGS.length}, throttleRules=${DEFAULT_THROTTLE_RULES.length}`);
 
   let deptTechId: string | null = null;
   let deptProductId: string | null = null;
