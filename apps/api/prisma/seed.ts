@@ -301,6 +301,32 @@ async function seedData(): Promise<void> {
     },
   });
 
+  const menuSecurity = await prisma.sysMenu.create({
+    data: {
+      name: '安全防护',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/system/security',
+      component: 'system/security/index',
+      icon: 'ShieldCheck',
+      sort: 11,
+      status: Status.ACTIVE,
+    },
+  });
+
+  const menuConfig = await prisma.sysMenu.create({
+    data: {
+      name: '参数设置',
+      parentId: menuSystem.id,
+      type: MenuType.MENU,
+      path: '/system/config',
+      component: 'system/config/index',
+      icon: 'SlidersHorizontal',
+      sort: 12,
+      status: Status.ACTIVE,
+    },
+  });
+
 
   // 三级菜单：按钮权限（部门管理下的操作按钮）
   await prisma.sysMenu.createMany({
@@ -708,6 +734,8 @@ async function seedData(): Promise<void> {
           { id: menuLoginLog.id },
           { id: menuFile.id },
           { id: menuNotification.id },
+          { id: menuSecurity.id },
+          { id: menuConfig.id },
           // 所有按钮权限
           ...buttonMenus.map((m) => ({ id: m.id })),
         ],
