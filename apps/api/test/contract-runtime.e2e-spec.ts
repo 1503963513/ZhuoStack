@@ -118,6 +118,17 @@ describe('API Contract & Runtime E2E Tests', () => {
           }
           return Promise.resolve(null);
         }),
+        findFirst: jest.fn().mockImplementation(({ where }) => {
+          const idCondition = where?.AND?.find((condition: { id?: string }) => condition.id);
+          const userId = idCondition?.id;
+          if (userId === mockAdminUser.id) {
+            return Promise.resolve({ ...mockAdminUser, dept: null, posts: [], roles: [] });
+          }
+          if (userId === mockNormalUser.id) {
+            return Promise.resolve({ ...mockNormalUser, dept: null, posts: [], roles: [] });
+          }
+          return Promise.resolve(null);
+        }),
         findMany: jest.fn().mockResolvedValue([mockAdminUser, mockNormalUser]),
         count: jest.fn().mockResolvedValue(2),
         update: jest.fn().mockImplementation(({ where, data }) => {
