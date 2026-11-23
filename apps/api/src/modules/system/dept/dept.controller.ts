@@ -16,8 +16,10 @@ import {
   ApiResultResponse,
   ApiErrorResponse,
   ApiSessionAuth,
+  CurrentUser,
 } from '../../../common/decorators';
 import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
+import type { DataScopeActor } from '../../../common/access/data-scope.service';
 
 @ApiTags('system-dept')
 @ApiSessionAuth()
@@ -31,22 +33,22 @@ export class DeptController {
   @ApiOperation({ summary: '创建部门' })
   @ApiResultResponse(DeptItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   @ApiErrorResponse(HttpStatus.CONFLICT, '同级下已存在同名部门')
-  create(@Body() dto: CreateDeptDto) {
-    return this.deptService.create(dto);
+  create(@Body() dto: CreateDeptDto, @CurrentUser() actor: DataScopeActor) {
+    return this.deptService.create(dto, actor);
   }
 
   @Get('tree')
   @ApiOperation({ summary: '获取部门树形列表' })
   @ApiResultResponse(DeptTreeNodeDto, { isArray: true, description: '获取成功' })
-  findTree() {
-    return this.deptService.findTree();
+  findTree(@CurrentUser() actor: DataScopeActor) {
+    return this.deptService.findTree(actor);
   }
 
   @Get()
   @ApiOperation({ summary: '获取部门列表（平铺）' })
   @ApiResultResponse(DeptItemDto, { isArray: true, description: '获取成功' })
-  findAll() {
-    return this.deptService.findAll();
+  findAll(@CurrentUser() actor: DataScopeActor) {
+    return this.deptService.findAll(actor);
   }
 
   @Get(':id')
@@ -54,8 +56,8 @@ export class DeptController {
   @ApiParam({ name: 'id', description: '部门ID' })
   @ApiResultResponse(DeptItemDto, { description: '获取成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '部门不存在')
-  findOne(@Param('id') id: string) {
-    return this.deptService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() actor: DataScopeActor) {
+    return this.deptService.findOne(id, actor);
   }
 
   @Put(':id')
@@ -64,8 +66,8 @@ export class DeptController {
   @ApiParam({ name: 'id', description: '部门ID' })
   @ApiResultResponse(DeptItemDto, { description: '更新成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '部门不存在')
-  update(@Param('id') id: string, @Body() dto: UpdateDeptDto) {
-    return this.deptService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateDeptDto, @CurrentUser() actor: DataScopeActor) {
+    return this.deptService.update(id, dto, actor);
   }
 
   @Delete(':id')
@@ -75,7 +77,7 @@ export class DeptController {
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '部门不存在')
   @ApiErrorResponse(HttpStatus.CONFLICT, '存在子部门或用户，无法删除')
-  remove(@Param('id') id: string) {
-    return this.deptService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() actor: DataScopeActor) {
+    return this.deptService.remove(id, actor);
   }
 }

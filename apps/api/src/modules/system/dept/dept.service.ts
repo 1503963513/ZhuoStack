@@ -1,27 +1,24 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { RedisService } from '../../../database/redis.service';
 import { CreateDeptDto, UpdateDeptDto } from './dto';
 import type { SysDept } from '@prisma/client';
+import { DataScopeActor, DataScopeService } from '../../../common/access/data-scope.service';
 
 type DeptTreeNode = SysDept & { children: DeptTreeNode[] };
-
-// 缓存键
-const DEPT_TREE_CACHE_KEY = 'dept:tree';
-const DEPT_LIST_CACHE_KEY = 'dept:list';
-const CACHE_TTL = 3600; // 1 小时
 
 @Injectable()
 export class DeptService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redisService: RedisService,
+    private readonly dataScopeService: DataScopeService,
   ) {}
 
   /**
    * 创建部门
    */
-  async create(dto: CreateDeptDto) {
+  async create(dto: CreateDeptDto, actor: DataScopeActor) {
+    if (dto.parentId) await this.dataScopeService.assertCanAccessDept(dto.parentId, actor);
+    else await this.dataScopeService.assertCanManageRootDept(actor);
     const existing = await this.prisma.sysDept.findFirst({
       where: { name: dto.name, parentId: dto.parentId || null },
     });
@@ -40,46 +37,40 @@ export class DeptService {
       },
     });
 
-    // 清除部门缓存
-    await this.clearDeptCache();
     return result;
   }
 
   /**
    * 获取部门树形列表
    */
-  async findTree() {
-    const cached = await this.redisService.get(DEPT_TREE_CACHE_KEY);
-    if (cached) return cached;
-
+  async findTree(actor: DataScopeActor) {
+    const visibleIds = await this.dataScopeService.getVisibleDeptIds(actor);
     const depts = await this.prisma.sysDept.findMany({
+      where: visibleIds === null ? {} : { id: { in: visibleIds } },
       orderBy: { sort: 'asc' },
     });
 
-    const tree = this.buildTree(depts);
-    await this.redisService.set(DEPT_TREE_CACHE_KEY, tree, CACHE_TTL);
-    return tree;
+    return this.buildTree(depts);
   }
 
   /**
    * 获取部门列表（平铺）
    */
-  async findAll() {
-    const cached = await this.redisService.get(DEPT_LIST_CACHE_KEY);
-    if (cached) return cached;
-
+  async findAll(actor: DataScopeActor) {
+    const visibleIds = await this.dataScopeService.getVisibleDeptIds(actor);
     const depts = await this.prisma.sysDept.findMany({
+      where: visibleIds === null ? {} : { id: { in: visibleIds } },
       orderBy: { sort: 'asc' },
     });
 
-    await this.redisService.set(DEPT_LIST_CACHE_KEY, depts, CACHE_TTL);
     return depts;
   }
 
   /**
    * 获取部门详情
    */
-  async findOne(id: string) {
+  async findOne(id: string, actor: DataScopeActor) {
+    await this.dataScopeService.assertCanAccessDept(id, actor);
     const dept = await this.prisma.sysDept.findUnique({
       where: { id },
     });
@@ -94,8 +85,13 @@ export class DeptService {
   /**
    * 更新部门
    */
-  async update(id: string, dto: UpdateDeptDto) {
-    const current = await this.findOne(id);
+  async update(id: string, dto: UpdateDeptDto, actor: DataScopeActor) {
+    const current = await this.findOne(id, actor);
+    if (dto.parentId !== undefined && dto.parentId !== current.parentId) {
+      await this.dataScopeService.assertCanManageDeptSubtree(id, actor);
+    }
+    if (dto.parentId) await this.dataScopeService.assertCanAccessDept(dto.parentId, actor);
+    else if (dto.parentId === null) await this.dataScopeService.assertCanManageRootDept(actor);
 
     // name 或 parentId 任一变化时，校验同级唯一性
     if (dto.name !== undefined || dto.parentId !== undefined) {
@@ -120,16 +116,14 @@ export class DeptService {
       data: dto,
     });
 
-    // 清除部门缓存
-    await this.clearDeptCache();
     return result;
   }
 
   /**
    * 删除部门
    */
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, actor: DataScopeActor) {
+    await this.findOne(id, actor);
 
     // 检查是否有子部门
     const children = await this.prisma.sysDept.findMany({
@@ -151,17 +145,7 @@ export class DeptService {
 
     await this.prisma.sysDept.delete({ where: { id } });
 
-    // 清除部门缓存
-    await this.clearDeptCache();
     return { message: '删除成功' };
-  }
-
-  /**
-   * 清除部门缓存
-   */
-  private async clearDeptCache(): Promise<void> {
-    await this.redisService.del(DEPT_TREE_CACHE_KEY);
-    await this.redisService.del(DEPT_LIST_CACHE_KEY);
   }
 
   /**
@@ -171,8 +155,13 @@ export class DeptService {
     depts: SysDept[],
     parentId: string | null = null,
   ): DeptTreeNode[] {
+    const visibleIds = new Set(depts.map((dept) => dept.id));
     return depts
-      .filter((dept) => dept.parentId === parentId)
+      .filter((dept) =>
+        parentId === null
+          ? !dept.parentId || !visibleIds.has(dept.parentId)
+          : dept.parentId === parentId,
+      )
       .map((dept) => ({
         ...dept,
         children: this.buildTree(depts, dept.id),

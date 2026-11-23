@@ -10,7 +10,8 @@ model SysDept {
 
   parent   SysDept?  @relation("DeptTree", fields: [parentId], references: [id])
   children SysDept[] @relation("DeptTree")
-  users    User[]
+  users     User[]
+  dataRoles SysRole[]
 
   @@index([parentId])
   @@map("sys_dept")

@@ -24,6 +24,7 @@ describe('UserService', () => {
     adminCount?: number;
   } = {}) {
     const findUnique = jest.fn().mockResolvedValue(existingUser);
+    const findFirst = jest.fn().mockResolvedValue(existingUser);
     const update = jest.fn().mockResolvedValue({ id: 'user-1' });
     const deleteUser = jest.fn().mockResolvedValue({ id: 'user-1' });
     const count = jest.fn().mockResolvedValue(options.adminCount ?? 2);
@@ -39,7 +40,7 @@ describe('UserService', () => {
       async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
     );
     const prisma = {
-      user: { findUnique, update },
+      user: { findUnique, findFirst, update },
       $transaction: transaction,
     } as unknown as PrismaService;
     const decryptPassword = jest.fn((encrypted: string) => `plain:${encrypted}`);
@@ -50,7 +51,7 @@ describe('UserService', () => {
     } as unknown as AuthService;
 
     return {
-      service: new UserService(prisma, authService),
+      service: new UserService(prisma, authService, { assertCanAccessDept: jest.fn(), getUserWhere: jest.fn().mockResolvedValue({}) } as never),
       findUnique,
       update,
       deleteUser,
@@ -66,7 +67,7 @@ describe('UserService', () => {
       const { service, update, decryptPassword, revokeUserSessions } = createService();
       const encryptedPassword = 'rsa-ciphertext';
 
-      await service.update('user-1', { password: encryptedPassword });
+      await service.update('user-1', { password: encryptedPassword }, { id: 'admin', role: Role.ADMIN });
 
       expect(decryptPassword).toHaveBeenCalledWith(encryptedPassword);
       const updateArgs = update.mock.calls[0]?.[0] as {
@@ -87,7 +88,7 @@ describe('UserService', () => {
         adminCount: 1,
       });
 
-      await expect(service.update('user-1', { role: Role.USER })).rejects.toBeInstanceOf(
+      await expect(service.update('user-1', { role: Role.USER }, { id: 'admin', role: Role.ADMIN })).rejects.toBeInstanceOf(
         BadRequestException,
       );
 
@@ -104,7 +105,7 @@ describe('UserService', () => {
         adminCount: 1,
       });
 
-      await expect(service.remove('user-1')).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.remove('user-1', { id: 'admin', role: Role.ADMIN })).rejects.toBeInstanceOf(BadRequestException);
 
       expect(count).toHaveBeenCalledWith({ where: { role: Role.ADMIN } });
       expect(deleteUser).not.toHaveBeenCalled();

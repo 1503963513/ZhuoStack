@@ -3,7 +3,7 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +28,7 @@ async function exportOpenApi() {
     );
   }
 
-  const { AppModule } = await import(appModulePath);
+  const { AppModule } = await import(pathToFileURL(appModulePath));
 
   const app = await NestFactory.create(AppModule, new FastifyAdapter(), {
     logger: false,

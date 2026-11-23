@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Status } from '@prisma/client';
+import { DataScope, Status } from '@prisma/client';
 
 export class RoleSimpleDto {
   @ApiProperty({ description: '角色 ID' })
@@ -19,6 +19,9 @@ export class RoleItemDto extends RoleSimpleDto {
   @ApiProperty({ enum: Status, description: '状态' })
   status: Status;
 
+  @ApiProperty({ enum: DataScope })
+  dataScope: DataScope;
+
   @ApiPropertyOptional({ type: String, description: '备注', nullable: true })
   remark: string | null;
 
@@ -30,6 +33,9 @@ export class RoleItemDto extends RoleSimpleDto {
 }
 
 export class RoleDetailDto extends RoleItemDto {
+  @ApiPropertyOptional({ type: [String], description: '自定义数据范围部门 ID 列表' })
+  dataDeptIds?: string[];
+
   @ApiPropertyOptional({
     description: '关联合同/菜单列表',
     type: () => [Object],

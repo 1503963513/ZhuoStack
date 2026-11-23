@@ -9,18 +9,21 @@ import { AuthService } from '../auth/auth.service';
 import { CreateUserDto, UpdateUserDto, QueryUserDto } from './dto';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { DataScopeActor, DataScopeService } from '../../common/access/data-scope.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    private readonly dataScopeService: DataScopeService,
   ) {}
 
   /**
    * Create a new user
    */
-  async create(dto: CreateUserDto) {
+  async create(dto: CreateUserDto, actor: DataScopeActor) {
+    if (dto.deptId) await this.dataScopeService.assertCanAccessDept(dto.deptId, actor);
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -38,6 +41,7 @@ export class UserService {
         name: dto.name,
         password: hashedPassword,
         avatar: dto.avatar || null,
+        ...(dto.deptId && { dept: { connect: { id: dto.deptId } } }),
       },
       select: {
         id: true,
@@ -54,11 +58,11 @@ export class UserService {
   /**
    * Find all users with pagination and search
    */
-  async findAll(query: QueryUserDto) {
+  async findAll(query: QueryUserDto, actor: DataScopeActor) {
     const { page = 1, pageSize = 10, search } = query;
     const skip = (page - 1) * pageSize;
 
-    const where = search
+    const searchWhere: Prisma.UserWhereInput = search
       ? {
           OR: [
             { name: { contains: search } },
@@ -66,6 +70,9 @@ export class UserService {
           ],
         }
       : {};
+    const where: Prisma.UserWhereInput = {
+      AND: [await this.dataScopeService.getUserWhere(actor), searchWhere],
+    };
 
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -100,9 +107,9 @@ export class UserService {
   /**
    * Find user by ID
    */
-  async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+  async findOne(id: string, actor: DataScopeActor) {
+    const user = await this.prisma.user.findFirst({
+      where: { AND: [{ id }, await this.dataScopeService.getUserWhere(actor)] },
       select: {
         id: true,
         email: true,
@@ -127,8 +134,16 @@ export class UserService {
   /**
    * Update user by ID
    */
-  async update(id: string, dto: UpdateUserDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateUserDto, actor: DataScopeActor) {
+    const target = await this.findOne(id, actor);
+    if (dto.deptId) await this.dataScopeService.assertCanAccessDept(dto.deptId, actor);
+    if (dto.roleIds !== undefined) {
+      await this.dataScopeService.assertCanAssignRoles(
+        dto.roleIds,
+        dto.deptId ?? target.dept?.id ?? null,
+        actor,
+      );
+    }
 
     if (dto.email) {
       const existingUser = await this.prisma.user.findUnique({
@@ -198,7 +213,8 @@ export class UserService {
   /**
    * Delete user by ID
    */
-  async remove(id: string) {
+  async remove(id: string, actor: DataScopeActor) {
+    await this.findOne(id, actor);
     await this.prisma.$transaction(
       async (tx) => {
         const current = await tx.user.findUnique({ where: { id }, select: { role: true } });

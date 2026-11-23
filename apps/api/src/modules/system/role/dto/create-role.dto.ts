@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, IsOptional, IsInt, Min, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Status } from '@prisma/client';
+import { DataScope, Status } from '@prisma/client';
 
 export class CreateRoleDto {
   @ApiProperty({ description: '角色名称', example: '普通管理员' })
@@ -23,6 +23,10 @@ export class CreateRoleDto {
   @IsOptional()
   status?: Status;
 
+  @ApiPropertyOptional({ enum: DataScope, default: DataScope.ALL })
+  @IsOptional()
+  dataScope?: DataScope;
+
   @ApiPropertyOptional({ description: '备注' })
   @IsOptional()
   @IsString()
@@ -33,4 +37,10 @@ export class CreateRoleDto {
   @IsArray()
   @IsString({ each: true })
   menuIds?: string[];
+
+  @ApiPropertyOptional({ description: '自定义数据范围部门 ID 列表', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  dataDeptIds?: string[];
 }

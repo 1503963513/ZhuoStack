@@ -15,4 +15,6 @@ export interface CreateUserDto {
   password: string;
   /** User avatar URL */
   avatar?: string;
+  /** Department ID */
+  deptId?: string;
 }

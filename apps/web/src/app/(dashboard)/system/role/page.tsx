@@ -46,6 +46,7 @@ import {
 } from '@/api/generated/endpoints/system-role/system-role';
 import { getMenuTypeConfig } from "@/components/common/menu-type-badge";
 import { menuControllerFindTree } from '@/api/generated/endpoints/system-menu/system-menu';
+import { deptControllerFindAll } from '@/api/generated/endpoints/system-dept/system-dept';
 import type { RoleItemDto, MenuTreeNodeDto, CreateRoleDtoStatus } from '@/api/generated/models';
 
 
@@ -65,6 +66,7 @@ export default function RolePage() {
     sort: 0,
     status: 'ACTIVE' as CreateRoleDtoStatus,
     remark: '',
+    dataScope: 'ALL' as 'ALL' | 'DEPT_AND_CHILD' | 'DEPT' | 'CUSTOM' | 'SELF',
   });
 
   // 1. 获取分页角色列表
@@ -87,6 +89,11 @@ export default function RolePage() {
     queryKey: ['menu-tree'],
     queryFn: () => menuControllerFindTree(),
   });
+  const { data: deptResponse } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => deptControllerFindAll(),
+  });
+  const [selectedDeptIds, setSelectedDeptIds] = useState<Set<string>>(new Set());
 
   const menuTree = menuTreeResponse?.data || [];
   const roles = roleResponse?.data?.data || [];
@@ -107,6 +114,8 @@ export default function RolePage() {
         status: data.status,
         remark: data.remark || undefined,
         menuIds: Array.from(selectedMenuIds),
+        dataScope: data.dataScope,
+        dataDeptIds: Array.from(selectedDeptIds),
       }),
     onSuccess: () => {
       toast.success('创建成功');
@@ -127,6 +136,8 @@ export default function RolePage() {
         status: data.status,
         remark: data.remark || undefined,
         menuIds: Array.from(selectedMenuIds),
+        dataScope: data.dataScope,
+        dataDeptIds: Array.from(selectedDeptIds),
       });
     },
     onSuccess: () => {
@@ -139,8 +150,9 @@ export default function RolePage() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', code: '', sort: 0, status: 'ACTIVE', remark: '' });
+    setFormData({ name: '', code: '', sort: 0, status: 'ACTIVE', remark: '', dataScope: 'ALL' });
     setSelectedMenuIds(new Set());
+    setSelectedDeptIds(new Set());
     setEditingRole(null);
   };
 
@@ -157,14 +169,18 @@ export default function RolePage() {
       sort: role.sort,
       status: role.status,
       remark: role.remark || '',
+      dataScope: 'ALL',
     });
 
     try {
       const res = await roleControllerFindOne(role.id);
       const menus = (res.data?.menus as { id: string }[]) || [];
       setSelectedMenuIds(new Set(menus.map((m) => m.id)));
+      setFormData((current) => ({ ...current, dataScope: (res.data?.dataScope as typeof current.dataScope) || 'ALL' }));
+      setSelectedDeptIds(new Set((res.data?.dataDeptIds as string[]) || []));
     } catch {
       setSelectedMenuIds(new Set());
+      setSelectedDeptIds(new Set());
     }
 
     setDialogOpen(true);
@@ -370,6 +386,41 @@ export default function RolePage() {
                 </div>
               </div>
 
+              <div className="grid gap-2">
+                <Label htmlFor="data-scope">数据范围</Label>
+                <Select value={formData.dataScope} onValueChange={(value) => setFormData({ ...formData, dataScope: value as typeof formData.dataScope })}>
+                  <SelectTrigger id="data-scope"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">全部数据</SelectItem>
+                    <SelectItem value="DEPT_AND_CHILD">本部门及下级</SelectItem>
+                    <SelectItem value="DEPT">仅本部门</SelectItem>
+                    <SelectItem value="CUSTOM">自定义部门</SelectItem>
+                    <SelectItem value="SELF">仅本人</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.dataScope === 'ALL' && '可查看所有用户和部门数据。'}
+                  {formData.dataScope === 'DEPT_AND_CHILD' && '可查看当前用户所属部门及其所有下级部门的数据。'}
+                  {formData.dataScope === 'DEPT' && '仅可查看当前用户所属部门的数据，不包含下级部门。'}
+                  {formData.dataScope === 'CUSTOM' && '仅可查看下方勾选部门的数据；不会自动包含这些部门的下级部门。'}
+                  {formData.dataScope === 'SELF' && '仅可查看当前用户自己的用户记录。'}
+                  {' '}用户拥有多个启用角色时，数据范围按并集合并；系统管理员不受此设置限制。
+                </p>
+                {formData.dataScope === 'CUSTOM' && (
+                  <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-1">
+                    {(deptResponse?.data || []).map((dept) => (
+                      <label key={dept.id} className="flex items-center gap-2 text-sm py-1">
+                        <input type="checkbox" checked={selectedDeptIds.has(dept.id)} onChange={() => setSelectedDeptIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(dept.id)) next.delete(dept.id); else next.add(dept.id);
+                          return next;
+                        })} />
+                        {dept.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="remark">备注</Label>
                 <Input

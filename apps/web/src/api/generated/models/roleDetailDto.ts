@@ -5,6 +5,7 @@
  * ZhuoStack 基于 NestJS + Fastify + Prisma 的 API 文档
  * OpenAPI spec version: 1.0
  */
+import type { RoleDetailDtoDataScope } from './roleDetailDtoDataScope';
 import type { RoleDetailDtoMenusItem } from './roleDetailDtoMenusItem';
 import type { RoleDetailDtoStatus } from './roleDetailDtoStatus';
 
@@ -19,6 +20,7 @@ export interface RoleDetailDto {
   sort: number;
   /** 状态 */
   status: RoleDetailDtoStatus;
+  dataScope: RoleDetailDtoDataScope;
   /**
      * 备注
      * @nullable
@@ -28,6 +30,8 @@ export interface RoleDetailDto {
   createdAt: string;
   /** 更新时间 */
   updatedAt: string;
+  /** 自定义数据范围部门 ID 列表 */
+  dataDeptIds?: string[];
   /** 关联合同/菜单列表 */
   menus?: RoleDetailDtoMenusItem[];
 }

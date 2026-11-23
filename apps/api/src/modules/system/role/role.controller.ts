@@ -22,11 +22,13 @@ import {
 import {
   Permissions,
   ApiSessionAuth,
+  CurrentUser,
   ApiResultResponse,
   ApiPaginatedResultResponse,
   ApiErrorResponse,
 } from '../../../common/decorators';
 import { SimpleMessageResponseDto } from '../../user/dto/user-response.dto';
+import type { DataScopeActor } from '../../../common/access/data-scope.service';
 
 @ApiTags('system-role')
 @ApiSessionAuth()
@@ -73,8 +75,12 @@ export class RoleController {
   @ApiParam({ name: 'id', description: '角色ID' })
   @ApiResultResponse(RoleItemDto, { description: '更新成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '角色不存在')
-  update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    return this.roleService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoleDto,
+    @CurrentUser() actor: DataScopeActor,
+  ) {
+    return this.roleService.update(id, dto, actor);
   }
 
   @Delete(':id')

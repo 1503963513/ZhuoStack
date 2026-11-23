@@ -8025,6 +8025,10 @@
           "avatar": {
             "type": "string",
             "description": "User avatar URL"
+          },
+          "deptId": {
+            "type": "string",
+            "description": "Department ID"
           }
         },
         "required": [
@@ -8685,6 +8689,16 @@
             ],
             "description": "状态"
           },
+          "dataScope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "DEPT_AND_CHILD",
+              "DEPT",
+              "CUSTOM",
+              "SELF"
+            ]
+          },
           "remark": {
             "type": "string",
             "description": "备注",
@@ -8707,6 +8721,7 @@
           "code",
           "sort",
           "status",
+          "dataScope",
           "createdAt",
           "updatedAt"
         ]
@@ -8738,12 +8753,30 @@
             ],
             "default": "ACTIVE"
           },
+          "dataScope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "DEPT_AND_CHILD",
+              "DEPT",
+              "CUSTOM",
+              "SELF"
+            ],
+            "default": "ALL"
+          },
           "remark": {
             "type": "string",
             "description": "备注"
           },
           "menuIds": {
             "description": "菜单ID列表",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dataDeptIds": {
+            "description": "自定义数据范围部门 ID 列表",
             "type": "array",
             "items": {
               "type": "string"
@@ -8804,6 +8837,16 @@
             ],
             "description": "状态"
           },
+          "dataScope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "DEPT_AND_CHILD",
+              "DEPT",
+              "CUSTOM",
+              "SELF"
+            ]
+          },
           "remark": {
             "type": "string",
             "description": "备注",
@@ -8819,6 +8862,13 @@
             "type": "string",
             "description": "更新时间"
           },
+          "dataDeptIds": {
+            "description": "自定义数据范围部门 ID 列表",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "menus": {
             "description": "关联合同/菜单列表",
             "type": "array",
@@ -8833,6 +8883,7 @@
           "code",
           "sort",
           "status",
+          "dataScope",
           "createdAt",
           "updatedAt"
         ]
@@ -8864,12 +8915,30 @@
             ],
             "default": "ACTIVE"
           },
+          "dataScope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "DEPT_AND_CHILD",
+              "DEPT",
+              "CUSTOM",
+              "SELF"
+            ],
+            "default": "ALL"
+          },
           "remark": {
             "type": "string",
             "description": "备注"
           },
           "menuIds": {
             "description": "菜单ID列表",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dataDeptIds": {
+            "description": "自定义数据范围部门 ID 列表",
             "type": "array",
             "items": {
               "type": "string"

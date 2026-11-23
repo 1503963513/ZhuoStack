@@ -5,6 +5,7 @@
  * ZhuoStack 基于 NestJS + Fastify + Prisma 的 API 文档
  * OpenAPI spec version: 1.0
  */
+import type { RoleItemDtoDataScope } from './roleItemDtoDataScope';
 import type { RoleItemDtoStatus } from './roleItemDtoStatus';
 
 export interface RoleItemDto {
@@ -18,6 +19,7 @@ export interface RoleItemDto {
   sort: number;
   /** 状态 */
   status: RoleItemDtoStatus;
+  dataScope: RoleItemDtoDataScope;
   /**
      * 备注
      * @nullable

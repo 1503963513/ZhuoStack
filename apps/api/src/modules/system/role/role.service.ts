@@ -1,6 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { CreateRoleDto, UpdateRoleDto, QueryRoleDto } from './dto';
+import { DataScope, Role } from '@prisma/client';
+import type { DataScopeActor } from '../../../common/access/data-scope.service';
+
+const roleInclude = { menus: true, dataDepts: { select: { id: true } } } as const;
+
+function mapRole<T extends { dataDepts: { id: string }[] }>(role: T) {
+  const { dataDepts, ...rest } = role;
+  return { ...rest, dataDeptIds: dataDepts.map(({ id }) => id) };
+}
 
 @Injectable()
 export class RoleService {
@@ -10,6 +19,7 @@ export class RoleService {
    * 创建角色
    */
   async create(dto: CreateRoleDto) {
+    this.validateDataScope(dto.dataScope ?? DataScope.ALL, dto.dataDeptIds);
     const existing = await this.prisma.sysRole.findUnique({
       where: { code: dto.code },
     });
@@ -24,13 +34,17 @@ export class RoleService {
         code: dto.code,
         sort: dto.sort || 0,
         status: dto.status,
+        dataScope: dto.dataScope ?? DataScope.ALL,
         remark: dto.remark,
         menus: dto.menuIds?.length
           ? { connect: dto.menuIds.map((id) => ({ id })) }
           : undefined,
+        dataDepts: (dto.dataScope ?? DataScope.ALL) === DataScope.CUSTOM
+          ? { connect: dto.dataDeptIds!.map((id) => ({ id })) }
+          : undefined,
       },
-      include: { menus: true },
-    });
+      include: roleInclude,
+    }).then(mapRole);
   }
 
   /**
@@ -52,7 +66,7 @@ export class RoleService {
     const [data, total] = await Promise.all([
       this.prisma.sysRole.findMany({
         where,
-        include: { menus: true },
+        include: roleInclude,
         skip,
         take: pageSize,
         orderBy: { sort: 'asc' },
@@ -61,7 +75,7 @@ export class RoleService {
     ]);
 
     return {
-      data,
+      data: data.map(mapRole),
       pagination: {
         total,
         page,
@@ -88,21 +102,31 @@ export class RoleService {
   async findOne(id: string) {
     const role = await this.prisma.sysRole.findUnique({
       where: { id },
-      include: { menus: true },
+      include: roleInclude,
     });
 
     if (!role) {
       throw new NotFoundException(`角色 ${id} 不存在`);
     }
 
-    return role;
+    return mapRole(role);
   }
 
   /**
    * 更新角色
    */
-  async update(id: string, dto: UpdateRoleDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateRoleDto, actor: DataScopeActor) {
+    if (
+      actor.role !== Role.ADMIN &&
+      (dto.dataScope !== undefined || dto.dataDeptIds !== undefined)
+    ) {
+      throw new ForbiddenException('仅系统管理员可以修改角色的数据范围');
+    }
+
+    const current = await this.findOne(id);
+    const dataScope = dto.dataScope ?? current.dataScope;
+    const dataDeptIds = dto.dataDeptIds ?? current.dataDeptIds;
+    this.validateDataScope(dataScope, dataDeptIds);
 
     if (dto.code) {
       const existing = await this.prisma.sysRole.findUnique({
@@ -121,13 +145,23 @@ export class RoleService {
         code: dto.code,
         sort: dto.sort,
         status: dto.status,
+        ...(dto.dataScope !== undefined && { dataScope: dto.dataScope }),
         remark: dto.remark,
         menus: dto.menuIds
           ? { set: dto.menuIds.map((menuId) => ({ id: menuId })) }
           : undefined,
+        ...(dto.dataScope !== undefined || dto.dataDeptIds !== undefined
+          ? {
+              dataDepts: {
+                set: dataScope === DataScope.CUSTOM
+                  ? dataDeptIds.map((deptId) => ({ id: deptId }))
+                  : [],
+              },
+            }
+          : {}),
       },
-      include: { menus: true },
-    });
+      include: roleInclude,
+    }).then(mapRole);
   }
 
   /**
@@ -147,5 +181,11 @@ export class RoleService {
 
     await this.prisma.sysRole.delete({ where: { id } });
     return { message: '删除成功' };
+  }
+
+  private validateDataScope(dataScope: DataScope, dataDeptIds?: string[]) {
+    if (dataScope === DataScope.CUSTOM && !dataDeptIds?.length) {
+      throw new ConflictException('自定义数据范围至少需要选择一个部门');
+    }
   }
 }

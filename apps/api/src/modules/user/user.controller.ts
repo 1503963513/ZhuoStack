@@ -31,6 +31,7 @@ import {
 } from '../../common/decorators';
 import { extractAuthToken } from '../auth/auth-security';
 import type { FastifyRequest } from 'fastify';
+import type { DataScopeActor } from '../../common/access/data-scope.service';
 
 @ApiTags('user')
 @ApiSessionAuth()
@@ -44,15 +45,15 @@ export class UserController {
   @ApiOperation({ summary: '创建新用户（管理员）' })
   @ApiResultResponse(UserItemDto, { status: HttpStatus.CREATED, description: '创建成功' })
   @ApiErrorResponse(HttpStatus.CONFLICT, '邮箱已存在')
-  create(@Body() dto: CreateUserDto) {
-    return this.userService.create(dto);
+  create(@Body() dto: CreateUserDto, @CurrentUser() actor: DataScopeActor) {
+    return this.userService.create(dto, actor);
   }
 
   @Get()
     @ApiOperation({ summary: '获取用户列表（管理员）' })
   @ApiPaginatedResultResponse(UserItemDto, { description: '获取成功' })
-  findAll(@Query() query: QueryUserDto) {
-    return this.userService.findAll(query);
+  findAll(@Query() query: QueryUserDto, @CurrentUser() actor: DataScopeActor) {
+    return this.userService.findAll(query, actor);
   }
 
   @Get(':id')
@@ -60,8 +61,8 @@ export class UserController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResultResponse(UserDetailDto, { description: '获取成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() actor: DataScopeActor) {
+    return this.userService.findOne(id, actor);
   }
 
   @Put(':id')
@@ -70,8 +71,8 @@ export class UserController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResultResponse(UserItemDto, { description: '更新成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.userService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() actor: DataScopeActor) {
+    return this.userService.update(id, dto, actor);
   }
 
   @Delete(':id')
@@ -80,8 +81,8 @@ export class UserController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResultResponse(SimpleMessageResponseDto, { description: '删除成功' })
   @ApiErrorResponse(HttpStatus.NOT_FOUND, '用户不存在')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() actor: DataScopeActor) {
+    return this.userService.remove(id, actor);
   }
 
   @Post('change-password')

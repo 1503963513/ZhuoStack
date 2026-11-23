@@ -13,3 +13,11 @@ enum MenuType {
   MENU
   BUTTON
 }
+
+enum DataScope {
+  ALL
+  DEPT_AND_CHILD
+  DEPT
+  CUSTOM
+  SELF
+}

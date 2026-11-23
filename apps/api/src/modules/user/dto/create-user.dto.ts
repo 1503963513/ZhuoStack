@@ -22,4 +22,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @ApiPropertyOptional({ description: 'Department ID' })
+  @IsOptional()
+  @IsString()
+  deptId?: string;
 }
