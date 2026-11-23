@@ -14,7 +14,7 @@ COPY tsconfig.base.json turbo.json ./
 COPY apps/web apps/web
 RUN pnpm --filter web build
 
-FROM nginx:1.30.6-alpine3.24 AS runtime
+FROM nginx:1.30.7-alpine3.24 AS runtime
 RUN apk upgrade --no-cache
 
 COPY docker/nginx.conf /etc/nginx/nginx.http.conf
